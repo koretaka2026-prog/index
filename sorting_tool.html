@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チーム分けツール</title>
+    <style>
+        :root {
+            --bg-color: #111111;
+            --panel-bg: #1C1C1C;
+            --panel-border: #333333;
+            --text-main: #FFFFFF;
+            --text-sub: #888888;
+            --accent-gold: #D3A625;
+            --accent-red: #740001;
+            --accent-green: #1B4D3E;
+            --highlight-bg: #1A3A5F;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            color: #F0E6D2;
+            margin: 10px 0;
+        }
+
+        /* ファイル・設定読み込みエリア */
+        .file-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .file-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .setting-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--panel-border);
+            padding-top: 12px;
+        }
+
+        .setting-row label {
+            font-size: 0.95rem;
+            color: #E0E0E0;
+        }
+
+        .setting-row select {
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 6px 12px;
+            background-color: #333333;
+            color: #FFFFFF;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s, background-color 0.2s;
+            text-align: center;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-load { background-color: #333333; color: #FFFFFF; }
+        .btn-start { background-color: var(--accent-red); color: var(--accent-gold); flex: 1; min-width: 200px; }
+        .btn-export { background-color: var(--accent-green); color: #FFFFFF; flex: 1; min-width: 200px; }
+
+        .status-text {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        /* メイン演出ディスプレイ */
+        .display-card {
+            background-color: var(--panel-bg);
+            border: 3px ridge var(--panel-border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .target-name {
+            font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+            font-weight: bold;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .result-msg {
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        /* 操作ボタンエリア */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 結果リストエリア */
+        .results-container {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .results-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 5px;
+        }
+
+        .team-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .team-item {
+            background-color: #262626;
+            padding: 10px 12px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        @media (min-width: 600px) {
+            .team-item {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+
+        .team-name {
+            font-weight: bold;
+            color: var(--accent-gold);
+            min-width: 100px;
+        }
+
+        .team-members {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+
+        /* 非表示用ファイル入力 */
+        #csvFileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚡ チーム分けツール ⚡</h1>
+
+    <!-- ファイル読み込み・設定フレーム -->
+    <div class="file-section">
+        <div class="file-row">
+            <input type="file" id="csvFileInput" accept=".csv">
+            <button class="btn btn-load" onclick="document.getElementById('csvFileInput').click()">📁 メンバーCSVを読み込む</button>
+            <span id="statusLabel" class="status-text">メンバーが読み込まれていません</span>
+        </div>
+        <div class="setting-row">
+            <label for="teamSizeSelect">⚙️ 1チームあたりの基本人数:</label>
+            <select id="teamSizeSelect">
+                <option value="2">2人</option>
+                <option value="3">3人</option>
+                <option value="4" selected>4人</option>
+                <option value="5">5人</option>
+                <option value="6">6人</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- メイン演出ディスプレイ -->
+    <div id="displayCard" class="display-card">
+        <div id="targetNameLabel" class="target-name">CSVファイルを読み込んでください</div>
+        <div id="resultLabel" class="result-msg">上のボタンからメンバーのCSVファイルを選択してください</div>
+    </div>
+
+    <!-- 操作ボタンフレーム -->
+    <div class="action-buttons">
+        <button id="actionBtn" class="btn btn-start" onclick="startSorting()" disabled>✨ チーム分けを開始する ✨</button>
+        <button id="exportBtn" class="btn btn-export" onclick="exportCSV()" disabled>💾 結果をCSVで保存</button>
+    </div>
+
+    <!-- リアルタイム結果リスト表示用エリア -->
+    <div class="results-container">
+        <div class="results-title">チーム分け結果一覧</div>
+        <div id="teamListContainer" class="team-list">
+            <div style="color: var(--text-sub); text-align: center; padding: 20px;">まだチーム分けが行われていません</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let members = [];
+    let teamAssignments = {}; 
+    let teamMaxSizes = {};    
+    let currentMemberIndex = 0;
+
+    const csvFileInput = document.getElementById('csvFileInput');
+    const statusLabel = document.getElementById('statusLabel');
+    const teamSizeSelect = document.getElementById('teamSizeSelect');
+    const targetNameLabel = document.getElementById('targetNameLabel');
+    const resultLabel = document.getElementById('resultLabel');
+    const actionBtn = document.getElementById('actionBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const displayCard = document.getElementById('displayCard');
+    const teamListContainer = document.getElementById('teamListContainer');
+
+    // CSVファイルの読み込み処理
+    csvFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const text = event.target.result;
+                members = parseCSV(text);
+
+                if (members.length === 0) {
+                    alert("有効なメンバーが見つかりませんでした。");
+                    return;
+                }
+
+                shuffleArray(members);
+
+                statusLabel.textContent = `読み込み完了: ${members.length} 名`;
+                statusLabel.style.color = "#00FF00";
+                targetNameLabel.textContent = "準備完了";
+                resultLabel.textContent = "チーム分けを開始してください";
+                actionBtn.disabled = false;
+                exportBtn.disabled = true;
+                teamAssignments = {};
+                teamListContainer.innerHTML = '<div style="color: var(--text-sub); text-align: center; padding: 20px;">「チーム分けを開始する」を押してください</div>';
+
+            } catch (err) {
+                alert("ファイルの読み込みに失敗しました:\n" + err);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    function parseCSV(text) {
+        const lines = text.split(/\r\n|\n/);
+        const result = [];
+        const ignoreWords = ["名前", "氏名", "name"];
+
+        for (let line of lines) {
+            if (!line.trim()) continue;
+            const cols = line.split(',').map(col => col.trim().replace(/^["']|["']$/g, ''));
+            if (cols.length > 0 && cols[0]) {
+                const name = cols[0];
+                if (!ignoreWords.includes(name)) {
+                    result.push(name);
+                }
+            }
+        }
+        return result;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    // チーム分け開始
+    function startSorting() {
+        if (members.length === 0) return;
+
+        const totalMembers = members.length;
+        const baseSize = parseInt(teamSizeSelect.value, 10); // 選択された基本人数を取得
+        
+        const numTeams = Math.floor(totalMembers / baseSize);
+        const remainder = totalMembers % baseSize;
+
+        // もしメンバー数が選択した基本人数より少ない場合などのケア
+        if (numTeams === 0) {
+            alert(`メンバー数が少なすぎるため、1チーム ${baseSize} 人を設定できません。人数を減らすかメンバーを増やしてください。`);
+            return;
+        }
+
+        let teamIds = Array.from({ length: numTeams }, (_, i) => i + 1);
+        shuffleArray(teamIds);
+
+        teamMaxSizes = {};
+        teamIds.forEach((tId, i) => {
+            // 端数のメンバーがいるチームには「基本人数 + 1」を割り振る
+            teamMaxSizes[tId] = (i < remainder) ? baseSize + 1 : baseSize;
+        });
+
+        teamAssignments = {};
+        for (let i = 1; i <= numTeams; i++) {
+            teamAssignments[i] = [];
+        }
+
+        renderTeamList();
+
+        currentMemberIndex = 0;
+        actionBtn.disabled = true;
+        csvFileInput.value = ""; 
+        exportBtn.disabled = true;
+
+        nextSortingStep();
+    }
+
+    function renderTeamList() {
+        teamListContainer.innerHTML = "";
+        Object.keys(teamAssignments).forEach(tId => {
+            const item = document.createElement('div');
+            item.className = 'team-item';
+            item.id = `team-row-${tId}`;
+            item.innerHTML = `
+                <div class="team-name">チーム ${tId}</div>
+                <div class="team-members" id="team-members-${tId}">（メンバーなし）</div>
+            `;
+            teamListContainer.appendChild(item);
+        });
+    }
+
+    function nextSortingStep() {
+        if (currentMemberIndex >= members.length) {
+            targetNameLabel.textContent = "🎉 すべてのチーム分けが完了しました！ 🎉";
+            targetNameLabel.style.color = "#D3A625";
+            resultLabel.textContent = "お疲れ様でした！最高のチームで頑張りましょう！";
+            actionBtn.textContent = "✨ チーム分け終了 ✨";
+            actionBtn.disabled = true;
+            exportBtn.disabled = false;
+            return;
+        }
+
+        const currentMember = members[currentMemberIndex];
+        targetNameLabel.textContent = `次のメンバー: ${currentMember}`;
+        targetNameLabel.style.color = "#FFFFFF";
+        resultLabel.textContent = "抽選中……どこに決まるか！？";
+
+        animateRoulette(15, currentMember);
+    }
+
+    function animateRoulette(count, memberName) {
+        const availableTeams = Object.keys(teamAssignments).filter(
+            tId => teamAssignments[tId].length < teamMaxSizes[tId]
+        );
+
+        if (count > 0) {
+            const tempTeam = availableTeams.length > 0 ? availableTeams[Math.floor(Math.random() * availableTeams.length)] : 1;
+            resultLabel.textContent = `抽選中... [チーム ${tempTeam}]`;
+            setTimeout(() => animateRoulette(count - 1, memberName), 60);
+        } else {
+            const teamId = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+
+            teamAssignments[teamId].push(memberName);
+
+            const membersStr = teamAssignments[teamId].join(", ");
+            document.getElementById(`team-members-${teamId}`).textContent = membersStr;
+
+            displayCard.style.backgroundColor = "var(--highlight-bg)";
+            targetNameLabel.style.backgroundColor = "transparent";
+            resultLabel.textContent = `🌟 チーム ${teamId} に決定！ 🌟`;
+            resultLabel.style.color = "#FFD700";
+
+            currentMemberIndex++;
+            setTimeout(() => {
+                displayCard.style.backgroundColor = "var(--panel-bg)";
+                nextSortingStep();
+            }, 1500);
+        }
+    }
+
+    function exportCSV() {
+        if (Object.keys(teamAssignments).length === 0) {
+            alert("保存するチーム分け結果がありません。");
+            return;
+        }
+
+        // 最大のチームメンバー数を動的に割り出す（CSVのカセット数調整用）
+        let maxLen = 0;
+        Object.values(teamAssignments).forEach(mems => {
+            if (mems.length > maxLen) maxLen = mems.length;
+        });
+
+        let csvContent = "\uFEFF"; 
+        let header = ["チーム名"];
+        for (let i = 1; i <= maxLen; i++) {
+            header.push(`メンバー${i}`);
+        }
+        csvContent += header.join(",") + "\n";
+
+        const sortedTeamIds = Object.keys(teamAssignments).sort((a, b) => Number(a) - Number(b));
+        sortedTeamIds.forEach(tId => {
+            const mems = teamAssignments[tId];
+            let row = [`チーム ${tId}`, ...mems];
+            while(row.length < header.length) {
+                row.push("");
+            }
+            csvContent += row.map(cell => `"${cell}"`).join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "team_results.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
