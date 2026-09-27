@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>名前当て・写真当て</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Meiryo', 'Hiragino Sans', sans-serif;
+            background-color: #f3f4f6;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4">
+
+    <!-- メインアプリコンテナ -->
+    <div id="app" class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col items-center relative min-h-[550px] sm:min-h-[600px]">
+        
+        <!-- ヘッダー / タイトル -->
+        <div class="w-full flex justify-between items-center mb-4 sm:mb-6 border-b pb-3 sm:pb-4">
+            <h1 id="main-title" class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">名前当て・写真当て</h1>
+            <button id="config-btn" onclick="openConfigModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-xs sm:text-sm transition shadow-sm shrink-0">
+                ⚙️ 設定
+            </button>
+        </div>
+
+        <!-- ① スタート画面 -->
+        <div id="start-screen" class="w-full flex flex-col items-center justify-center py-2 sm:py-4">
+            <!-- モード選択 -->
+            <p class="text-base sm:text-lg font-bold text-gray-700 mb-3 text-center">1. モードを選んでください</p>
+            <div class="flex flex-col gap-2.5 sm:gap-3 w-full max-w-md mb-6">
+                <button onclick="selectMode('name')" id="btn-mode-name" class="mode-btn bg-blue-50 border-2 border-blue-600 text-blue-900 font-bold py-3 px-4 rounded-xl shadow-sm transition text-left flex flex-col">
+                    <span class="text-base">① 名前選択（顔を見て名前を選ぶ）</span>
+                </button>
+                <button onclick="selectMode('face')" id="btn-mode-face" class="mode-btn bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 px-4 rounded-xl shadow-sm transition text-left flex flex-col">
+                    <span class="text-base">② 顔選択（名前を見て顔を選ぶ）</span>
+                </button>
+                <button onclick="selectMode('random')" id="btn-mode-random" class="mode-btn bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 px-4 rounded-xl shadow-sm transition text-left flex flex-col">
+                    <span class="text-base">③ 名前か顔選択（ランダムに出題）</span>
+                </button>
+            </div>
+
+            <!-- 問題数選択 -->
+            <p class="text-base sm:text-lg font-bold text-gray-700 mb-3 text-center">2. 問題数を選んでください</p>
+            <div class="flex gap-3 w-full max-w-md mb-6">
+                <button onclick="selectCount(5)" id="btn-count-5" class="count-btn flex-1 bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 rounded-xl shadow-sm transition text-center">
+                    5問
+                </button>
+                <button onclick="selectCount(10)" id="btn-count-10" class="count-btn flex-1 bg-emerald-50 border-2 border-emerald-600 text-emerald-900 font-bold py-3 rounded-xl shadow-sm transition text-center">
+                    10問
+                </button>
+                <button onclick="selectCount(100)" id="btn-count-100" class="count-btn flex-1 bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 rounded-xl shadow-sm transition text-center">
+                    100問
+                </button>
+            </div>
+
+            <!-- スタートボタン -->
+            <div class="w-full max-w-md">
+                <button onclick="startGame()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-4 px-6 rounded-xl shadow-md transition text-lg text-center">
+                    ゲームスタート！ 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- ② ゲームプレイ画面 -->
+        <div id="game-screen" class="w-full flex flex-col items-center hidden">
+            <!-- 問題文 -->
+            <div id="question-label" class="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center"></div>
+
+            <!-- 画像表示エリア -->
+            <div id="image-container" class="relative w-56 h-56 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-gray-100 rounded-xl overflow-hidden shadow-inner flex items-center justify-center mb-4 sm:mb-6">
+                <div id="canvas-content" class="w-full h-full flex items-center justify-center"></div>
+                <canvas id="effect-canvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
+            </div>
+
+            <!-- 選択肢ボタンエリア -->
+            <div id="choice-container" class="w-full grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4"></div>
+        </div>
+
+        <!-- ③ 結果画面 -->
+        <div id="result-screen" class="w-full flex flex-col items-center hidden">
+            <div id="result-title" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center"></div>
+            
+            <div class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4 mb-6 max-h-60 sm:max-h-80 overflow-y-auto">
+                <h3 class="font-bold text-gray-700 mb-2 text-sm sm:text-base">間違ったペア一覧：</h3>
+                <div id="incorrect-list" class="space-y-1.5 text-gray-600 text-xs sm:text-sm"></div>
+            </div>
+
+            <button onclick="returnToTitle()" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 px-8 rounded-xl shadow-md transition text-base sm:text-lg">
+                タイトルに戻る
+            </button>
+        </div>
+
+    </div>
+
+    <!-- メンバー設定モーダル -->
+    <div id="config-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-3 sm:p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl p-4 sm:p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-3 sm:mb-4 border-b pb-3">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800">メンバー画像設定</h2>
+                <button onclick="closeConfigModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold px-2">&times;</button>
+            </div>
+            
+            <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-3 sm:mb-4 text-xs sm:text-sm text-amber-800 leading-relaxed">
+                📁 同階層の <b>images</b> フォルダにある画像を読み込むには、下のボタンからフォルダを選択してください（ファイル名から名前を自動取得します。例: <code>山田_太郎.jpg</code> ➡ 名前：山田 太郎）
+            </div>
+
+            <div class="mb-3 sm:mb-4">
+                <label class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow cursor-pointer inline-flex items-center gap-2">
+                    📂 images フォルダを一括選択して読み込む
+                    <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden" onchange="handleFolderSelect(event)">
+                </label>
+            </div>
+
+            <div id="member-list-editor" class="flex-1 overflow-y-auto space-y-2.5 mb-3 sm:mb-4 pr-1 border-t pt-3"></div>
+
+            <div class="flex justify-between items-center pt-3 border-t gap-2">
+                <button onclick="addMemberRow()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm shadow shrink-0">
+                    ＋ 追加
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="resetDefaultMembers()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm">
+                        サンプルに戻す
+                    </button>
+                    <button onclick="saveMembers()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 sm:px-5 py-2 rounded-lg text-xs sm:text-sm shadow">
+                        保存して適用
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultMembers = [
+            { name: "山田_太郎", url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80" },
+            { name: "佐藤_花子", url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80" },
+            { name: "鈴木_一郎", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80" },
+            { name: "高橋_美咲", url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80" },
+            { name: "田中_健太", url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80" },
+            { name: "渡辺_由美", url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=80" },
+            { name: "伊藤_修", url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80" },
+            { name: "山本_さくら", url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80" },
+            { name: "中村_翔", url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80" },
+            { name: "小林_真由美", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80" }
+        ];
+
+        let members = [];
+        let selectedQuizMode = 'name';
+        let selectedQuestionCount = 10;
+        
+        let quizMode = null;
+        let isImageQuizMode = true;
+        let questionCount = 0;
+        let maxQuestions = 10;
+        let incorrectPairs = [];
+        let currentCorrectMember = null;
+        let isAnswerLocked = false;
+
+        window.onload = function() {
+            loadMembersFromStorage();
+        };
+
+        function loadMembersFromStorage() {
+            const saved = localStorage.getItem('guess_game_members_local');
+            if (saved) {
+                try {
+                    members = JSON.parse(saved);
+                } catch(e) {
+                    members = [...defaultMembers];
+                }
+            } else {
+                members = [...defaultMembers];
+            }
+        }
+
+        // モード選択UIの切り替え
+        function selectMode(mode) {
+            selectedQuizMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.className = "mode-btn bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 px-4 rounded-xl shadow-sm transition text-left flex flex-col";
+            });
+            const activeBtn = document.getElementById(`btn-mode-${mode}`);
+            activeBtn.className = "mode-btn bg-blue-50 border-2 border-blue-600 text-blue-900 font-bold py-3 px-4 rounded-xl shadow-sm transition text-left flex flex-col";
+        }
+
+        // 問題数選択UIの切り替え
+        function selectCount(count) {
+            selectedQuestionCount = count;
+            document.querySelectorAll('.count-btn').forEach(btn => {
+                btn.className = "count-btn flex-1 bg-white border-2 border-gray-200 text-gray-800 font-bold py-3 rounded-xl shadow-sm transition text-center";
+            });
+            const activeBtn = document.getElementById(`btn-count-${count}`);
+            activeBtn.className = "count-btn flex-1 bg-emerald-50 border-2 border-emerald-600 text-emerald-900 font-bold py-3 rounded-xl shadow-sm transition text-center";
+        }
+
+        function handleFolderSelect(event) {
+            const files = event.target.files;
+            let newMembers = [];
+
+            for (let file of files) {
+                if (file.type.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(file.name)) {
+                    const lastDotIndex = file.name.lastIndexOf('.');
+                    const name = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
+                    const url = URL.createObjectURL(file);
+                    newMembers.push({ name, url });
+                }
+            }
+
+            if (newMembers.length > 0) {
+                members = newMembers;
+                renderMemberEditor();
+                alert(`${newMembers.length}件の画像を読み込みました！「保存して適用」を押してください。`);
+            } else {
+                alert("画像ファイルが見つかりませんでした。");
+            }
+        }
+
+        function startGame() {
+            if (members.length < 4) {
+                alert("メンバーが4人以上必要です。「設定」からメンバーを追加してください。");
+                return;
+            }
+            quizMode = selectedQuizMode;
+            questionCount = 0;
+            incorrectPairs = [];
+            
+            // 選択された問題数、または登録人数を上限にする（100問選んでもメンバーが10人なら10問になる等）
+            maxQuestions = Math.min(selectedQuestionCount, members.length);
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            nextQuestion();
+        }
+
+        function returnToTitle() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            if (questionCount >= maxQuestions) {
+                showResult();
+                return;
+            }
+            questionCount++;
+            isAnswerLocked = false;
+
+            if (quizMode === 'name') {
+                isImageQuizMode = true;
+            } else if (quizMode === 'face') {
+                isImageQuizMode = false;
+            } else {
+                isImageQuizMode = Math.random() < 0.5;
+            }
+
+            const shuffledMembers = [...members].sort(() => 0.5 - Math.random());
+            currentCorrectMember = shuffledMembers[0];
+
+            const choiceCount = Math.min(8, members.length);
+            let otherMembers = members.filter(m => m.name !== currentCorrectMember.name);
+            otherMembers.sort(() => 0.5 - Math.random());
+            
+            let choices = [currentCorrectMember, ...otherMembers.slice(0, choiceCount - 1)];
+            choices.sort(() => 0.5 - Math.random());
+
+            const questionLabel = document.getElementById('question-label');
+            const canvasContent = document.getElementById('canvas-content');
+            const choiceContainer = document.getElementById('choice-container');
+            const effectCanvas = document.getElementById('effect-canvas');
+
+            effectCanvas.classList.add('hidden');
+            canvasContent.innerHTML = '';
+
+            if (isImageQuizMode) {
+                questionLabel.innerText = `${questionCount}/${maxQuestions}問目 この人の名前は？`;
+                
+                const img = document.createElement('img');
+                img.src = currentCorrectMember.url;
+                img.className = "w-full h-full object-cover rounded-xl";
+                canvasContent.appendChild(img);
+
+                choiceContainer.innerHTML = '';
+                choices.forEach(m => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-white border-2 border-gray-200 hover:border-blue-500 active:bg-blue-100 text-gray-800 font-bold py-2.5 sm:py-3 px-2 rounded-xl shadow transition text-center text-xs sm:text-sm md:text-base flex items-center justify-center min-h-[50px] sm:min-h-[60px]";
+                    btn.innerText = m.name.replace('_', ' ');
+                    btn.onclick = () => checkAnswer(m.name === currentCorrectMember.name, m.name);
+                    choiceContainer.appendChild(btn);
+                });
+
+            } else {
+                questionLabel.innerText = `${questionCount}/${maxQuestions}問目 「${currentCorrectMember.name.replace('_', ' ')}」さんはどの人？`;
+                
+                canvasContent.innerHTML = `<div class="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 bg-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow text-center">${currentCorrectMember.name.replace('_', ' ')}</div>`;
+
+                choiceContainer.innerHTML = '';
+                choiceContainer.className = "w-full grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4";
+
+                choices.forEach(m => {
+                    const btn = document.createElement('button');
+                    btn.className = "relative aspect-square bg-gray-200 rounded-xl overflow-hidden border-4 border-transparent hover:border-blue-500 shadow transition focus:outline-none";
+                    
+                    const img = document.createElement('img');
+                    img.src = m.url;
+                    img.className = "w-full h-full object-cover";
+                    btn.appendChild(img);
+
+                    btn.onclick = () => checkAnswer(m.name === currentCorrectMember.name, m.name);
+                    choiceContainer.appendChild(btn);
+                });
+            }
+        }
+
+        function checkAnswer(isCorrect, selectedName) {
+            if (isAnswerLocked) return;
+            isAnswerLocked = true;
+
+            const buttons = document.getElementById('choice-container').getElementsByTagName('button');
+            for (let btn of buttons) {
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-not-allowed');
+            }
+
+            if (!isCorrect) {
+                incorrectPairs.push({ correct: currentCorrectMember.name, selected: selectedName });
+            }
+
+            const effectCanvas = document.getElementById('effect-canvas');
+            effectCanvas.classList.remove('hidden');
+            const ctx = effectCanvas.getContext('2d');
+            effectCanvas.width = effectCanvas.offsetWidth;
+            effectCanvas.height = effectCanvas.offsetHeight;
+
+            const w = effectCanvas.width;
+            const h = effectCanvas.height;
+            const margin = Math.min(w, h) * 0.15;
+            const lw = Math.max(4, w * 0.06);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.lineWidth = lw;
+            ctx.lineCap = 'round';
+
+            if (isCorrect) {
+                ctx.strokeStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(w / 2, h / 2, (Math.min(w, h) / 2) - margin, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else {
+                ctx.strokeStyle = '#3b82f6';
+                ctx.beginPath();
+                ctx.moveTo(margin, margin);
+                ctx.lineTo(w - margin, h - margin);
+                ctx.moveTo(w - margin, margin);
+                ctx.lineTo(margin, h - margin);
+                ctx.stroke();
+            }
+
+            setTimeout(() => {
+                nextQuestion();
+            }, 1200);
+        }
+
+        function showResult() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            const correctCount = maxQuestions - incorrectPairs.length;
+            document.getElementById('result-title').innerText = `${maxQuestions}問終了！ ${correctCount}/${maxQuestions}問正解`;
+
+            const listContainer = document.getElementById('incorrect-list');
+            listContainer.innerHTML = '';
+
+            if (incorrectPairs.length === 0) {
+                listContainer.innerHTML = '<p class="text-emerald-600 font-bold text-center py-2">全問正解です！おめでとうございます！ 🎉</p>';
+            } else {
+                incorrectPairs.forEach(pair => {
+                    const item = document.createElement('div');
+                    item.className = "bg-white p-2 rounded border border-gray-100 flex justify-between items-center text-xs sm:text-sm";
+                    item.innerHTML = `<span class="font-bold text-red-500">正解: ${pair.correct.replace('_', ' ')}</span> <span class="text-gray-400">→</span> <span class="text-gray-700">選んだ回答: ${pair.selected.replace('_', ' ')}</span>`;
+                    listContainer.appendChild(item);
+                });
+            }
+        }
+
+        function openConfigModal() {
+            renderMemberEditor();
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function renderMemberEditor() {
+            const container = document.getElementById('member-list-editor');
+            container.innerHTML = '';
+
+            members.forEach((m, index) => {
+                const row = document.createElement('div');
+                row.className = "flex gap-2 items-center bg-gray-50 p-2 rounded-xl border";
+                row.innerHTML = `
+                    <input type="text" value="${m.name}" placeholder="名前" class="member-name-input flex-1 border rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:outline-none focus:border-blue-500">
+                    <span class="text-[10px] sm:text-xs text-gray-500 truncate max-w-[100px] sm:max-w-[150px]">${m.url.substring(0, 30)}...</span>
+                    <button onclick="removeMemberRow(${index})" class="bg-red-100 hover:bg-red-200 text-red-600 px-2.5 py-1.5 rounded-lg text-xs font-bold shrink-0">削除</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addMemberRow() {
+            members.push({ name: "新しい_メンバー", url: "" });
+            renderMemberEditor();
+        }
+
+        function removeMemberRow(index) {
+            if (members.length <= 4) {
+                alert("最低4人必要です。");
+                return;
+            }
+            members.splice(index, 1);
+            renderMemberEditor();
+        }
+
+        function resetDefaultMembers() {
+            if (confirm("サンプルに戻しますか？")) {
+                members = [...defaultMembers];
+                renderMemberEditor();
+            }
+        }
+
+        function saveMembers() {
+            const nameInputs = document.getElementsByClassName('member-name-input');
+            
+            let newMembers = [];
+            for (let i = 0; i < nameInputs.length; i++) {
+                const name = nameInputs[i].value.trim();
+                const url = members[i] ? members[i].url : "";
+                if (name && url) {
+                    newMembers.push({ name, url });
+                }
+            }
+
+            if (newMembers.length < 4) {
+                alert("有効なメンバーを4人以上設定してください。");
+                return;
+            }
+
+            members = newMembers;
+            localStorage.setItem('guess_game_members_local', JSON.stringify(members));
+            closeConfigModal();
+            alert("設定を保存しました！");
+        }
+    </script>
+</body>
+</html>
