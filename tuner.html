@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-feature Guitar Tuner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444',
+                        accentYellow: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6)); }
+        }
+        .animate-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        .needle-transition {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between font-sans selection:bg-emerald-500 selection:text-white">
+
+    <header class="w-full py-4 px-6 border-b border-slate-800 flex justify-between items-center bg-cardBg/50 backdrop-blur sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="music" class="w-6 h-6 text-emerald-400"></i>
+            <h1 class="text-lg font-bold tracking-wider">Pro Guitar Tuner</h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="modeToggleBtn" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium transition active:scale-95">
+                <i data-lucide="sliders" class="w-4 h-4 text-emerald-400"></i>
+                <span id="modeLabel">マイク入力モード</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 max-w-xl mx-auto w-full space-y-6">
+
+        <!-- Error / Info Banner -->
+        <div id="statusBanner" class="w-full bg-slate-800/80 border border-slate-700 p-3 rounded-xl text-sm text-slate-300 flex items-center space-x-2 shadow-lg hidden">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-amber-400 shrink-0"></i>
+            <span id="statusMessage" class="flex-grow">マイクボタンを押してチューニングを開始してください。</span>
+        </div>
+
+        <!-- Tuner Section (Microphone Mode) -->
+        <section id="tunerSection" class="w-full flex flex-col items-center space-y-6 bg-cardBg p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-800 relative overflow-hidden">
+            
+            <!-- Background ambient glow -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Preset Tuning Selector -->
+            <div class="w-full flex flex-col space-y-2 z-10">
+                <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    <span>チューニングプリセット</span>
+                    <span id="currentPresetName" class="text-emerald-400">レギュラー (E Standard)</span>
+                </div>
+                <div id="presetContainer" class="grid grid-cols-3 gap-2">
+                    <!-- Preset buttons inserted dynamically or statically -->
+                    <button data-preset="standard" class="preset-btn px-3 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 text-xs font-medium transition hover:bg-emerald-600/30 active:scale-95">レギュラー</button>
+                    <button data-preset="dropD" class="preset-btn px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium transition hover:bg-slate-700 active:scale-95">ドロップD</button>
+                    <button data-preset="halfStepDown" class="preset-btn px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium transition hover:bg-slate-700 active:scale-95">半音下げ</button>
+                </div>
+            </div>
+
+            <!-- Target Note & Frequency Display -->
+            <div class="flex flex-col items-center z-10 my-2">
+                <div class="text-sm font-medium text-slate-400 mb-1">検出音名</div>
+                <div class="flex items-baseline space-x-2">
+                    <span id="detectedNote" class="text-6xl font-black tracking-tight text-white animate-glow">--</span>
+                    <span id="detectedOctave" class="text-2xl font-bold text-emerald-400"></span>
+                </div>
+                <div class="flex items-center space-x-2 mt-2 bg-slate-900/60 px-4 py-1.5 rounded-full border border-slate-800">
+                    <span id="detectedFreq" class="text-lg font-mono font-semibold text-slate-300">0.0</span>
+                    <span class="text-xs text-slate-500">Hz</span>
+                    <span class="text-slate-600">|</span>
+                    <span id="targetFreqInfo" class="text-xs text-slate-400">目標: -- Hz</span>
+                </div>
+            </div>
+
+            <!-- Visual Needle Meter -->
+            <div class="w-full flex flex-col items-center space-y-3 z-10">
+                <div class="relative w-full h-24 bg-slate-900/80 rounded-2xl border border-slate-800 flex flex-col justify-center items-center overflow-hidden shadow-inner">
+                    
+                    <!-- Centered Ticks & Scale -->
+                    <div class="absolute w-full flex justify-between px-6 text-[10px] font-mono text-slate-500 top-2">
+                        <span>-50c</span>
+                        <span>-25c</span>
+                        <span class="text-emerald-400 font-bold">0</span>
+                        <span>+25c</span>
+                        <span>+50c</span>
+                    </div>
+
+                    <div class="absolute w-full flex justify-between px-6 top-7 pointer-events-none">
+                        <div class="w-px h-3 bg-slate-700"></div>
+                        <div class="w-px h-2 bg-slate-800"></div>
+                        <div class="w-px h-2 bg-slate-800"></div>
+                        <div class="w-px h-3 bg-emerald-500/80"></div>
+                        <div class="w-px h-2 bg-slate-800"></div>
+                        <div class="w-px h-2 bg-slate-800"></div>
+                        <div class="w-px h-3 bg-slate-700"></div>
+                    </div>
+
+                    <!-- Center Perfect Line Indicator -->
+                    <div class="absolute w-0.5 h-12 bg-emerald-500/50 top-6"></div>
+
+                    <!-- Moving Needle -->
+                    <div id="tunerNeedle" class="absolute w-1 h-14 bg-gradient-to-t from-emerald-500 to-cyan-400 rounded-full top-5 transition-transform duration-75 shadow-[0_0_10px_rgba(16,185,129,0.8)] needle-transition"></div>
+
+                    <!-- Cent Status Text -->
+                    <div class="absolute bottom-2 text-xs font-semibold tracking-wide" id="tuningStatusText">
+                        音を入力してください
+                    </div>
+                </div>
+                <div class="flex justify-between w-full text-xs text-slate-400 px-1 font-medium">
+                    <span class="text-amber-400">低すぎます (Low)</span>
+                    <span id="centDisplay" class="font-mono font-bold text-slate-200">0 cent</span>
+                    <span class="text-amber-400">高すぎます (High)</span>
+                </div>
+            </div>
+
+            <!-- Main Mic Control Button -->
+            <div class="w-full z-10 pt-2">
+                <button id="toggleMicBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center space-x-2 transition active:scale-98">
+                    <i data-lucide="mic" class="w-5 h-5"></i>
+                    <span id="micBtnText">チューニング開始 (マイク有効化)</span>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- Reference Tone Section (Ear Training / String Reference) -->
+        <section id="referenceSection" class="w-full bg-cardBg p-6 rounded-2xl shadow-xl border border-slate-800 space-y-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="volume-2" class="w-5 h-5 text-emerald-400"></i>
+                    <h2 class="text-sm font-bold tracking-wider uppercase text-slate-300">基準音プレイヤー (サウンド確認)</h2>
+                </div>
+                <span class="text-xs text-slate-500">タップして発音</span>
+            </div>
+            
+            <!-- String buttons container -->
+            <div id="stringButtonsContainer" class="grid grid-cols-6 gap-2">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-800/60 bg-cardBg/30">
+        <p>&copy; 2026 Pro Guitar Tuner. Built for Mobile & Desktop.</p>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Audio & Tuning State Variables
+        let audioContext = null;
+        let analyser = null;
+        let microphoneStream = null;
+        let isListening = false;
+        let animationFrameId = null;
+
+        // Oscillator for reference tones
+        let activeOscillator = null;
+        let activeGainNode = null;
+        let currentPlayingString = null;
+
+        // Tuner configuration & Presets
+        const presets = {
+            standard: {
+                name: "レギュラー (E Standard)",
+                strings: [
+                    { name: "E", octave: 2, freq: 82.41, label: "6弦 (E)" },
+                    { name: "A", octave: 2, freq: 110.00, label: "5弦 (A)" },
+                    { name: "D", octave: 3, freq: 146.83, label: "4弦 (D)" },
+                    { name: "G", octave: 3, freq: 196.00, label: "3弦 (G)" },
+                    { name: "B", octave: 3, freq: 246.94, label: "2弦 (B)" },
+                    { name: "E", octave: 4, freq: 329.63, label: "1弦 (E)" }
+                ]
+            },
+            dropD: {
+                name: "ドロップD (Drop D)",
+                strings: [
+                    { name: "D", octave: 2, freq: 73.42, label: "6弦 (D)" },
+                    { name: "A", octave: 2, freq: 110.00, label: "5弦 (A)" },
+                    { name: "D", octave: 3, freq: 146.83, label: "4弦 (D)" },
+                    { name: "G", octave: 3, freq: 196.00, label: "3弦 (G)" },
+                    { name: "B", octave: 3, freq: 246.94, label: "2弦 (B)" },
+                    { name: "E", octave: 4, freq: 329.63, label: "1弦 (E)" }
+                ]
+            },
+            halfStepDown: {
+                name: "半音下げ (1-Step Down)",
+                strings: [
+                    { name: "D#", octave: 2, freq: 77.78, label: "6弦 (D#)" },
+                    { name: "G#", octave: 2, freq: 103.83, label: "5弦 (G#)" },
+                    { name: "C#", octave: 3, freq: 138.59, label: "4弦 (C#)" },
+                    { name: "F#", octave: 3, freq: 185.00, label: "3弦 (F#)" },
+                    { name: "A#", octave: 3, freq: 233.08, label: "2弦 (A#)" },
+                    { name: "D#", octave: 4, freq: 311.13, label: "1弦 (D#)" }
+                ]
+            }
+        };
+
+        let currentPresetKey = 'standard';
+
+        // DOM Element references
+        const toggleMicBtn = document.getElementById('toggleMicBtn');
+        const micBtnText = document.getElementById('micBtnText');
+        const statusBanner = document.getElementById('statusBanner');
+        const statusMessage = document.getElementById('statusMessage');
+        const detectedNoteEl = document.getElementById('detectedNote');
+        const detectedOctaveEl = document.getElementById('detectedOctave');
+        const detectedFreqEl = document.getElementById('detectedFreq');
+        const targetFreqInfoEl = document.getElementById('targetFreqInfo');
+        const tunerNeedle = document.getElementById('tunerNeedle');
+        const centDisplay = document.getElementById('centDisplay');
+        const tuningStatusText = document.getElementById('tuningStatusText');
+        const currentPresetName = document.getElementById('currentPresetName');
+        const presetContainer = document.getElementById('presetContainer');
+        const stringButtonsContainer = document.getElementById('stringButtonsContainer');
+
+        // Initialize UI Elements & Event Listeners
+        function initApp() {
+            renderPresetButtons();
+            renderStringReferenceButtons();
+
+            toggleMicBtn.addEventListener('click', toggleMicrophone);
+        }
+
+        function showBanner(message, isError = false) {
+            statusBanner.classList.remove('hidden');
+            statusMessage.textContent = message;
+            if (isError) {
+                statusBanner.classList.add('border-red-500/50', 'bg-red-950/40');
+            } else {
+                statusBanner.classList.remove('border-red-500/50', 'bg-red-950/40');
+            }
+        }
+
+        // Render Preset selector buttons
+        function renderPresetButtons() {
+            const buttons = presetContainer.querySelectorAll('.preset-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const presetKey = e.target.getAttribute('data-preset');
+                    switchPreset(presetKey);
+                });
+            });
+        }
+
+        function switchPreset(key) {
+            currentPresetKey = key;
+            currentPresetName.textContent = presets[key].name;
+
+            // Highlight active preset button
+            presetContainer.querySelectorAll('.preset-btn').forEach(btn => {
+                if (btn.getAttribute('data-preset') === key) {
+                    btn.className = "preset-btn px-3 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 text-xs font-medium transition hover:bg-emerald-600/30 active:scale-95";
+                } else {
+                    btn.className = "preset-btn px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium transition hover:bg-slate-700 active:scale-95";
+                }
+            });
+
+            renderStringReferenceButtons();
+        }
+
+        // Render String Reference Buttons (Oscillator generation)
+        function renderStringReferenceButtons() {
+            stringButtonsContainer.innerHTML = '';
+            const strings = presets[currentPresetKey].strings;
+
+            strings.forEach((str, index) => {
+                const btn = document.createElement('button');
+                btn.className = "flex flex-col items-center justify-center p-3 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 transition active:scale-95 group";
+                btn.innerHTML = `
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-emerald-400">${str.name}${str.octave}</span>
+                    <span class="text-[10px] text-slate-500 mt-0.5">${6 - index}弦</span>
+                `;
+                btn.addEventListener('click', () => playReferenceTone(str.freq, btn));
+                stringButtonsContainer.appendChild(btn);
+            });
+        }
+
+        // Play Reference Tone using Web Audio API Oscillator
+        function playReferenceTone(freq, buttonElement) {
+            // Stop existing tone if playing
+            stopReferenceTone();
+
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            activeOscillator = audioContext.createOscillator();
+            activeGainNode = audioContext.createGain();
+
+            activeOscillator.type = 'sine';
+            activeOscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+
+            // Smooth envelope to avoid popping
+            activeGainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            activeGainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+            activeGainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 2.5);
+
+            activeOscillator.connect(activeGainNode);
+            activeGainNode.connect(audioContext.destination);
+
+            activeOscillator.start();
+            activeOscillator.stop(audioContext.currentTime + 2.5);
+
+            // Visual feedback on button
+            buttonElement.classList.add('bg-emerald-600/30', 'border-emerald-500');
+            setTimeout(() => {
+                buttonElement.classList.remove('bg-emerald-600/30', 'border-emerald-500');
+            }, 2500);
+
+            activeOscillator.onended = () => {
+                activeOscillator = null;
+                activeGainNode = null;
+            };
+        }
+
+        function stopReferenceTone() {
+            if (activeOscillator) {
+                try {
+                    activeOscillator.stop();
+                } catch(e) {}
+                activeOscillator = null;
+                activeGainNode = null;
+            }
+        }
+
+        // Microphone & Pitch Detection handling
+        async function toggleMicrophone() {
+            if (isListening) {
+                stopMicrophone();
+            } else {
+                await startMicrophone();
+            }
+        }
+
+        async function startMicrophone() {
+            try {
+                showBanner("マイクへのアクセスを求めています...");
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("お使いのブラウザはマイク入力に対応していません。");
+                }
+
+                microphoneStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        echoCancellation: true, 
+                        autoGainControl: false, 
+                        noiseSuppression: true 
+                    }, 
+                    video: false 
+                });
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                const source = audioContext.createMediaStreamSource(microphoneStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+
+                source.connect(analyser);
+
+                isListening = true;
+                toggleMicBtn.innerHTML = `<i data-lucide="mic-off" class="w-5 h-5"></i><span id="micBtnText">チューニング停止</span>`;
+                toggleMicBtn.className = "w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white font-bold text-base shadow-lg shadow-red-500/25 flex items-center justify-center space-x-2 transition active:scale-98";
+                lucide.createIcons();
+
+                showBanner("マイクが有効です。ギターを弾いてください。");
+                updatePitch();
+
+            } catch (err) {
+                console.error(err);
+                showBanner("マイクの許可が得られなかったか、エラーが発生しました: " + err.message, true);
+                stopMicrophone();
+            }
+        }
+
+        function stopMicrophone() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            if (microphoneStream) {
+                microphoneStream.getTracks().forEach(track => track.stop());
+                microphoneStream = null;
+            }
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            isListening = false;
+            toggleMicBtn.innerHTML = `<i data-lucide="mic" class="w-5 h-5"></i><span id="micBtnText">チューニング開始 (マイク有効化)</span>`;
+            toggleMicBtn.className = "w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center space-x-2 transition active:scale-98";
+            lucide.createIcons();
+
+            resetDisplay();
+            showBanner("チューニングを停止しました。");
+        }
+
+        function resetDisplay() {
+            detectedNoteEl.textContent = "--";
+            detectedOctaveEl.textContent = "";
+            detectedFreqEl.textContent = "0.0";
+            targetFreqInfoEl.textContent = "目標: -- Hz";
+            tunerNeedle.style.transform = `translateX(0px)`;
+            centDisplay.textContent = "0 cent";
+            tuningStatusText.textContent = "音を入力してください";
+            tuningStatusText.className = "absolute bottom-2 text-xs font-semibold tracking-wide text-slate-400";
+        }
+
+        // Pitch Detection (Auto-correlation method via YIN / Buffer analysis)
+        function updatePitch() {
+            if (!isListening || !analyser) return;
+
+            const bufferLength = analyser.fftSize;
+            const buffer = new Float32Array(bufferLength);
+            analyser.getFloatTimeDomainData(buffer);
+
+            const freq = autoCorrelate(buffer, audioContext.sampleRate);
+
+            if (freq !== -1) {
+                const noteInfo = getNoteFromPitch(freq);
+                detectedNoteEl.textContent = noteInfo.name;
+                detectedOctaveEl.textContent = noteInfo.octave;
+                detectedFreqEl.textContent = freq.toFixed(1);
+
+                // Find closest target string in current preset to show guidance
+                const currentStrings = presets[currentPresetKey].strings;
+                let closestString = currentStrings.reduce((prev, curr) => {
+                    return (Math.abs(curr.freq - freq) < Math.abs(prev.freq - freq) ? curr : prev);
+                });
+
+                targetFreqInfoEl.textContent = `目標 (${closestString.name}${closestString.octave}): ${closestString.freq} Hz`;
+
+                // Calculate Cents relative to closest target string or nearest note
+                const cents = 1200 * Math.log2(freq / noteInfo.freq);
+                centDisplay.textContent = `${cents > 0 ? '+' : ''}${cents.toFixed(0)} cent`;
+
+                // Move Needle (-50c to +50c range mapped across width, e.g., -120px to +120px)
+                const clampedCents = Math.max(-50, Math.min(50, cents));
+                const maxTranslatePx = 130; // Max pixel shift from center
+                const translateX = (clampedCents / 50) * maxTranslatePx;
+                tunerNeedle.style.transform = `translateX(${translateX}px)`;
+
+                // Color / Status Update
+                if (Math.abs(cents) < 3) {
+                    tuningStatusText.textContent = "完璧です！ (In Tune)";
+                    tuningStatusText.className = "absolute bottom-2 text-xs font-semibold tracking-wide text-emerald-400 animate-pulse";
+                    tunerNeedle.style.background = "linear-gradient(to top, #10b981, #34d399)";
+                } else if (cents < 0) {
+                    tuningStatusText.textContent = "低いです (Flat) → 巻き上げてください";
+                    tuningStatusText.className = "absolute bottom-2 text-xs font-semibold tracking-wide text-amber-400";
+                    tunerNeedle.style.background = "linear-gradient(to top, #f59e0b, #fbbf24)";
+                } else {
+                    tuningStatusText.textContent = "高いです (Sharp) → 緩めてください";
+                    tuningStatusText.className = "absolute bottom-2 text-xs font-semibold tracking-wide text-rose-400";
+                    tunerNeedle.style.background = "linear-gradient(to top, #ef4444, #f87171)";
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(updatePitch);
+        }
+
+        // Autocorrelation Pitch Detector Algorithm
+        function autoCorrelate(buffer, sampleRate) {
+            // First check if there's enough signal amplitude
+            let rms = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                rms += buffer[i] * buffer[i];
+            }
+            rms = Math.sqrt(rms / buffer.length);
+            if (rms < 0.01) {
+                return -1; // Too quiet
+            }
+
+            let r1 = 0, r2 = buffer.length - 1, threshold = 0.2;
+            for (let i = 0; i < buffer.length / 2; i++) {
+                if (Math.abs(buffer[i]) < threshold) {
+                    r1 = i;
+                    break;
+                }
+            }
+            for (let i = 1; i < buffer.length / 2; i++) {
+                if (Math.abs(buffer[buffer.length - i]) < threshold) {
+                    r2 = buffer.length - i;
+                    break;
+                }
+            }
+
+            const slice = buffer.slice(r1, r2);
+            const c = new Array(slice.length).fill(0);
+            for (let i = 0; i < slice.length; i++) {
+                for (let j = 0; j < slice.length - i; j++) {
+                    c[i] = c[i] + slice[j] * slice[j + i];
+                }
+            }
+
+            let d = 0;
+            while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < slice.length; i++) {
+                if (c[i] > maxval) {
+                    maxval = c[i];
+                    maxpos = i;
+                }
+            }
+            let T0 = maxpos;
+
+            // Interpolation for higher accuracy
+            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+            let shift = (x3 - x1) / (2 * (2 * x2 - x1 - x3));
+            return sampleRate / (T0 + shift);
+        }
+
+        // Frequency to Note conversion helper
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+        function noteFromPitch(frequency) {
+            const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
+            return Math.round(noteNum) + 69;
+        }
+
+        function frequencyFromNoteNumber(note) {
+            return 440 * Math.pow(2, (note - 69) / 12);
+        }
+
+        function getNoteFromPitch(freq) {
+            const noteNum = noteFromPitch(freq);
+            const name = noteStrings[noteNum % 12];
+            const octave = Math.floor(noteNum / 12) - 1;
+            const exactFreq = frequencyFromNoteNumber(noteNum);
+            return { name, octave, freq: exactFreq };
+        }
+
+        // Run initialization
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
