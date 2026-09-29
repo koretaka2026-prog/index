@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リバーシ</title>
+
+<style>
+body{
+    margin:0;
+    padding:20px;
+    background:#1f2937;
+    color:white;
+    font-family:sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    box-sizing:border-box;
+}
+
+h1{
+    margin-top:0;
+}
+
+#settings{
+    background:#374151;
+    padding:15px;
+    border-radius:12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    justify-content:center;
+    margin-bottom:15px;
+    max-width:800px;
+}
+
+#settings label{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:14px;
+}
+
+select,button{
+    padding:8px;
+    border-radius:8px;
+    border:none;
+    font-size:14px;
+}
+
+button{
+    cursor:pointer;
+    background:#2563eb;
+    color:white;
+}
+
+#info{
+    margin:15px 0;
+    text-align:center;
+    font-size:18px;
+    line-height:1.6;
+}
+
+#board{
+    width:min(90vw, 600px);
+    aspect-ratio:1;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    border:4px solid #14532d;
+    background:#2e7d32;
+    touch-action:manipulation;
+}
+
+.cell{
+    border:1px solid rgba(0,0,0,.3);
+    position:relative;
+}
+
+.cell.can::after{
+    content:"";
+    width:18%;
+    height:18%;
+    border-radius:50%;
+    background:rgba(255,255,0,0.7);
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+
+.stone{
+    position:absolute;
+    width:80%;
+    height:80%;
+    left:10%;
+    top:10%;
+    border-radius:50%;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);
+}
+
+.black{
+    background:#111;
+}
+
+.white{
+    background:#f5f5f5;
+}
+
+#controls{
+    margin-top:15px;
+}
+</style>
+</head>
+<body>
+
+<h1>リバーシ</h1>
+
+<div id="settings">
+
+    <label>
+        対戦モード
+        <select id="gameMode">
+            <option value="pvp">人 vs 人</option>
+            <option value="cpu">人 vs CPU</option>
+        </select>
+    </label>
+
+    <label>
+        あなたの色
+        <select id="playerColor">
+            <option value="black">黒（先攻）</option>
+            <option value="white">白（後攻）</option>
+        </select>
+    </label>
+
+    <label>
+        CPU強さ
+        <select id="cpuLevel">
+            <option value="easy">初級</option>
+            <option value="normal">中級</option>
+            <option value="hard">上級</option>
+        </select>
+    </label>
+
+</div>
+
+<div id="info"></div>
+
+<div id="board"></div>
+
+<div id="controls">
+    <button id="resetBtn">新しいゲーム</button>
+</div>
+
+<script>
+
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = 2;
+
+let board;
+let currentPlayer;
+
+let gameMode = "pvp";
+let humanColor = BLACK;
+let cpuColor = WHITE;
+let cpuLevel = "easy";
+
+const boardEl = document.getElementById("board");
+const infoEl = document.getElementById("info");
+
+const POSITION_SCORE = [
+[120,-20,20,5,5,20,-20,120],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[20,-5,15,3,3,15,-5,20],
+[5,-5,3,3,3,3,-5,5],
+[5,-5,3,3,3,3,-5,5],
+[20,-5,15,3,3,15,-5,20],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[120,-20,20,5,5,20,-20,120]
+];
+
+function readSettings(){
+
+    gameMode =
+        document.getElementById("gameMode").value;
+
+    cpuLevel =
+        document.getElementById("cpuLevel").value;
+
+    const color =
+        document.getElementById("playerColor").value;
+
+    if(color === "black"){
+        humanColor = BLACK;
+        cpuColor = WHITE;
+    }else{
+        humanColor = WHITE;
+        cpuColor = BLACK;
+    }
+}
+
+function initGame(){
+
+    readSettings();
+
+    board =
+        Array.from({length:8},
+        ()=>Array(8).fill(EMPTY));
+
+    board[3][3] = WHITE;
+    board[3][4] = BLACK;
+    board[4][3] = BLACK;
+    board[4][4] = WHITE;
+
+    currentPlayer = BLACK;
+
+    render();
+
+    if(
+        gameMode === "cpu" &&
+        currentPlayer === cpuColor
+    ){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function opponent(player){
+    return player === BLACK ? WHITE : BLACK;
+}
+
+function inRange(r,c){
+    return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function getFlips(r,c,player){
+
+    if(board[r][c] !== EMPTY){
+        return [];
+    }
+
+    const dirs = [
+        [-1,-1],[-1,0],[-1,1],
+        [0,-1],        [0,1],
+        [1,-1],[1,0],[1,1]
+    ];
+
+    let flips = [];
+
+    for(const [dr,dc] of dirs){
+
+        let rr = r + dr;
+        let cc = c + dc;
+
+        let temp = [];
+
+        while(
+            inRange(rr,cc) &&
+            board[rr][cc] === opponent(player)
+        ){
+            temp.push([rr,cc]);
+            rr += dr;
+            cc += dc;
+        }
+
+        if(
+            temp.length > 0 &&
+            inRange(rr,cc) &&
+            board[rr][cc] === player
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(player){
+
+    let moves = [];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(getFlips(r,c,player).length > 0){
+                moves.push([r,c]);
+            }
+
+        }
+    }
+
+    return moves;
+}
+
+function playMove(r,c){
+
+    const flips =
+        getFlips(r,c,currentPlayer);
+
+    if(flips.length === 0) return;
+
+    board[r][c] = currentPlayer;
+
+    flips.forEach(([fr,fc])=>{
+        board[fr][fc] = currentPlayer;
+    });
+
+    nextTurn();
+}
+
+function handleCellClick(r,c){
+
+    if(
+        gameMode === "cpu" &&
+        currentPlayer === cpuColor
+    ){
+        return;
+    }
+
+    playMove(r,c);
+}
+
+function countStones(){
+
+    let black = 0;
+    let white = 0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(board[r][c] === BLACK) black++;
+            if(board[r][c] === WHITE) white++;
+
+        }
+    }
+
+    return {black, white};
+}
+
+function getMoves(player){
+
+    let moves = [];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            const flips =
+                getFlips(r,c,player);
+
+            if(flips.length > 0){
+
+                moves.push({
+                    r,
+                    c,
+                    score: flips.length
+                });
+
+            }
+        }
+    }
+
+    return moves;
+}
+
+function cpuEasy(moves){
+
+    return moves[
+        Math.floor(
+            Math.random() * moves.length
+        )
+    ];
+}
+
+function cpuNormal(moves){
+
+    let best = moves[0];
+
+    for(const move of moves){
+
+        if(move.score > best.score){
+            best = move;
+        }
+
+    }
+
+    return best;
+}
+
+function cpuHard(moves){
+
+    let bestMove = null;
+    let bestValue = -999999;
+
+    for(const move of moves){
+
+        const value =
+            move.score +
+            POSITION_SCORE[move.r][move.c];
+
+        if(value > bestValue){
+
+            bestValue = value;
+            bestMove = move;
+
+        }
+    }
+
+    return bestMove;
+}
+
+function cpuMove(){
+
+    if(
+        gameMode !== "cpu" ||
+        currentPlayer !== cpuColor
+    ){
+        return;
+    }
+
+    const moves = getMoves(cpuColor);
+
+    if(moves.length === 0){
+        return;
+    }
+
+    let move;
+
+    switch(cpuLevel){
+
+        case "easy":
+            move = cpuEasy(moves);
+            break;
+
+        case "normal":
+            move = cpuNormal(moves);
+            break;
+
+        default:
+            move = cpuHard(moves);
+    }
+
+    playMove(move.r, move.c);
+}
+
+function nextTurn(){
+
+    currentPlayer =
+        opponent(currentPlayer);
+
+    let moves =
+        validMoves(currentPlayer);
+
+    if(moves.length === 0){
+
+        currentPlayer =
+            opponent(currentPlayer);
+
+        let backMoves =
+            validMoves(currentPlayer);
+
+        if(backMoves.length === 0){
+
+            render();
+
+            const result =
+                countStones();
+
+            let message;
+
+            if(result.black > result.white){
+                message =
+                `黒の勝ち！\n黒:${result.black} 白:${result.white}`;
+            }
+            else if(result.white > result.black){
+                message =
+                `白の勝ち！\n黒:${result.black} 白:${result.white}`;
+            }
+            else{
+                message =
+                `引き分け！\n黒:${result.black} 白:${result.white}`;
+            }
+
+            setTimeout(()=>{
+                alert("ゲーム終了\n" + message);
+            },100);
+
+            return;
+        }
+
+        alert(
+            (currentPlayer===BLACK?"黒":"白")
+            + " はパスです"
+        );
+    }
+
+    render();
+
+    if(
+        gameMode === "cpu" &&
+        currentPlayer === cpuColor
+    ){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function render(){
+
+    boardEl.innerHTML = "";
+
+    const moves =
+        validMoves(currentPlayer);
+
+    const moveSet =
+        new Set(
+            moves.map(
+                ([r,c]) => `${r},${c}`
+            )
+        );
+
+    for(let r=0;r<8;r++){
+
+        for(let c=0;c<8;c++){
+
+            const cell =
+                document.createElement("div");
+
+            cell.className = "cell";
+
+            if(
+                moveSet.has(`${r},${c}`)
+            ){
+                cell.classList.add("can");
+            }
+
+            cell.addEventListener(
+                "click",
+                ()=>handleCellClick(r,c)
+            );
+
+            if(board[r][c] !== EMPTY){
+
+                const stone =
+                    document.createElement("div");
+
+                stone.className =
+                    "stone " +
+                    (board[r][c]===BLACK
+                    ? "black"
+                    : "white");
+
+                cell.appendChild(stone);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    const count =
+        countStones();
+
+    infoEl.innerHTML =
+        `手番: ${
+            currentPlayer===BLACK
+            ? "黒"
+            : "白"
+        }<br>` +
+        `黒 ${count.black} : ${count.white} 白`;
+}
+
+document
+.getElementById("resetBtn")
+.addEventListener("click", initGame);
+
+initGame();
+
+</script>
+
+</body>
+</html>
