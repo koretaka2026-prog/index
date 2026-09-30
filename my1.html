@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>神経衰弱</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#0c7a3b;
+    color:#fff;
+    text-align:center;
+}
+
+h1{
+    margin:10px;
+}
+
+#menu{
+    padding:10px;
+}
+
+select,button{
+    padding:8px;
+    margin:4px;
+    font-size:16px;
+}
+
+#status{
+    font-size:18px;
+    margin:10px;
+}
+
+#score{
+    font-size:20px;
+    margin-bottom:10px;
+}
+
+#board{
+    width:min(1300px,96vw);
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(13,1fr);
+    gap:6px;
+    padding:10px;
+}
+
+.card{
+    aspect-ratio:0.7;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:transform .4s;
+    cursor:pointer;
+}
+
+.card.open{
+    transform:rotateY(180deg);
+}
+
+.card.matched{
+    transform:rotateY(180deg);
+    opacity:.55;
+}
+
+.face{
+    position:absolute;
+    inset:0;
+    border-radius:8px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    backface-visibility:hidden;
+    user-select:none;
+}
+
+.back{
+    background:#184dd8;
+    border:2px solid #fff;
+}
+
+.front{
+    background:white;
+    color:black;
+    border:2px solid #333;
+    transform:rotateY(180deg);
+}
+
+.red{
+    color:#c40000;
+}
+
+@media(max-width:900px){
+    #board{
+        grid-template-columns:repeat(8,1fr);
+    }
+}
+
+@media(max-width:600px){
+    #board{
+        grid-template-columns:repeat(4,1fr);
+    }
+}
+</style>
+</head>
+<body>
+
+<h1>🂠 神経衰弱</h1>
+
+<div id="menu">
+
+    対戦:
+    <select id="mode">
+        <option value="cpu">人 vs コンピューター</option>
+        <option value="pvp">人 vs 人</option>
+    </select>
+
+    先攻:
+    <select id="first">
+        <option value="player">プレイヤー1</option>
+        <option value="cpu">コンピューター</option>
+    </select>
+
+    CPU強さ:
+    <select id="difficulty">
+        <option value="easy">弱い</option>
+        <option value="normal">普通</option>
+        <option value="hard">強い</option>
+    </select>
+
+    <button id="startBtn">ゲーム開始</button>
+
+</div>
+
+<div id="status"></div>
+<div id="score"></div>
+
+<div id="board"></div>
+
+<script>
+
+const suits=[
+{symbol:"♠",red:false},
+{symbol:"♥",red:true},
+{symbol:"♦",red:true},
+{symbol:"♣",red:false}
+];
+
+const ranks=[
+"A","2","3","4","5","6","7",
+"8","9","10","J","Q","K"
+];
+
+let cards=[];
+let currentPlayer=0;
+let gameMode="cpu";
+
+let scores=[0,0];
+
+let firstCard=null;
+let secondCard=null;
+let lock=false;
+
+let memory={};
+
+const board=document.getElementById("board");
+const statusDiv=document.getElementById("status");
+const scoreDiv=document.getElementById("score");
+
+function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+    }
+}
+
+function createDeck(){
+
+    const deck=[];
+
+    suits.forEach(s=>{
+        ranks.forEach(r=>{
+            deck.push({
+                rank:r,
+                suit:s.symbol,
+                red:s.red,
+                pair:r
+            });
+        });
+    });
+
+    shuffle(deck);
+
+    return deck;
+}
+
+function updateScore(){
+
+    const p1=gameMode==="cpu"?"あなた":"プレイヤー1";
+    const p2=gameMode==="cpu"?"CPU":"プレイヤー2";
+
+    scoreDiv.innerHTML=
+        `${p1}: ${scores[0]}ペア　
+         ${p2}: ${scores[1]}ペア`;
+}
+
+function updateTurn(){
+
+    if(gameMode==="cpu"){
+        statusDiv.textContent=
+            currentPlayer===0 ?
+            "あなたのターン" :
+            "CPUのターン";
+    }else{
+        statusDiv.textContent=
+            currentPlayer===0 ?
+            "プレイヤー1のターン" :
+            "プレイヤー2のターン";
+    }
+}
+
+function createCard(data,index){
+
+    const card=document.createElement("div");
+
+    card.className="card";
+
+    card.dataset.index=index;
+    card.dataset.rank=data.rank;
+
+    card.innerHTML=`
+        <div class="face back">🂠</div>
+        <div class="face front ${data.red?'red':''}">
+        ${data.rank}${data.suit}
+        </div>
+    `;
+
+    card.addEventListener("click",()=>playerSelect(card));
+
+    return card;
+}
+
+function playerSelect(card){
+
+    if(lock) return;
+
+    if(gameMode==="cpu" && currentPlayer===1) return;
+
+    openCard(card);
+}
+
+function openCard(card){
+
+    if(card.classList.contains("open")) return;
+    if(card.classList.contains("matched")) return;
+
+    card.classList.add("open");
+
+    remember(card);
+
+    if(!firstCard){
+        firstCard=card;
+        return;
+    }
+
+    secondCard=card;
+
+    lock=true;
+
+    setTimeout(judgePair,800);
+}
+
+function remember(card){
+
+    const rank=card.dataset.rank;
+
+    if(!memory[rank]){
+        memory[rank]=[];
+    }
+
+    if(!memory[rank].includes(card.dataset.index)){
+        memory[rank].push(card.dataset.index);
+    }
+}
+
+function judgePair(){
+
+    const match=
+        firstCard.dataset.rank===
+        secondCard.dataset.rank;
+
+    if(match){
+
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+
+        scores[currentPlayer]++;
+
+        updateScore();
+
+        removeMemory(firstCard);
+        removeMemory(secondCard);
+
+        firstCard=null;
+        secondCard=null;
+        lock=false;
+
+        if(checkFinish()) return;
+
+        if(gameMode==="cpu" && currentPlayer===1){
+            setTimeout(cpuTurn,700);
+        }
+
+    }else{
+
+        firstCard.classList.remove("open");
+        secondCard.classList.remove("open");
+
+        firstCard=null;
+        secondCard=null;
+
+        currentPlayer=currentPlayer===0?1:0;
+
+        updateTurn();
+
+        lock=false;
+
+        if(gameMode==="cpu" && currentPlayer===1){
+            setTimeout(cpuTurn,800);
+        }
+    }
+}
+
+function removeMemory(card){
+
+    const rank=card.dataset.rank;
+
+    if(!memory[rank]) return;
+
+    memory[rank]=memory[rank]
+    .filter(x=>x!==card.dataset.index);
+}
+
+function availableCards(){
+
+    return [...document.querySelectorAll(".card")]
+    .filter(c=>
+        !c.classList.contains("matched") &&
+        !c.classList.contains("open"));
+}
+
+function cpuTurn(){
+
+    if(currentPlayer!==1) return;
+
+    let diff=
+    document.getElementById("difficulty").value;
+
+    let pick1,pick2;
+
+    if(diff==="hard"){
+
+        for(let rank in memory){
+
+            if(memory[rank].length>=2){
+
+                pick1=document.querySelector(
+                    `[data-index="${memory[rank][0]}"]`
+                );
+
+                pick2=document.querySelector(
+                    `[data-index="${memory[rank][1]}"]`
+                );
+
+                break;
+            }
+        }
+    }
+
+    if(diff==="normal" && Math.random()<0.6){
+
+        for(let rank in memory){
+
+            if(memory[rank].length>=2){
+
+                pick1=document.querySelector(
+                    `[data-index="${memory[rank][0]}"]`
+                );
+
+                pick2=document.querySelector(
+                    `[data-index="${memory[rank][1]}"]`
+                );
+
+                break;
+            }
+        }
+    }
+
+    const remaining=availableCards();
+
+    if(!pick1){
+
+        shuffle(remaining);
+
+        pick1=remaining[0];
+        pick2=remaining[1];
+    }
+
+    openCPU(pick1,pick2);
+}
+
+function openCPU(card1,card2){
+
+    lock=true;
+
+    card1.classList.add("open");
+
+    remember(card1);
+
+    setTimeout(()=>{
+
+        card2.classList.add("open");
+
+        remember(card2);
+
+        firstCard=card1;
+        secondCard=card2;
+
+        setTimeout(judgePair,800);
+
+    },700);
+}
+
+function checkFinish(){
+
+    const total=scores[0]+scores[1];
+
+    if(total!==26) return false;
+
+    let msg="";
+
+    if(scores[0]>scores[1]){
+
+        msg=
+        gameMode==="cpu"?
+        "あなたの勝利！":
+        "プレイヤー1の勝利！";
+
+    }else if(scores[1]>scores[0]){
+
+        msg=
+        gameMode==="cpu"?
+        "CPUの勝利！":
+        "プレイヤー2の勝利！";
+
+    }else{
+
+        msg="引き分け！";
+    }
+
+    setTimeout(()=>{
+        alert(
+            msg +
+            "\n\n" +
+            scores[0] +
+            " - " +
+            scores[1]
+        );
+    },500);
+
+    return true;
+}
+
+function startGame(){
+
+    board.innerHTML="";
+
+    cards=createDeck();
+
+    firstCard=null;
+    secondCard=null;
+    lock=false;
+
+    scores=[0,0];
+
+    memory={};
+
+    gameMode=
+    document.getElementById("mode").value;
+
+    currentPlayer=
+    document.getElementById("first").value==="cpu"
+    ?1
+    :0;
+
+    if(gameMode==="pvp"){
+        document.getElementById("difficulty")
+        .disabled=true;
+    }else{
+        document.getElementById("difficulty")
+        .disabled=false;
+    }
+
+    cards.forEach((c,i)=>{
+        board.appendChild(createCard(c,i));
+    });
+
+    updateScore();
+    updateTurn();
+
+    if(gameMode==="cpu" && currentPlayer===1){
+        setTimeout(cpuTurn,1200);
+    }
+}
+
+document
+.getElementById("mode")
+.addEventListener("change",()=>{
+
+    document.getElementById("difficulty")
+    .disabled=
+    document.getElementById("mode").value==="pvp";
+});
+
+document
+.getElementById("startBtn")
+.addEventListener("click",startGame);
+
+startGame();
+
+</script>
+
+</body>
+</html>
