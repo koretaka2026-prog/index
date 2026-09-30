@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>対戦神経衰弱</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#2c3e50;
+    color:white;
+    margin:0;
+    padding:15px;
+}
+
+h1{
+    margin-top:0;
+}
+
+#menu{
+    margin-bottom:15px;
+}
+
+select,button{
+    font-size:16px;
+    padding:8px;
+    margin:5px;
+    border-radius:8px;
+    border:none;
+}
+
+#status{
+    margin:10px 0;
+    font-size:18px;
+    font-weight:bold;
+}
+
+#score{
+    margin:10px 0;
+    font-size:20px;
+}
+
+#board{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(70px,100px));
+    gap:10px;
+    justify-content:center;
+}
+
+.card{
+    aspect-ratio:1;
+    position:relative;
+    cursor:pointer;
+    user-select:none;
+}
+
+.inner{
+    width:100%;
+    height:100%;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:0.4s;
+}
+
+.card.flipped .inner,
+.card.matched .inner{
+    transform:rotateY(180deg);
+}
+
+.face{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
+    font-size:42px;
+    backface-visibility:hidden;
+}
+
+.back{
+    background:#3498db;
+}
+
+.front{
+    background:#ecf0f1;
+    color:#222;
+    transform:rotateY(180deg);
+}
+
+#result{
+    font-size:24px;
+    color:#f1c40f;
+    margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🃏 対戦神経衰弱</h1>
+
+<div id="menu">
+
+<select id="mode">
+    <option value="cpu">人対コンピュータ</option>
+    <option value="pvp">人対人</option>
+</select>
+
+<select id="first">
+    <option value="0">先攻</option>
+    <option value="1">後攻</option>
+</select>
+
+<select id="level">
+    <option value="easy">CPU弱い</option>
+    <option value="normal">CPU普通</option>
+    <option value="hard">CPU強い</option>
+</select>
+
+<button onclick="startGame()">ゲーム開始</button>
+
+</div>
+
+<div id="score"></div>
+<div id="status"></div>
+
+<div id="board"></div>
+
+<div id="result"></div>
+
+<script>
+
+const symbols = [
+"🍎","🍎",
+"🍌","🍌",
+"🍇","🍇",
+"🍓","🍓",
+"🍉","🍉",
+"🍍","🍍",
+"🥝","🥝",
+"🍒","🍒"
+];
+
+let cards=[];
+let flipped=[];
+let lock=false;
+
+let currentPlayer=0;
+
+let scores=[0,0];
+let matchedPairs=0;
+
+let mode="cpu";
+let level="easy";
+
+let cpuMemory={};
+
+const board=document.getElementById("board");
+const scoreDiv=document.getElementById("score");
+const statusDiv=document.getElementById("status");
+const resultDiv=document.getElementById("result");
+
+function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+    }
+}
+
+function startGame(){
+
+    mode=document.getElementById("mode").value;
+    level=document.getElementById("level").value;
+
+    cards=[...symbols];
+    shuffle(cards);
+
+    currentPlayer=
+        Number(document.getElementById("first").value);
+
+    scores=[0,0];
+    matchedPairs=0;
+    flipped=[];
+    lock=false;
+    cpuMemory={};
+
+    board.innerHTML="";
+    resultDiv.textContent="";
+
+    cards.forEach((symbol,index)=>{
+
+        const card=document.createElement("div");
+
+        card.className="card";
+        card.dataset.index=index;
+        card.dataset.symbol=symbol;
+
+        card.innerHTML=
+        `
+        <div class="inner">
+            <div class="face back">?</div>
+            <div class="face front">${symbol}</div>
+        </div>
+        `;
+
+        card.addEventListener("click",playerFlip);
+
+        board.appendChild(card);
+    });
+
+    updateInfo();
+
+    if(mode==="cpu" && currentPlayer===1){
+        setTimeout(cpuTurn,800);
+    }
+}
+
+function updateInfo(){
+
+    let p2 =
+        mode==="cpu" ? "CPU" : "プレイヤー2";
+
+    scoreDiv.innerHTML=
+        `プレイヤー1: ${scores[0]}　
+         ${p2}: ${scores[1]}`;
+
+    statusDiv.textContent=
+        "手番: " +
+        (currentPlayer===0
+        ? "プレイヤー1"
+        : p2);
+}
+
+function remember(index,symbol){
+
+    if(!cpuMemory[symbol]){
+        cpuMemory[symbol]=[];
+    }
+
+    if(!cpuMemory[symbol].includes(index)){
+        cpuMemory[symbol].push(index);
+    }
+}
+
+function playerFlip(){
+
+    if(lock) return;
+
+    if(mode==="cpu" && currentPlayer===1)
+        return;
+
+    flipCard(this);
+}
+
+function flipCard(card){
+
+    if(card.classList.contains("flipped")) return;
+    if(card.classList.contains("matched")) return;
+
+    card.classList.add("flipped");
+
+    remember(
+        Number(card.dataset.index),
+        card.dataset.symbol
+    );
+
+    flipped.push(card);
+
+    if(flipped.length===2){
+
+        lock=true;
+
+        setTimeout(checkPair,800);
+    }
+}
+
+function checkPair(){
+
+    let a=flipped[0];
+    let b=flipped[1];
+
+    if(a.dataset.symbol===b.dataset.symbol){
+
+        a.classList.remove("flipped");
+        b.classList.remove("flipped");
+
+        a.classList.add("matched");
+        b.classList.add("matched");
+
+        scores[currentPlayer]++;
+        matchedPairs++;
+
+        if(matchedPairs===8){
+            finishGame();
+            return;
+        }
+
+    }else{
+
+        a.classList.remove("flipped");
+        b.classList.remove("flipped");
+
+        currentPlayer=
+            currentPlayer===0 ? 1 : 0;
+    }
+
+    flipped=[];
+    lock=false;
+
+    updateInfo();
+
+    if(mode==="cpu" && currentPlayer===1){
+        setTimeout(cpuTurn,900);
+    }
+}
+
+function finishGame(){
+
+    let winner="引き分け";
+
+    if(scores[0]>scores[1]){
+        winner="プレイヤー1の勝ち！";
+    }
+
+    if(scores[1]>scores[0]){
+
+        winner =
+        mode==="cpu"
+        ? "CPUの勝ち！"
+        : "プレイヤー2の勝ち！";
+    }
+
+    updateInfo();
+    resultDiv.textContent=winner;
+}
+
+function getAvailableCards(){
+
+    return [...document.querySelectorAll(".card")]
+    .filter(c=>
+        !c.classList.contains("matched") &&
+        !c.classList.contains("flipped")
+    );
+}
+
+function knownPair(){
+
+    for(let symbol in cpuMemory){
+
+        let list=cpuMemory[symbol].filter(i=>{
+
+            let card=
+            document.querySelector(
+            `.card[data-index="${i}"]`);
+
+            return card &&
+            !card.classList.contains("matched");
+        });
+
+        if(list.length>=2){
+            return list.slice(0,2);
+        }
+    }
+
+    return null;
+}
+
+function cpuTurn(){
+
+    if(currentPlayer!==1) return;
+
+    let available=getAvailableCards();
+
+    let pair=null;
+
+    if(level==="hard"){
+
+        pair=knownPair();
+
+    }else if(level==="normal"){
+
+        if(Math.random()<0.6){
+            pair=knownPair();
+        }
+    }
+
+    let first,second;
+
+    if(pair){
+
+        first=document.querySelector(
+        `.card[data-index="${pair[0]}"]`);
+
+        second=document.querySelector(
+        `.card[data-index="${pair[1]}"]`);
+
+    }else{
+
+        first=
+        available[Math.floor(
+        Math.random()*available.length)];
+
+        let rem=getAvailableCards()
+        .filter(c=>c!==first);
+
+        second=
+        rem[Math.floor(
+        Math.random()*rem.length)];
+    }
+
+    flipCard(first);
+
+    setTimeout(()=>{
+        flipCard(second);
+    },700);
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
