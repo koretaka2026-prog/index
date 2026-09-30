@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐱ねこ vs 🐰うさぎ リバーシ</title>
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px;
+    font-family:"Arial Rounded MT Bold",sans-serif;
+    background:linear-gradient(135deg,#ffdceb,#dff5ff);
+    color:#555;
+}
+
+h1{
+    margin:0 0 15px;
+    color:#ff6fa8;
+    text-shadow:2px 2px #fff;
+}
+
+#info{
+    background:#fff;
+    padding:12px 24px;
+    border-radius:999px;
+    box-shadow:0 4px 12px rgba(0,0,0,.12);
+    margin-bottom:15px;
+    text-align:center;
+}
+
+#board{
+    width:min(92vw,600px);
+    height:min(92vw,600px);
+
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    grid-template-rows:repeat(8,1fr);
+
+    background:#9fe7c5;
+    border:10px solid #fff;
+    border-radius:25px;
+
+    overflow:hidden;
+
+    box-shadow:
+        0 8px 25px rgba(0,0,0,.15),
+        inset 0 0 12px rgba(255,255,255,.3);
+}
+
+.cell{
+    position:relative;
+    border:1px solid rgba(255,255,255,.3);
+    cursor:pointer;
+}
+
+.cell:hover{
+    background:rgba(255,255,255,.15);
+}
+
+.stone{
+    position:absolute;
+    inset:8%;
+    border-radius:50%;
+    background:white;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:clamp(20px,4vw,36px);
+
+    box-shadow:0 3px 10px rgba(0,0,0,.15);
+
+    animation:pop .25s ease;
+}
+
+.black::before{
+    content:"🐱";
+}
+
+.white::before{
+    content:"🐰";
+}
+
+.hint::after{
+    content:"✨";
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    animation:sparkle 1.2s infinite;
+}
+
+#message{
+    margin-top:15px;
+    min-height:30px;
+    font-weight:bold;
+    font-size:18px;
+}
+
+button{
+    margin-top:15px;
+    border:none;
+    border-radius:999px;
+    padding:12px 28px;
+    font-size:18px;
+    cursor:pointer;
+    background:#ff82bc;
+    color:white;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+button:hover{
+    background:#ff5ea7;
+}
+
+@keyframes sparkle{
+    0%,100%{
+        opacity:.3;
+        transform:translate(-50%,-50%) scale(1);
+    }
+    50%{
+        opacity:1;
+        transform:translate(-50%,-50%) scale(1.5);
+    }
+}
+
+@keyframes pop{
+    0%{transform:scale(0);}
+    70%{transform:scale(1.15);}
+    100%{transform:scale(1);}
+}
+</style>
+</head>
+<body>
+
+<h1>🐱 ねこ vs 🐰 うさぎ</h1>
+
+<div id="info"></div>
+
+<div id="board"></div>
+
+<div id="message"></div>
+
+<button id="restart">🎀 もう一度あそぶ</button>
+
+<script>
+const EMPTY = 0;
+const CAT = 1;
+const BUNNY = 2;
+
+const HUMAN = CAT;
+const CPU = BUNNY;
+
+const boardEl = document.getElementById("board");
+const infoEl = document.getElementById("info");
+const messageEl = document.getElementById("message");
+
+let board;
+let currentPlayer;
+
+const dirs = [
+[-1,-1],[-1,0],[-1,1],
+[0,-1],[0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function initGame(){
+
+    board = Array.from({length:8},
+        ()=>Array(8).fill(EMPTY)
+    );
+
+    board[3][3]=BUNNY;
+    board[3][4]=CAT;
+    board[4][3]=CAT;
+    board[4][4]=BUNNY;
+
+    currentPlayer=HUMAN;
+
+    render();
+}
+
+function inside(r,c){
+    return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function getFlips(r,c,player){
+
+    if(board[r][c]!==EMPTY) return [];
+
+    const enemy =
+        player===CAT ? BUNNY : CAT;
+
+    let flips=[];
+
+    for(const [dr,dc] of dirs){
+
+        let rr=r+dr;
+        let cc=c+dc;
+
+        const temp=[];
+
+        while(
+            inside(rr,cc) &&
+            board[rr][cc]===enemy
+        ){
+            temp.push([rr,cc]);
+            rr+=dr;
+            cc+=dc;
+        }
+
+        if(
+            temp.length &&
+            inside(rr,cc) &&
+            board[rr][cc]===player
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(player){
+
+    const moves=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(
+                getFlips(r,c,player).length
+            ){
+                moves.push([r,c]);
+            }
+
+        }
+    }
+
+    return moves;
+}
+
+function countStones(){
+
+    let cat=0;
+    let bunny=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(board[r][c]===CAT) cat++;
+            if(board[r][c]===BUNNY) bunny++;
+        }
+    }
+
+    return {cat,bunny};
+}
+
+function placeStone(r,c){
+
+    if(currentPlayer!==HUMAN) return;
+
+    const flips =
+        getFlips(r,c,currentPlayer);
+
+    if(!flips.length) return;
+
+    board[r][c]=HUMAN;
+
+    flips.forEach(([rr,cc])=>{
+        board[rr][cc]=HUMAN;
+    });
+
+    currentPlayer=CPU;
+
+    render();
+
+    setTimeout(cpuMove,700);
+}
+
+function cpuMove(){
+
+    const moves = validMoves(CPU);
+
+    if(!moves.length){
+
+        currentPlayer=HUMAN;
+
+        if(!validMoves(HUMAN).length){
+            finishGame();
+            return;
+        }
+
+        messageEl.textContent =
+            "🐰 CPUはパスしました！";
+
+        render();
+        return;
+    }
+
+    const corners = [
+        [0,0],[0,7],[7,0],[7,7]
+    ];
+
+    let chosen = null;
+
+    for(const corner of corners){
+
+        if(
+            moves.some(
+                m=>m[0]===corner[0] &&
+                m[1]===corner[1]
+            )
+        ){
+            chosen = corner;
+            break;
+        }
+    }
+
+    if(!chosen){
+
+        let bestScore=-1;
+
+        moves.forEach(move=>{
+
+            const score =
+                getFlips(
+                    move[0],
+                    move[1],
+                    CPU
+                ).length;
+
+            if(score>bestScore){
+                bestScore=score;
+                chosen=move;
+            }
+        });
+    }
+
+    const [r,c] = chosen;
+
+    const flips =
+        getFlips(r,c,CPU);
+
+    board[r][c]=CPU;
+
+    flips.forEach(([rr,cc])=>{
+        board[rr][cc]=CPU;
+    });
+
+    currentPlayer=HUMAN;
+
+    if(
+        !validMoves(HUMAN).length &&
+        !validMoves(CPU).length
+    ){
+        finishGame();
+        return;
+    }
+
+    render();
+}
+
+function finishGame(){
+
+    const score=countStones();
+
+    let result;
+
+    if(score.cat>score.bunny){
+
+        result="🎉 あなたの勝ち！";
+
+    }else if(score.bunny>score.cat){
+
+        result="🤖 CPUの勝ち！";
+
+    }else{
+
+        result="🤝 引き分け！";
+    }
+
+    render();
+
+    setTimeout(()=>{
+
+        alert(
+`🎀 ゲーム終了 🎀
+
+🐱 あなた：${score.cat}
+🐰 CPU：${score.bunny}
+
+${result}`
+        );
+
+    },100);
+}
+
+function render(){
+
+    boardEl.innerHTML="";
+
+    const moves =
+        currentPlayer===HUMAN
+        ? validMoves(HUMAN)
+        : [];
+
+    for(let r=0;r<8;r++){
+
+        for(let c=0;c<8;c++){
+
+            const cell =
+                document.createElement("div");
+
+            cell.className="cell";
+
+            if(
+                moves.some(
+                    ([mr,mc]) =>
+                    mr===r && mc===c
+                )
+            ){
+                cell.classList.add("hint");
+            }
+
+            cell.addEventListener(
+                "click",
+                ()=>placeStone(r,c)
+            );
+
+            if(board[r][c]!==EMPTY){
+
+                const stone =
+                    document.createElement("div");
+
+                stone.className =
+                    "stone " +
+                    (
+                        board[r][c]===CAT
+                        ? "black"
+                        : "white"
+                    );
+
+                cell.appendChild(stone);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    const score=countStones();
+
+    infoEl.innerHTML=
+    `
+    🐱 あなた ${score.cat}
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    🐰 CPU ${score.bunny}
+    <br>
+    ${
+        currentPlayer===HUMAN
+        ? "あなたの番"
+        : "CPUの番"
+    }
+    `;
+
+    if(currentPlayer===HUMAN){
+        messageEl.textContent=
+            "🐱 石を置いてね！";
+    }else{
+        messageEl.textContent=
+            "🤖 CPUが考え中...";
+    }
+}
+
+document
+.getElementById("restart")
+.addEventListener(
+    "click",
+    initGame
+);
+
+initGame();
+</script>
+
+</body>
+</html>
