@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>竜姫育成物語</title>
+
+<style>
+body{
+margin:0;
+padding:15px;
+font-family:sans-serif;
+background:linear-gradient(#c7ecff,#fff5dc);
+text-align:center;
+}
+
+h1{
+color:#7a3cff;
+}
+
+.card{
+max-width:600px;
+margin:auto;
+background:white;
+padding:20px;
+border-radius:20px;
+box-shadow:0 5px 20px rgba(0,0,0,.15);
+}
+
+#char{
+font-size:120px;
+margin:10px;
+animation:float 2s infinite;
+}
+
+@keyframes float{
+0%{transform:translateY(0)}
+50%{transform:translateY(-10px)}
+100%{transform:translateY(0)}
+}
+
+.status{
+background:#f8f8ff;
+padding:10px;
+margin:6px;
+border-radius:12px;
+}
+
+button{
+padding:12px 16px;
+margin:4px;
+font-size:17px;
+border:none;
+border-radius:999px;
+cursor:pointer;
+color:white;
+}
+
+.feed{background:#ff9f43;}
+train{background:#ee5253;}
+.study{background:#5f27cd;}
+.rest{background:#54a0ff;}
+.adventure{background:#10ac84;}
+.reset{background:#777;}
+
+.bar{
+height:20px;
+background:#ddd;
+border-radius:12px;
+overflow:hidden;
+}
+
+.fill{
+height:100%;
+background:linear-gradient(90deg,#ffd32a,#ff793f);
+transition:.5s;
+}
+
+#msg{
+min-height:70px;
+margin-top:20px;
+font-weight:bold;
+color:#7a3cff;
+}
+</style>
+</head>
+<body>
+
+<h1>🐉 竜姫育成物語 👸</h1>
+
+<div class="card">
+
+<div id="char"></div>
+
+<h2 id="title"></h2>
+
+<div class="status">
+⭐ Lv <span id="level"></span>
+</div>
+
+<div>経験値</div>
+<div class="bar">
+<div id="exp" class="fill"></div>
+</div>
+
+<div class="status">
+❤️ 親密度 :
+<span id="love"></span>
+</div>
+
+<div class="status">
+🔮 魔力 :
+<span id="magic"></span>
+</div>
+
+<div class="status">
+🧠 知性 :
+<span id="intel"></span>
+</div>
+
+<div class="status">
+💪 体力 :
+<span id="power"></span>
+</div>
+
+<button onclick="feed()" style="background:#ff9f43">
+🍖 食事
+</button>
+
+<button onclick="train()" style="background:#ee5253">
+⚔ 訓練
+</button>
+
+<button onclick="study()" style="background:#5f27cd">
+📚 勉強
+</button>
+
+<button onclick="rest()" style="background:#54a0ff">
+😴 休息
+</button>
+
+<button onclick="adventure()" style="background:#10ac84">
+🗺 冒険
+</button>
+
+<button onclick="resetGame()" style="background:#777">
+🔄 リセット
+</button>
+
+<div id="msg"></div>
+
+</div>
+
+<script>
+
+let data=
+JSON.parse(
+localStorage.getItem("dragonRPG")
+)||{
+
+level:1,
+exp:0,
+love:10,
+magic:10,
+intel:10,
+power:10
+
+};
+
+const forms=[
+
+{
+name:"竜の卵",
+icon:"🥚"
+},
+
+{
+name:"幼竜",
+icon:"🐲"
+},
+
+{
+name:"ドラゴン少女",
+icon:"👧"
+},
+
+{
+name:"竜姫見習い",
+icon:"👸"
+}
+
+];
+
+function save(){
+
+localStorage.setItem(
+"dragonRPG",
+JSON.stringify(data)
+);
+
+}
+
+function rand(arr){
+
+return arr[
+Math.floor(
+Math.random()*arr.length
+)
+];
+
+}
+
+function stage(){
+
+if(data.level>=20) return 3;
+if(data.level>=10) return 2;
+if(data.level>=5) return 1;
+
+return 0;
+
+}
+
+function addExp(x){
+
+data.exp+=x;
+
+while(data.exp>=100){
+
+data.exp-=100;
+data.level++;
+
+show(
+"✨ レベルアップ！"
+);
+
+}
+
+draw();
+save();
+
+}
+
+function draw(){
+
+const f=forms[
+stage()
+];
+
+document.getElementById(
+"char"
+).textContent=f.icon;
+
+document.getElementById(
+"title"
+).textContent=f.name;
+
+document.getElementById(
+"level"
+).textContent=data.level;
+
+document.getElementById(
+"love"
+).textContent=data.love;
+
+document.getElementById(
+"magic"
+).textContent=data.magic;
+
+document.getElementById(
+"intel"
+).textContent=data.intel;
+
+document.getElementById(
+"power"
+).textContent=data.power;
+
+document.getElementById(
+"exp"
+).style.width=
+data.exp+"%";
+
+if(data.level>=30){
+
+ending();
+
+}
+
+save();
+
+}
+
+function show(txt){
+
+document.getElementById(
+"msg"
+).textContent=txt;
+
+}
+
+function feed(){
+
+data.love+=2;
+
+addExp(10);
+
+show(rand([
+
+"🍖 おいしいですわ！",
+"😊 とても満足そうだ",
+"🥰 幸せそうに微笑んだ",
+"❤️ あなたを見つめている"
+
+]));
+
+}
+
+function train(){
+
+data.power+=3;
+
+addExp(15);
+
+show(rand([
+
+"⚔ 剣術訓練をした",
+"🔥 竜の力が高まった",
+"💪 力がみなぎっている",
+"✨ 強くなった気がする"
+
+]));
+
+}
+
+function study(){
+
+data.intel+=3;
+data.magic+=2;
+
+addExp(15);
+
+show(rand([
+
+"📚 魔導書を読んだ",
+"🔮 魔力が高まった",
+"🧠 賢くなった",
+"✨ 新しい知識を得た"
+
+]));
+
+}
+
+function rest(){
+
+data.power+=1;
+data.love+=1;
+
+addExp(5);
+
+show(rand([
+
+"😴 ゆっくり休んだ",
+"🌙 良い夢を見た",
+"☁ 心地よさそうだ",
+"⭐ 元気を取り戻した"
+
+]));
+
+}
+
+function adventure(){
+
+const events=[
+
+["🌳 森で薬草を発見",25],
+["⚔ ゴブリンを撃退",35],
+["🔮 魔法石を手に入れた",40],
+["🦋 妖精に出会った",30],
+["🏰 古代遺跡を発見",50],
+["🐺 魔物から逃げ切った",20],
+["🌈 虹の谷を見つけた",45],
+["📜 古文書を発見",35]
+
+];
+
+let e=rand(events);
+
+addExp(e[1]);
+
+show(e[0]);
+
+}
+
+function ending(){
+
+let title="王家の竜姫";
+
+if(
+data.magic>
+data.power &&
+data.magic>
+data.intel
+){
+
+title="魔竜姫";
+
+}
+else if(
+data.intel>
+data.magic &&
+data.intel>
+data.power
+){
+
+title="賢竜姫";
+
+}
+else if(
+data.power>
+data.magic &&
+data.power>
+data.intel
+){
+
+title="聖竜姫";
+
+}
+
+document.getElementById(
+"title"
+).textContent=
+title;
+
+document.getElementById(
+"char"
+).textContent=
+"👑";
+
+show(
+"🎉 エンディング到達！『"+title+"』になりました！"
+);
+
+}
+
+function resetGame(){
+
+if(confirm(
+"最初からやり直しますか？"
+)){
+
+localStorage.removeItem(
+"dragonRPG"
+);
+
+location.reload();
+
+}
+
+}
+
+draw();
+
+show(
+"🥚 竜の卵との物語が始まった..."
+);
+
+</script>
+
+</body>
+</html>

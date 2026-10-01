@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>モンスターファーム・キッズ</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:15px;
+    text-align:center;
+    font-family:"Yu Gothic","Meiryo",sans-serif;
+    background:linear-gradient(
+        180deg,
+        #b8ecff,
+        #fff6d6
+    );
+    min-height:100vh;
+}
+
+h1{
+    color:#ff66aa;
+    text-shadow:2px 2px white;
+}
+
+.card{
+    background:white;
+    max-width:500px;
+    margin:auto;
+    padding:20px;
+    border-radius:25px;
+    box-shadow:0 5px 20px rgba(0,0,0,.15);
+}
+
+#monster{
+    font-size:140px;
+    margin:10px;
+    animation:bounce 2s infinite;
+}
+
+@keyframes bounce{
+    0%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+    100%{transform:translateY(0);}
+}
+
+#name{
+    color:#ff66aa;
+}
+
+.status{
+    background:#fff6fa;
+    border-radius:15px;
+    padding:10px;
+    margin:8px;
+    font-size:18px;
+}
+
+.bar{
+    height:25px;
+    background:#ddd;
+    border-radius:20px;
+    overflow:hidden;
+    margin:8px;
+}
+
+.fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(
+        90deg,
+        #ffd93d,
+        #ff8800
+    );
+    transition:.5s;
+}
+
+button{
+    border:none;
+    border-radius:999px;
+    padding:12px 18px;
+    margin:5px;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+.feed{background:#ffb347;}
+.play{background:#66cc66;}
+.sleep{background:#6699ff;}
+.pet{background:#ff66aa;}
+.quest{background:#ff4444;}
+.reset{background:#777;}
+
+#msg{
+    min-height:50px;
+    font-size:20px;
+    color:#ff66aa;
+    font-weight:bold;
+    margin-top:15px;
+}
+
+</style>
+</head>
+<body>
+
+<h1>🐲 モンスターファーム・キッズ 🐲</h1>
+
+<div class="card">
+
+<div id="monster"></div>
+
+<h2 id="name"></h2>
+
+<div class="status">
+⭐ レベル :
+<span id="level"></span>
+</div>
+
+<div>
+経験値
+</div>
+
+<div class="bar">
+<div id="expbar" class="fill"></div>
+</div>
+
+<div class="status">
+💪 元気 :
+<span id="energy"></span>
+</div>
+
+<div class="status">
+🍎 おなか :
+<span id="food"></span>
+</div>
+
+<div class="status">
+❤️ なかよし :
+<span id="love"></span>
+</div>
+
+<button class="feed" onclick="feed()">
+🍎 ごはん
+</button>
+
+<button class="play" onclick="play()">
+⚽ あそぶ
+</button>
+
+<button class="sleep" onclick="sleepMon()">
+😴 ねる
+</button>
+
+<button class="pet" onclick="pet()">
+❤️ なでる
+</button>
+
+<br>
+
+<button class="quest" onclick="quest()">
+🗺 クエスト
+</button>
+
+<button class="reset" onclick="resetGame()">
+🔄 リセット
+</button>
+
+<div id="msg"></div>
+
+</div>
+
+<script>
+
+let mon=
+JSON.parse(
+localStorage.getItem("kidMonster")
+)||{
+level:1,
+exp:0,
+energy:50,
+food:50,
+love:50
+};
+
+const forms=[
+{
+name:"ふわふわたまご",
+emoji:"🥚"
+},
+{
+name:"ぴよピヨ",
+emoji:"🐣"
+},
+{
+name:"もふもふん",
+emoji:"🐰"
+},
+{
+name:"きらりん",
+emoji:"🦊"
+},
+{
+name:"ドラりゅん",
+emoji:"🐲"
+}
+];
+
+function stage(){
+
+if(mon.level>=15)return 4;
+if(mon.level>=10)return 3;
+if(mon.level>=6)return 2;
+if(mon.level>=3)return 1;
+return 0;
+
+}
+
+function save(){
+
+localStorage.setItem(
+"kidMonster",
+JSON.stringify(mon)
+);
+
+}
+
+function message(text){
+
+document.getElementById(
+"msg"
+).textContent=text;
+
+}
+
+function randomItem(list){
+
+return list[
+Math.floor(
+Math.random()*list.length
+)
+];
+
+}
+
+function levelUpCheck(){
+
+while(mon.exp>=100){
+
+mon.exp-=100;
+mon.level++;
+
+message(
+"✨ レベルアップしたよ！"
+);
+
+}
+
+}
+
+function gain(exp){
+
+mon.exp+=exp;
+
+levelUpCheck();
+
+draw();
+save();
+
+}
+
+/* ごはん */
+
+function feed(){
+
+mon.food=Math.min(
+100,
+mon.food+20
+);
+
+gain(10);
+
+message(
+randomItem([
+"🍎 もぐもぐ♪",
+"😋 おかわりほしい！",
+"😊 おいしそうに食べている！",
+"🥰 とってもうれしそう！",
+"🍓 ごきげんになった！",
+"✨ ぴかぴか元気になった！"
+])
+);
+
+}
+
+/* あそぶ */
+
+function play(){
+
+if(mon.energy<10){
+
+message("😢 げんきがないよ");
+return;
+
+}
+
+mon.energy-=10;
+
+mon.love=Math.min(
+100,
+mon.love+5
+);
+
+gain(15);
+
+message(
+randomItem([
+"⚽ とっても楽しかった！",
+"😆 はしゃいでいる！",
+"🏃 元気いっぱい！",
+"🎵 楽しそう！",
+"🌈 飛びまわっている！",
+"🎉 すごくごきげん！"
+])
+);
+
+}
+
+/* ねる */
+
+function sleepMon(){
+
+mon.energy=100;
+
+gain(5);
+
+message(
+randomItem([
+"😴 ぐっすり眠っている",
+"💤 気持ちよさそう",
+"🌙 いい夢を見ている",
+"⭐ すやすや...",
+"☁ 雲の上を飛んでいる夢かな？"
+])
+);
+
+}
+
+/* なでる */
+
+function pet(){
+
+mon.love=Math.min(
+100,
+mon.love+10
+);
+
+gain(8);
+
+message(
+randomItem([
+"❤️ しっぽをふっている！",
+"🥰 とても喜んでいる！",
+"😊 にっこり笑った！",
+"✨ キラキラしている！",
+"💕 もっとなでてほしそう！",
+"🐾 甘えてきた！"
+])
+);
+
+}
+
+/* クエスト */
+
+function quest(){
+
+const events=[
+
+{
+text:"🌳 枝を拾った！"
+,exp:5
+},
+
+{
+text:"🍄 キノコを見つけた！"
+,exp:10
+},
+
+{
+text:"🦋 ちょうちょを追いかけた！"
+,exp:15
+},
+
+{
+text:"🐰 野うさぎと遊んだ！"
+,exp:20
+},
+
+{
+text:"⚔ スライムを倒した！"
+,exp:30
+},
+
+{
+text:"🌼 花畑で遊んだ！"
+,exp:15
+},
+
+{
+text:"🎁 宝箱を見つけた！"
+,exp:25
+},
+
+{
+text:"🌈 虹を見つけた！"
+,exp:20
+},
+
+{
+text:"🍎 木の実を発見した！"
+,exp:15
+},
+
+{
+text:"🦎 不思議な生き物に出会った！"
+,exp:35
+}
+
+];
+
+const e=randomItem(events);
+
+gain(e.exp);
+
+message(e.text);
+
+}
+
+/* 描画 */
+
+function draw(){
+
+const form=
+forms[
+stage()
+];
+
+document.getElementById(
+"monster"
+).textContent=
+form.emoji;
+
+document.getElementById(
+"name"
+).textContent=
+form.name;
+
+document.getElementById(
+"level"
+).textContent=
+mon.level;
+
+document.getElementById(
+"energy"
+).textContent=
+Math.floor(mon.energy);
+
+document.getElementById(
+"food"
+).textContent=
+Math.floor(mon.food);
+
+document.getElementById(
+"love"
+).textContent=
+Math.floor(mon.love);
+
+document.getElementById(
+"expbar"
+).style.width=
+mon.exp+"%";
+
+save();
+
+}
+
+/* リセット */
+
+function resetGame(){
+
+if(confirm(
+"最初からあそぶ？"
+)){
+
+localStorage.removeItem(
+"kidMonster"
+);
+
+location.reload();
+
+}
+
+}
+
+draw();
+
+message(
+"🎉 モンスターを育てよう！"
+);
+
+</script>
+
+</body>
+</html>
