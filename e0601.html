@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ミニRPG</title>
+
+<style>
+body{
+    margin:0;
+    background:#1e2430;
+    color:white;
+    font-family:sans-serif;
+}
+
+#game{
+    max-width:900px;
+    margin:auto;
+    padding:15px;
+}
+
+.panel{
+    background:#2d3646;
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:10px;
+}
+
+#battleArea{
+    height:220px;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+}
+
+.char{
+    width:150px;
+    transition:.25s;
+}
+
+.attack{
+    transform:translateX(30px) scale(1.1);
+}
+
+.hit{
+    transform:translateX(-20px);
+    filter:brightness(2);
+}
+
+button{
+    width:100%;
+    margin:5px 0;
+    border:none;
+    border-radius:8px;
+    padding:12px;
+    font-size:16px;
+    background:#4b7cff;
+    color:white;
+}
+
+button:hover{
+    background:#6a94ff;
+}
+
+#message{
+    min-height:70px;
+}
+
+h2{
+    margin-top:0;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+<div class="panel" id="status"></div>
+
+<div class="panel" id="battleArea">
+<div id="hero" class="char"></div>
+<div id="enemy" class="char"></div>
+</div>
+
+<div class="panel">
+<h2 id="title"></h2>
+<div id="message"></div>
+</div>
+
+<div id="buttons"></div>
+
+</div>
+
+<script>
+
+let player={
+level:1,
+exp:0,
+hp:100,
+maxHp:100,
+atk:15,
+gold:30,
+potions:3
+};
+
+let good=0;
+let evil=0;
+let scene="town";
+
+function heroSVG(){
+return `
+<svg viewBox="0 0 140 180">
+<circle cx="70" cy="40" r="25" fill="#ffd4b3"/>
+<rect x="45" y="70" width="50" height="70" fill="#4b7cff"/>
+</svg>`;
+}
+
+function enemySVG(){
+return `
+<svg viewBox="0 0 140 180">
+<circle cx="70" cy="50" r="25" fill="#89ff89"/>
+<rect x="45" y="80" width="50" height="60" fill="#22aa22"/>
+</svg>`;
+}
+
+function bossSVG(){
+return `
+<svg viewBox="0 0 140 180">
+<circle cx="70" cy="50" r="30" fill="#ff9999"/>
+<rect x="40" y="80" width="60" height="70" fill="#991111"/>
+</svg>`;
+}
+
+function updateStatus(){
+document.getElementById("status").innerHTML=
+`
+Lv ${player.level}
+<br>HP ${player.hp}/${player.maxHp}
+<br>攻撃 ${player.atk}
+<br>EXP ${player.exp}
+<br>GOLD ${player.gold}
+<br>ポーション ${player.potions}
+<br>善:${good} 悪:${evil}
+`;
+}
+
+function draw(title,msg,buttons,enemyGraphic=""){
+
+updateStatus();
+
+document.getElementById("title").innerHTML=title;
+document.getElementById("message").innerHTML=msg;
+
+document.getElementById("hero").innerHTML=heroSVG();
+document.getElementById("enemy").innerHTML=enemyGraphic;
+
+let area=document.getElementById("buttons");
+area.innerHTML="";
+
+buttons.forEach(btn=>{
+
+let b=document.createElement("button");
+b.textContent=btn.text;
+b.onclick=btn.action;
+
+area.appendChild(b);
+
+});
+}
+
+function animateAttack(){
+
+const hero=document.getElementById("hero");
+const enemy=document.getElementById("enemy");
+
+hero.classList.add("attack");
+
+setTimeout(()=>{
+hero.classList.remove("attack");
+enemy.classList.add("hit");
+},200);
+
+setTimeout(()=>{
+enemy.classList.remove("hit");
+},400);
+}
+
+function battle(enemy){
+
+draw(
+enemy.name,
+"敵が現れた！",
+[
+{
+text:"⚔ 攻撃",
+action(){
+
+animateAttack();
+
+setTimeout(()=>{
+
+let dmg=
+Math.floor(Math.random()*player.atk)+5;
+
+enemy.hp-=dmg;
+
+if(enemy.hp<=0){
+
+player.exp+=enemy.exp;
+player.gold+=enemy.gold;
+
+if(player.exp>=20){
+player.exp-=20;
+player.level++;
+player.maxHp+=20;
+player.hp=player.maxHp;
+player.atk+=5;
+alert("レベルアップ！");
+}
+
+go(enemy.next);
+return;
+}
+
+let edmg=
+Math.floor(Math.random()*enemy.atk)+1;
+
+player.hp-=edmg;
+
+if(player.hp<=0){
+badEnd();
+return;
+}
+
+battle(enemy);
+
+},450);
+}
+},
+{
+text:"🧪 ポーション",
+action(){
+
+if(player.potions<=0){
+alert("ポーションがありません");
+return;
+}
+
+player.potions--;
+player.hp=Math.min(
+player.maxHp,
+player.hp+50
+);
+
+battle(enemy);
+
+}
+}
+],
+enemy.graphic
+);
+
+}
+
+function town(){
+
+scene="town";
+
+draw(
+"王都",
+"老人が助けを求めている。",
+[
+{
+text:"助ける",
+action(){
+good++;
+go("forest");
+}
+},
+{
+text:"無視する",
+action(){
+evil++;
+go("forest");
+}
+},
+{
+text:"セーブ",
+action:saveGame
+},
+{
+text:"ロード",
+action:loadGame
+}
+]
+);
+
+}
+
+function forest(){
+
+scene="forest";
+
+battle({
+name:"スライム",
+hp:50,
+atk:8,
+exp:10,
+gold:15,
+next:"shop",
+graphic:enemySVG()
+});
+
+}
+
+function shop(){
+
+scene="shop";
+
+draw(
+"商人",
+"いらっしゃい。",
+[
+{
+text:"ポーション購入(20G)",
+action(){
+
+if(player.gold>=20){
+player.gold-=20;
+player.potions++;
+shop();
+}else{
+alert("お金が足りません");
+}
+
+}
+},
+{
+text:"少女を助ける",
+action(){
+good+=2;
+go("boss");
+}
+},
+{
+text:"宝を奪う",
+action(){
+evil+=2;
+go("boss");
+}
+}
+]
+);
+
+}
+
+function boss(){
+
+scene="boss";
+
+battle({
+name:"魔王",
+hp:180,
+atk:18,
+exp:50,
+gold:100,
+next:"ending",
+graphic:bossSVG()
+});
+
+}
+
+function ending(){
+
+if(evil>=3){
+badEnd();
+return;
+}
+
+if(good>=3){
+happyEnd();
+return;
+}
+
+normalEnd();
+
+}
+
+function badEnd(){
+
+draw(
+"💀 BAD END",
+"力を求め続けたあなたは闇に飲まれた。",
+[
+{
+text:"最初から",
+action:()=>location.reload()
+}
+]
+);
+
+}
+
+function normalEnd(){
+
+draw(
+"⭐ NORMAL END",
+"世界は救われた。だが伝説にはならなかった。",
+[
+{
+text:"最初から",
+action:()=>location.reload()
+}
+]
+);
+
+}
+
+function happyEnd(){
+
+draw(
+"🌈 HAPPY END",
+"人々を助け続けた勇者は世界の英雄となった。",
+[
+{
+text:"最初から",
+action:()=>location.reload()
+}
+]
+);
+
+}
+
+function saveGame(){
+
+localStorage.setItem(
+"miniRPG",
+JSON.stringify({
+player,
+good,
+evil,
+scene
+})
+);
+
+alert("セーブしました");
+
+}
+
+function loadGame(){
+
+let save=
+localStorage.getItem("miniRPG");
+
+if(!save){
+alert("セーブデータなし");
+return;
+}
+
+let data=JSON.parse(save);
+
+player=data.player;
+good=data.good;
+evil=data.evil;
+
+go(data.scene);
+
+}
+
+function go(s){
+
+scene=s;
+
+switch(s){
+
+case "town":
+town();
+break;
+
+case "forest":
+forest();
+break;
+
+case "shop":
+shop();
+break;
+
+case "boss":
+boss();
+break;
+
+case "ending":
+ending();
+break;
+
+}
+
+}
+
+/* 簡易BGM */
+let bgmStarted=false;
+
+function startBGM(){
+
+if(bgmStarted) return;
+
+bgmStarted=true;
+
+const ctx=
+new(window.AudioContext||
+window.webkitAudioContext)();
+
+function tone(freq,time){
+
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+
+osc.type="triangle";
+osc.frequency.value=freq;
+
+gain.gain.value=0.02;
+
+osc.connect(gain);
+gain.connect(ctx.destination);
+
+osc.start(ctx.currentTime+time);
+osc.stop(ctx.currentTime+time+0.25);
+
+}
+
+setInterval(()=>{
+
+[262,330,392,330].forEach((f,i)=>{
+tone(f,i*0.25);
+});
+
+},1500);
+
+}
+
+document.body.addEventListener(
+"click",
+startBGM,
+{once:true}
+);
+
+go("town");
+
+</script>
+
+</body>
+</html>
