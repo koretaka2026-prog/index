@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヒット＆ブロー (Hit & Blow) - ダークエディション</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a; /* 深みのあるダークネイビー */
+            --panel: #1e293b; /* 落ち着いたグレーネイビー */
+            --text: #f1f5f9;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: var(--text);
+        }
+
+        .game-container {
+            background-color: var(--panel);
+            padding: 35px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .rule {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .setting-area {
+            background-color: #111827;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .setting-area label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .setting-area input {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .input-area {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .digit-input {
+            width: 55px;
+            height: 55px;
+            font-size: 1.8rem;
+            text-align: center;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            background-color: #0f172a;
+            transition: all 0.2s ease;
+        }
+
+        .digit-input:focus {
+            border-color: var(--primary);
+            background-color: #1e293b;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+            outline: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 14px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        #action-btn {
+            flex: 2;
+            background-color: var(--primary);
+            color: white;
+        }
+
+        #action-btn:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        #giveup-btn {
+            flex: 1;
+            background-color: #311515;
+            color: #f87171;
+            border: 1px solid #7f1d1d;
+        }
+
+        #giveup-btn:hover {
+            background-color: var(--danger);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: 700;
+            min-height: 24px;
+        }
+
+        .error { color: #f87171; }
+        .success { color: var(--success); font-size: 1.3rem; }
+        .giveup-msg { color: var(--warning); font-size: 1.2rem; }
+
+        .history-container {
+            margin-top: 30px;
+            border-top: 2px solid var(--border);
+            padding-top: 20px;
+            text-align: left;
+            max-height: 230px;
+            overflow-y: auto;
+        }
+
+        .history-title {
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background-color: #111827;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .badge-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: white;
+            min-width: 48px;
+            text-align: center;
+        }
+
+        .hit-badge { background-color: var(--danger); }
+        .blow-badge { background-color: var(--warning); }
+
+        /* 💻 常時表示されるミニルールウィンドウ */
+        .mini-rule-window {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            background-color: rgba(30, 41, 59, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            line-height: 1.5;
+            z-index: 1000;
+            color: #cbd5e1;
+        }
+
+        .mini-rule-title {
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mini-rule-section {
+            margin-bottom: 8px;
+        }
+
+        .mini-rule-section strong {
+            color: #ffffff;
+        }
+
+        /* 📱 スマホなどの小さい画面用 */
+        @media (max-width: 900px) {
+            .mini-rule-window {
+                position: static;
+                width: auto;
+                max-width: 400px;
+                margin-bottom: 20px;
+                box-sizing: border-box;
+            }
+            body {
+                flex-direction: column;
+                justify-content: flex-start;
+                padding-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="mini-rule-window">
+    <div class="mini-rule-title">💡 クイックルール</div>
+    <div class="mini-rule-section">
+        4桁の隠された数字を当てるゲームです。
+    </div>
+    <div class="mini-rule-section">
+        🔴 <strong>Hit (ヒット)</strong><br>
+        数字も入る位置もピッタリ合っている。
+    </div>
+    <div class="mini-rule-section">
+        🟡 <strong>Blow (ブロー)</strong><br>
+        数字は合っているが、位置が違う。
+    </div>
+</div>
+
+<div class="game-container">
+    <h1>Hit & Blow</h1>
+    <div class="rule">4桁の数字（0〜9）を当ててください</div>
+
+    <div class="setting-area">
+        <label>
+            <input type="checkbox" id="allow-duplicate-checkbox" onchange="initGame()"> 答えの数字の重複を許可する
+        </label>
+    </div>
+
+    <div class="input-area">
+        <!-- onkeydownにバックスペースの判定を追加 -->
+        <input type="text" class="digit-input" oninput="moveFocus(this, 0)" onkeydown="handleBackspace(event, 0)" onclick="this.select()">
+        <input type="text" class="digit-input" oninput="moveFocus(this, 1)" onkeydown="handleBackspace(event, 1)" onclick="this.select()">
+        <input type="text" class="digit-input" oninput="moveFocus(this, 2)" onkeydown="handleBackspace(event, 2)" onclick="this.select()">
+        <input type="text" class="digit-input" oninput="moveFocus(this, 3)" onkeydown="handleBackspace(event, 3)" onclick="this.select()">
+    </div>
+
+    <div class="btn-group">
+        <button id="action-btn" onclick="checkAnswer()">予想する</button>
+        <button id="giveup-btn" onclick="giveUp()">降参</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="history-container">
+        <div class="history-title">履歴 (試行回数: <span id="turn-count">0</span>)</div>
+        <div id="history-list"></div>
+    </div>
+</div>
+<script>
+    let answer = [];
+    let turn = 0;
+    let isGameOver = false;
+    
+    const inputs = document.querySelectorAll('.digit-input');
+
+    // ゲームの初期化
+    function initGame() {
+        answer = [];
+        
+        const numbers = Array.from("0123456789").map(Number);
+        const allowDuplicate = document.getElementById('allow-duplicate-checkbox').checked;
+        
+        if (allowDuplicate) {
+            for (let i = 0; i < 4; i++) {
+                answer.push(Math.floor(Math.random() * 10));
+            }
+        } else {
+            for (let i = 0; i < 4; i++) {
+                const randomIndex = Math.floor(Math.random() * numbers.length);
+                answer.push(numbers[randomIndex]);
+                numbers.splice(randomIndex, 1);
+            }
+        }
+        
+        turn = 0;
+        isGameOver = false;
+        document.getElementById('turn-count').textContent = turn;
+        document.getElementById('history-list').innerHTML = '';
+        document.getElementById('message').textContent = '';
+        document.getElementById('action-btn').textContent = '予想する';
+        document.getElementById('giveup-btn').style.display = 'block';
+        
+        inputs.forEach((input) => {
+            input.value = '';
+            input.disabled = false;
+        });
+        
+        if(inputs.length > 0) {
+            inputs[0].focus();
+            inputs[0].select();
+        }
+    }
+
+    // 全角を半角に変換する関数
+    function zenkakuToHankaku(str) {
+        return str.replace(/[０-９]/g, function(s) {
+            return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+        });
+    }
+
+    // 自動フォーカス移動と上書き処理
+    function moveFocus(current, index) {
+        // 全角数字を半角に変換
+        let converted = zenkakuToHankaku(current.value);
+        
+        // 半角数字以外を除外
+        let cleanValue = converted.replace(/[^0-9]/g, '');
+        
+        if (cleanValue.length > 1) {
+            cleanValue = cleanValue.slice(-1);
+        }
+        
+        current.value = cleanValue;
+        
+        if (current.value.length === 1 && index < 3) {
+            inputs[index + 1].focus();
+            inputs[index + 1].select();
+        }
+    }
+
+    // 空の枠でバックスペースを押したときの処理
+    function handleBackspace(event, index) {
+        if (event.key === 'Backspace') {
+            // 現在の入力欄が空、かつ1つ以上の前の枠が存在する場合
+            if (inputs[index].value === '' && index > 0) {
+                inputs[index - 1].focus();
+                inputs[index - 1].value = ''; // 1つ前のマスの数字を消去
+                event.preventDefault(); // ブラウザ標準の戻る挙動などを防止
+            }
+        }
+    }
+
+    // 降参処理
+    function giveUp() {
+        if (isGameOver) return;
+        
+        const messageElement = document.getElementById('message');
+        const correctAns = answer.join('');
+        messageElement.textContent = `降参です。正解は「 ${correctAns} 」でした！`;
+        messageElement.className = 'giveup-msg';
+        
+        endGame();
+    }
+
+    // 判定処理
+    function checkAnswer() {
+        if (isGameOver) {
+            initGame();
+            return;
+        }
+
+        const messageElement = document.getElementById('message');
+        messageElement.textContent = '';
+        messageElement.className = '';
+
+        let guess = [];
+        for (let i = 0; i < 4; i++) {
+            if (inputs[i].value === '') {
+                messageElement.textContent = '4桁すべてに入力してください。';
+                messageElement.className = 'error';
+                return;
+            }
+            guess.push(parseInt(inputs[i].value));
+        }
+
+        turn++;
+        document.getElementById('turn-count').textContent = turn;
+
+        let hit = 0;
+        let blow = 0;
+
+        let answerFlags = [false, false, false, false];
+        let guessFlags = [false, false, false, false];
+
+        // 1. Hitの判定
+        for (let i = 0; i < 4; i++) {
+            if (guess[i] === answer[i]) {
+                hit++;
+                answerFlags[i] = true;
+                guessFlags[i] = true;
+            }
+        }
+
+        // 2. Blowの判定
+        for (let i = 0; i < 4; i++) {
+            if (guessFlags[i]) continue;
+            
+            for (let j = 0; j < 4; j++) {
+                if (answerFlags[j]) continue;
+                
+                if (guess[i] === answer[j]) {
+                    blow++;
+                    answerFlags[j] = true;
+                    break;
+                }
+            }
+        }
+
+        addHistory(guess.join(''), hit, blow);
+
+        if (hit === 4) {
+            messageElement.textContent = `🎉 正解です！ ${turn}回目でクリア！`;
+            messageElement.className = 'success';
+            endGame();
+        } else {
+            inputs.forEach(input => input.value = '');
+            inputs[0].focus();
+            inputs[0].select();
+        }
+    }
+
+    function addHistory(guessStr, hit, blow) {
+        const historyList = document.getElementById('history-list');
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+            <span>${guessStr}</span>
+            <span class="badge-group">
+                <span class="badge hit-badge">${hit} Hit</span>
+                <span class="badge blow-badge">${blow} Blow</span>
+            </span>
+        `;
+        historyList.insertBefore(item, historyList.firstChild);
+    }
+
+    function endGame() {
+        isGameOver = true;
+        document.getElementById('action-btn').textContent = 'もう一度遊ぶ';
+        document.getElementById('giveup-btn').style.display = 'none';
+        inputs.forEach(input => input.disabled = true);
+    }
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            checkAnswer();
+        }
+    });
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>

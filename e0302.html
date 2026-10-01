@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡️メガ爆裂サイバーリバーシZ⚡️</title>
+    <style>
+        /* 💡 頭がおかしい全画面ゲーミングRGB化 */
+        @keyframes bg-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes shake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-3px, 4px) rotate(-1deg); }
+            20% { transform: translate(4px, -3px) rotate(1deg); }
+            30% { transform: translate(-4px, -2px) rotate(0deg); }
+            40% { transform: translate(3px, 3px) rotate(1deg); }
+            50% { transform: translate(-2px, 2px) rotate(-1deg); }
+            60% { transform: translate(4px, -1px) rotate(0deg); }
+            70% { transform: translate(-3px, 3px) rotate(1deg); }
+            80% { transform: translate(2px, -3px) rotate(-1deg); }
+            90% { transform: translate(-1px, 4px) rotate(0deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        @keyframes text-strike {
+            0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+            30% { transform: scale(1.8) rotate(10deg); opacity: 1; text-shadow: 0 0 30px #ff0055; }
+            100% { transform: scale(1) rotate(-5deg); opacity: 1; }
+        }
+
+        body {
+            font-family: 'Impact', 'Arial Black', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(-45deg, #050508, #110022, #001122, #0d001a);
+            background-size: 400% 400%;
+            animation: bg-glow 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        /* 画面激揺れ用クラス */
+        .mega-shake {
+            animation: shake 0.25s infinite !important;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ff0055, #00ffcc, #ffcc00, #ff0055);
+            background-size: 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: bg-glow 3s linear infinite;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            font-weight: 900;
+            letter-spacing: 5px;
+        }
+        /* 設定パネルのサイバー化 */
+        #setup-panel {
+            background: rgba(10, 10, 20, 0.85);
+            padding: 15px 20px;
+            border-radius: 16px;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.3), inset 0 0 15px rgba(0, 255, 204, 0.1);
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 0.95rem;
+            width: 90vw;
+            max-width: 480px;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-shadow: 0 0 10px #00ffcc;
+            font-weight: bold;
+        }
+
+        .setting-row select {
+            padding: 8px 12px;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            border: 2px solid #ff0055;
+            background-color: #050508;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ff0055;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+            outline: none;
+        }
+        .setting-row select:hover {
+            border-color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+
+        /* インフォパネルのコックピット化 */
+        #info-panel {
+            display: flex;
+            gap: 20px;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            background: rgba(20, 0, 40, 0.8);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.4);
+            width: 90vw;
+            max-width: 480px;
+            box-sizing: border-box;
+            justify-content: space-between;
+        }
+
+        .status {
+            color: #00ffcc;
+            text-shadow: 0 0 10px #00ffcc;
+            font-weight: 900;
+        }
+
+        .score {
+            display: flex;
+            gap: 15px;
+            text-shadow: 0 0 10px #ffcc00;
+        }
+
+        /* バトルフィールド（盤面）のネオン化 */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            background-color: #051a10;
+            background-image: linear-gradient(rgba(0, 255, 100, 0.1) 2px, transparent 2px),
+                              linear-gradient(90deg, rgba(0, 255, 100, 0.1) 2px, transparent 2px);
+            background-size: 12.5% 12.5%;
+            border: 6px solid #00ff55;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 255, 85, 0.6), inset 0 0 30px rgba(0, 255, 85, 0.3);
+            width: 90vw;
+            height: 90vw;
+            max-width: 480px;
+            max-height: 480px;
+            position: relative;
+        }
+
+        .cell {
+            border: 1px solid rgba(0, 255, 85, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            -webkit-tap-highlight-color: transparent; 
+            overflow: hidden;
+        }
+        .cell:hover {
+            background-color: rgba(0, 255, 204, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.5);
+        }
+
+        /* サイバー感MAXのガイド表示 */
+        .cell.hint::after {
+            content: 'READY';
+            font-size: 0.6rem;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+            position: absolute;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* 石の超絶スタイリッシュディスコ化 */
+        .disc {
+            width: 86%;
+            height: 86%;
+            border-radius: 50%;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(255,255,255,0.8);
+        }
+
+        /* 漆黒のブラックホール石 */
+        .disc.black {
+            background: radial-gradient(circle, #2d004d 0%, #050010 70%, #000000 100%);
+            border: 2px solid #a300ff;
+            box-shadow: 0 0 15px #a300ff, inset 0 0 10px #000;
+            transform: scale(1) rotateY(0deg);
+            animation: spawn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 閃光のプラズマホワイト石 */
+        .disc.white {
+            background: radial-gradient(circle, #ffffff 0%, #d9f2ff 50%, #00ccff 100%);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 15px #00ffff, inset 0 0 5px #fff;
+            transform: scale(1) rotateY(180deg);
+            animation: spawn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes spawn {
+            0% { transform: scale(0) rotate(720deg); }
+            100% { transform: scale(1); }
+        }
+        /* 💥 ひっくり返る時の爆裂フラッシュ回転 */
+        .disc.flip-animation {
+            animation: super-flip 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+        }
+        @keyframes super-flip {
+            0% { transform: scale(1) rotateY(0deg); filter: brightness(1); }
+            50% { transform: scale(1.6) rotateY(90deg); filter: brightness(4); }
+            100% { transform: scale(1) rotateY(180deg); filter: brightness(1); }
+        }
+
+        /* 💥 角を取ったときの神々しいオーラ */
+        .cell.corner-god .disc {
+            animation: god-glow 0.5s infinite alternate !important;
+        }
+        @keyframes god-glow {
+            0% { box-shadow: 0 0 20px #ffcc00, 0 0 40px #ff0055; transform: scale(1); }
+            100% { box-shadow: 0 0 40px #ffcc00, 0 0 80px #ff0055; transform: scale(1.1); }
+        }
+
+        /* アルマゲドン起動ボタン */
+        #reset-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff0055, #ffcc00);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
+            transition: all 0.2s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #reset-btn:hover {
+            transform: scale(1.1) translateY(-3px);
+            box-shadow: 0 0 50px #ffcc00, 0 0 20px #ff0055;
+            background: linear-gradient(45deg, #ffcc00, #00ffcc);
+            color: #000;
+            text-shadow: none;
+        }
+        #reset-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 💥 脳汁放出用パーティクル */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            background: #ffcc00;
+            border-radius: 50%;
+            z-index: 10;
+            animation: explode 0.6s ease-out forwards;
+        }
+        @keyframes explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--mx), var(--my)) scale(0); opacity: 0; }
+        }
+
+        /* 💥 特大カットインテキスト */
+        #cut-in-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+            pointer-events: none;
+            font-size: 5rem;
+            font-weight: 900;
+            color: #fff;
+            white-space: nowrap;
+        }
+        .cut-in-text {
+            animation: text-strike 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: linear-gradient(to bottom, #fff 0%, #ffcc00 50%, #ff0055 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(255,0,85,0.8));
+        }
+
+        /* 🤖 AI思考中のサイバーロックオン演出 */
+        .ai-thinking-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 0, 85, 0.1);
+            border: 2px dashed #ff0055;
+            animation: scan 1s linear infinite;
+            z-index: 5;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { transform: scale(0.95); opacity: 0.3; }
+            50% { transform: scale(1.02); opacity: 0.8; }
+            100% { transform: scale(0.95); opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚡️CRAZY REVERSI Z⚡️</h1>
+
+    <div id="setup-panel">
+        <div class="setting-row">
+            <label for="game-mode">対戦モード [MODE]:</label>
+            <select id="game-mode" onchange="toggleSettingVisibility()">
+                <option value="pvp">人 対 人 [DEATHMATCH]</option>
+                <option value="pve" selected>人 対 コンピュータ [VS CYBER-AI]</option>
+            </select>
+        </div>
+        <div class="setting-row" id="player-color-row">
+            <label for="player-color">あなたの属性 [ELEMENT]:</label>
+            <select id="player-color">
+                <option value="black" selected>漆黒の先攻 (黒 ●)</option>
+                <option value="white">白銀の後攻 (白 ○)</option>
+            </select>
+        </div>
+        <div class="setting-row" id="difficulty-row">
+            <label for="difficulty">AIの狂気度 [AI LEVEL]:</label>
+            <select id="difficulty">
+                <option value="easy">ザコ（脳死ランダム）</option>
+                <option value="normal" selected>ゴッド（超知能・角狙い）</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <div id="turn-status" class="status">手番: 黒 ●</div>
+        <div class="score">
+            <span id="black-score">黒: 2</span>
+            <span id="white-score">白: 2</span>
+        </div>
+    </div>
+
+    <div id="board"></div>
+
+    <button id="reset-btn" onclick="initGame()">ファイア起動！！！</button>
+
+    <!-- 特大エフェクト文字を表示するコンテナ -->
+    <div id="cut-in-container"></div>
+    <script>
+        const BOARD_SIZE = 8;
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+
+        const DIRECTIONS = [
+            [-1, 0], [1, 0], [0, -1], [0, 1],
+            [-1, -1], [-1, 1], [1, -1], [1, 1]
+        ];
+
+        const BOARD_VALUE = [
+            [ 30, -12,  0, -1, -1,  0, -12,  30],
+            [-12, -15, -3, -3, -3, -3, -15, -12],
+            [  0,  -3,  0, -1, -1,  0,  -3,   0],
+            [ -1,  -3, -1, -1, -1, -1,  -3,  -1],
+            [ -1,  -3, -1, -1, -1, -1,  -3,  -1],
+            [  0,  -3,  0, -1, -1,  0,  -3,   0],
+            [-12, -15, -3, -3, -3, -3, -15, -12],
+            [ 30, -12,  0, -1, -1,  0, -12,  30]
+        ];
+
+        let board = [];
+        let turn = BLACK;
+        let isAiThinking = false;
+
+        let isVsAi = true;
+        let humanColor = BLACK;
+
+        const boardEl = document.getElementById('board');
+        const turnStatusEl = document.getElementById('turn-status');
+        const blackScoreEl = document.getElementById('black-score');
+        const whiteScoreEl = document.getElementById('white-score');
+        const gameModeEl = document.getElementById('game-mode');
+        const playerColorEl = document.getElementById('player-color');
+        const difficultyEl = document.getElementById('difficulty');
+        const playerColorRow = document.getElementById('player-color-row');
+        const difficultyRow = document.getElementById('difficulty-row');
+        const cutInContainer = document.getElementById('cut-in-container');
+
+        // 💥 特大カットイン文字をブチかます関数
+        function triggerCutIn(text) {
+            cutInContainer.innerHTML = `<div class="cut-in-text">${text}</div>`;
+            setTimeout(() => { cutInContainer.innerHTML = ''; }, 600);
+        }
+
+        // 💥 画面をこれでもかと揺らす関数
+        function triggerScreenShake() {
+            document.body.classList.add('mega-shake');
+            setTimeout(() => {
+                document.body.classList.remove('mega-shake');
+            }, 250);
+        }
+
+        // 💥 盤面にハデな火花（パーティクル）をぶち撒ける関数
+        function spawnParticles(x, y, count = 30) {
+            const colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ffffff', '#a300ff'];
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                
+                const size = Math.random() * 8 + 4;
+                p.style.width = `${size}px`;
+                p.style.height = `${size}px`;
+                p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                p.style.boxShadow = `0 0 10px ${p.style.backgroundColor}`;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 150 + 50;
+                const mx = Math.cos(angle) * distance;
+                const my = Math.sin(angle) * distance;
+                
+                p.style.setProperty('--mx', `${mx}px`);
+                p.style.setProperty('--my', `${my}px`);
+                
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+                
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 600);
+            }
+        }
+
+        function toggleSettingVisibility() {
+            if (gameModeEl.value === 'pvp') {
+                playerColorRow.style.display = 'none';
+                difficultyRow.style.display = 'none';
+            } else {
+                playerColorRow.style.display = 'flex';
+                difficultyRow.style.display = 'flex';
+            }
+        }
+
+        function initGame() {
+            turn = BLACK;
+            isAiThinking = false;
+
+            isVsAi = (gameModeEl.value === 'pve');
+            humanColor = (playerColorEl.value === 'black') ? BLACK : WHITE;
+
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+            board[3][3] = WHITE;
+            board[3][4] = BLACK;
+            board[4][3] = BLACK;
+            board[4][4] = WHITE;
+
+            triggerCutIn("BATTLE START!!");
+            triggerScreenShake();
+            createBoardDOM();
+            updateUI();
+
+            if (isVsAi && humanColor === WHITE) {
+                isAiThinking = true;
+                showAiOverlay(true);
+                setTimeout(makeAiMove, 800);
+            }
+        }
+
+        function createBoardDOM() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.id = `cell-${r}-${c}`;
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener('click', (e) => handleCellClick(r, c, e));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function updateUI() {
+            let blackCount = 0;
+            let whiteCount = 0;
+            const canMoveList = getValidMoves(turn);
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    const value = board[r][c];
+
+                    if ((r === 0 || r === 7) && (c === 0 || c === 7) && value !== EMPTY) {
+                        cell.classList.add('corner-god');
+                    } else {
+                        cell.classList.remove('corner-god');
+                    }
+
+                    cell.classList.remove('hint');
+                    const existingDisc = cell.querySelector('.disc');
+
+                    if (value === BLACK) {
+                        blackCount++;
+                        if (!existingDisc) {
+                            cell.innerHTML = '<div class="disc black"></div>';
+                        } else if (existingDisc.classList.contains('white')) {
+                            existingDisc.className = 'disc black flip-animation';
+                        }
+                    } else if (value === WHITE) {
+                        whiteCount++;
+                        if (!existingDisc) {
+                            cell.innerHTML = '<div class="disc white"></div>';
+                        } else if (existingDisc.classList.contains('black')) {
+                            existingDisc.className = 'disc white flip-animation';
+                        }
+                    } else if (canMoveList.some(m => m.r === r && m.c === c)) {
+                        if (!isVsAi || (isVsAi && turn === humanColor && !isAiThinking)) {
+                            cell.innerHTML = '';
+                            cell.classList.add('hint');
+                        }
+                    } else {
+                        cell.innerHTML = '';
+                    }
+                }
+            }
+
+            if (isVsAi) {
+                blackScoreEl.innerHTML = (humanColor === BLACK) ? `<span style="color:#00ffcc">YOU(黒):</span> <span style="font-size:1.8rem">${blackCount}</span>` : `<span style="color:#ff0055">CYBER-AI(黒):</span> <span style="font-size:1.8rem">${blackCount}</span>`;
+                whiteScoreEl.innerHTML = (humanColor === WHITE) ? `<span style="color:#00ffcc">YOU(白):</span> <span style="font-size:1.8rem">${whiteCount}</span>` : `<span style="color:#ff0055">CYBER-AI(白):</span> <span style="font-size:1.8rem">${whiteCount}</span>`;
+            } else {
+                blackScoreEl.innerHTML = `黒: <span style="font-size:1.8rem">${blackCount}</span>`;
+                whiteScoreEl.innerHTML = `白: <span style="font-size:1.8rem">${whiteCount}</span>`;
+            }
+
+            if (isVsAi) {
+                if (turn === humanColor) {
+                    turnStatusEl.innerHTML = `⚡️ YOUR TURN ⚡️`;
+                    turnStatusEl.style.color = "#00ffcc";
+                } else {
+                    turnStatusEl.innerHTML = `🤖 AI THINKING...`;
+                    turnStatusEl.style.color = "#ff0055";
+                }
+            } else {
+                turnStatusEl.textContent = `手番: ${(turn === BLACK) ? "黒 ●" : "白 ○"}`;
+            }
+        }        function showAiOverlay(show) {
+            const existing = document.querySelector('.ai-thinking-overlay');
+            if (existing) existing.remove();
+            if (show) {
+                const overlay = document.createElement('div');
+                overlay.classList.add('ai-thinking-overlay');
+                boardEl.appendChild(overlay);
+            }
+        }
+
+        function handleCellClick(r, c, e) {
+            if (isAiThinking || (isVsAi && turn !== humanColor)) return;
+
+            const flippedCount = flipDiscs(r, c, turn, false);
+            
+            if (flippedCount > 0) {
+                spawnParticles(e.clientX, e.clientY, 35);
+                executeMove(r, c);
+            }
+        }
+
+        function executeMove(r, c) {
+            const isCorner = (r === 0 || r === 7) && (c === 0 || c === 7);
+            
+            flipDiscs(r, c, turn, true);
+            board[r][c] = turn;
+
+            triggerScreenShake();
+            if (isCorner) {
+                triggerCutIn("CRITICAL CORNER!!");
+            } else {
+                triggerCutIn("HIT!!");
+            }
+
+            turn = (turn === BLACK) ? WHITE : BLACK;
+            updateUI();
+
+            if (getValidMoves(turn).length === 0) {
+                turn = (turn === BLACK) ? WHITE : BLACK;
+                
+                if (getValidMoves(turn).length === 0) {
+                    showAiOverlay(false);
+                    setTimeout(endGame, 500);
+                    return;
+                } else {
+                    triggerCutIn("NO MOVE! PASS!");
+                    triggerScreenShake();
+                    updateUI();
+                }
+            }
+
+            if (isVsAi && turn !== humanColor) {
+                isAiThinking = true;
+                showAiOverlay(true);
+                setTimeout(makeAiMove, 800);
+            } else {
+                showAiOverlay(false);
+            }
+        }
+
+        function makeAiMove() {
+            const aiColor = (humanColor === BLACK) ? WHITE : BLACK;
+            const validMoves = getValidMoves(aiColor);
+            
+            if (validMoves.length === 0) {
+                isAiThinking = false;
+                showAiOverlay(false);
+                return;
+            }
+
+            let chosenMove = validMoves[0];
+            const difficulty = difficultyEl.value;
+
+            if (difficulty === 'easy') {
+                const randomIndex = Math.floor(Math.random() * validMoves.length);
+                chosenMove = validMoves[randomIndex];
+            } else {
+                let maxScore = -Infinity;
+                for (const move of validMoves) {
+                    let score = BOARD_VALUE[move.r][move.c];
+                    const flipped = flipDiscs(move.r, move.c, aiColor, false);
+                    score += flipped * 0.1;
+
+                    if (score > maxScore) {
+                        maxScore = score;
+                        chosenMove = move;
+                    }
+                }
+            }
+
+            isAiThinking = false;
+            showAiOverlay(false);
+
+            const targetCell = document.getElementById(`cell-${chosenMove.r}-${chosenMove.c}`);
+            const rect = targetCell.getBoundingClientRect();
+            spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2, 25);
+
+            executeMove(chosenMove.r, chosenMove.c);
+        }
+
+        function flipDiscs(startR, startC, playerColor, doFlip = false) {
+            if (board[startR][startC] !== EMPTY) return 0;
+
+            let totalFlipped = 0;
+            const opponentColor = (playerColor === BLACK) ? WHITE : BLACK;
+
+            for (const [dr, dc] of DIRECTIONS) {
+                let r = startR + dr;
+                let c = startC + dc;
+                let flippedInDir = [];
+
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === opponentColor) {
+                    flippedInDir.push({r, c});
+                    r += dr;
+                    r += dr;
+                    c += dc;
+                }
+
+                if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === playerColor) {
+                    if (flippedInDir.length > 0) {
+                        totalFlipped += flippedInDir.length;
+                        if (doFlip) {
+                            flippedInDir.forEach(pos => {
+                                board[pos.r][pos.c] = playerColor;
+                            });
+                        }
+                    }
+                }
+            }
+            return totalFlipped;
+        }
+
+        function getValidMoves(playerColor) {
+            const moves = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (flipDiscs(r, c, playerColor, false) > 0) {
+                        moves.push({r, c});
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function endGame() {
+            let blackCount = 0;
+            let whiteCount = 0;
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === BLACK) blackCount++;
+                    if (board[r][c] === WHITE) whiteCount++;
+                }
+            }
+
+            let winnerText = "";
+            
+            if (isVsAi) {
+                const humanCount = (humanColor === BLACK) ? blackCount : whiteCount;
+                const aiCount = (humanColor === BLACK) ? whiteCount : blackCount;
+                if (humanCount > aiCount) {
+                    winnerText = "YOU WIN!! VICTORY!!";
+                } else if (aiCount > humanCount) {
+                    winnerText = "DEFEATED... AI WIN";
+                } else {
+                    winnerText = "DRAW GAME";
+                }
+            } else {
+                if (blackCount > whiteCount) {
+                    winnerText = "BLACK WIN!!";
+                } else if (whiteCount > blackCount) {
+                    winnerText = "WHITE WIN!!";
+                } else {
+                    winnerText = "DRAW GAME";
+                }
+            }
+            
+            triggerCutIn(winnerText);
+            
+            for(let i=0; i<10; i++) {
+                setTimeout(() => {
+                    triggerScreenShake();
+                    const rx = Math.random() * window.innerWidth;
+                    const ry = Math.random() * window.innerHeight;
+                    spawnParticles(rx, ry, 40);
+                }, i * 200);
+            }
+
+            setTimeout(() => {
+                alert(`【💥ジャッジメント終了💥】\n黒の総数: ${blackCount}\n白の総数: ${whiteCount}\n\n結果: ${winnerText}`);
+            }, 2200);
+        }
+
+        toggleSettingVisibility();
+        initGame();
+    </script>
+</body>
+</html>
+
