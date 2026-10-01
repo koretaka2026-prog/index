@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>あっち向いてホイ</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#eef3ff;
+    padding:20px;
+}
+
+h1{
+    color:#2563eb;
+}
+
+.face{
+    font-size:100px;
+    display:inline-block;
+    margin:20px;
+    transition:0.3s;
+}
+
+button{
+    font-size:24px;
+    padding:12px 20px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+}
+
+#message{
+    font-size:24px;
+    min-height:80px;
+    margin:20px;
+}
+</style>
+</head>
+<body>
+
+<h1>あっち向いてホイ</h1>
+
+<div>
+    <div>あなた 😀</div>
+    <div id="playerFace" class="face">😀</div>
+</div>
+
+<div>
+    <div>CPU 🤖</div>
+    <div id="cpuFace" class="face">🤖</div>
+</div>
+
+<div id="message">
+じゃんけんを選んでください
+</div>
+
+<div id="janken">
+    <button onclick="janken(0)">✊ グー</button>
+    <button onclick="janken(1)">✌️ チョキ</button>
+    <button onclick="janken(2)">✋ パー</button>
+</div>
+
+<div id="hoi" style="display:none;">
+    <button onclick="hoi('up')">↑</button>
+    <button onclick="hoi('down')">↓</button>
+    <button onclick="hoi('left')">←</button>
+    <button onclick="hoi('right')">→</button>
+</div>
+
+<script>
+
+const hands=["グー","チョキ","パー"];
+const dirs=["up","down","left","right"];
+
+let attacker=false;
+
+function rotate(id,dir){
+
+    let deg=0;
+
+    if(dir==="up") deg=-90;
+    if(dir==="down") deg=90;
+    if(dir==="left") deg=180;
+    if(dir==="right") deg=0;
+
+    document.getElementById(id).style.transform=
+        "rotate("+deg+"deg)";
+}
+
+function janken(player){
+
+    const cpu=Math.floor(Math.random()*3);
+
+    document.getElementById("playerFace").style.transform="rotate(0deg)";
+    document.getElementById("cpuFace").style.transform="rotate(0deg)";
+
+    if(player===cpu){
+
+        document.getElementById("message").innerHTML=
+        "あなた："+hands[player]+"<br>"+
+        "CPU："+hands[cpu]+"<br>"+
+        "あいこ！";
+
+        return;
+    }
+
+    const win=
+    (player===0&&cpu===1)||
+    (player===1&&cpu===2)||
+    (player===2&&cpu===0);
+
+    attacker=win;
+
+    document.getElementById("janken").style.display="none";
+    document.getElementById("hoi").style.display="block";
+
+    document.getElementById("message").innerHTML=
+    "あなた："+hands[player]+"<br>"+
+    "CPU："+hands[cpu]+"<br>"+
+    (win ?
+      "あなたが指をさします" :
+      "CPUが指をさします");
+}
+
+function hoi(dir){
+
+    const cpuDir=
+    dirs[Math.floor(Math.random()*4)];
+
+    document.getElementById("hoi").style.display="none";
+
+    if(attacker){
+
+        rotate("playerFace",dir);
+        rotate("cpuFace",cpuDir);
+
+        if(dir===cpuDir){
+
+            document.getElementById("message").innerHTML=
+            "🎉 あっち向いてホイ成功！<br>あなたの勝ち！";
+
+        }else{
+
+            document.getElementById("message").innerHTML=
+            "はずれ！<br>もう一度じゃんけん";
+
+            setTimeout(resetRound,2000);
+        }
+
+    }else{
+
+        rotate("cpuFace",dir);
+        rotate("playerFace",cpuDir);
+
+        if(dir===cpuDir){
+
+            document.getElementById("message").innerHTML=
+            "😢 CPUの勝ち！";
+
+        }else{
+
+            document.getElementById("message").innerHTML=
+            "回避成功！<br>もう一度じゃんけん";
+
+            setTimeout(resetRound,2000);
+        }
+    }
+}
+
+function resetRound(){
+
+    document.getElementById("janken").style.display="block";
+    document.getElementById("hoi").style.display="none";
+
+    document.getElementById("playerFace").style.transform="rotate(0deg)";
+    document.getElementById("cpuFace").style.transform="rotate(0deg)";
+
+    document.getElementById("message").innerHTML=
+    "じゃんけんを選んでください";
+}
+
+</script>
+
+</body>
+</html>
