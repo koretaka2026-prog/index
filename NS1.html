@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>おもちゃのジグソーパズル</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background:
+        radial-gradient(circle at 30% 20%, #fff7c7, transparent 30%),
+        linear-gradient(145deg, #ffcf70, #ff8f70);
+
+    font-family:
+        "Hiragino Maru Gothic ProN",
+        "Yu Gothic",
+        sans-serif;
+
+    color: #573d2d;
+}
+
+.game {
+    width: min(94vw, 650px);
+    text-align: center;
+}
+
+h1 {
+    margin: 0 0 5px;
+
+    font-size: clamp(28px, 7vw, 43px);
+
+    color: #fff;
+    text-shadow:
+        0 3px 0 #c96e45,
+        0 6px 10px rgba(0,0,0,.2);
+}
+
+.subtitle {
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+/* =====================
+   ステータス
+===================== */
+
+.status {
+    display: flex;
+    justify-content: space-between;
+
+    padding: 10px 17px;
+
+    margin-bottom: 12px;
+
+    background: #fff4d6;
+
+    border: 4px solid #e6a65d;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 5px 0 #bd7841,
+        inset 0 2px 3px #fff;
+    
+    font-weight: bold;
+}
+
+/* =====================
+   パズルボード
+===================== */
+
+.board-frame {
+    position: relative;
+
+    padding: 13px;
+
+    background: #b97845;
+
+    border-radius: 24px;
+
+    border: 5px solid #8d512e;
+
+    box-shadow:
+        0 8px 0 #693c25,
+        inset 0 3px 5px rgba(255,255,255,.35),
+        0 15px 25px rgba(0,0,0,.25);
+}
+
+.board {
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    aspect-ratio: 4 / 3;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(135deg,
+        #fff7d1,
+        #f5df9a);
+
+    border-radius: 12px;
+
+    border: 3px solid #714326;
+}
+
+/* =====================
+   正解位置の穴
+===================== */
+
+.slot {
+    position: relative;
+
+    border: 2px dashed rgba(130,85,40,.35);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 32px;
+
+    color: rgba(120,80,40,.18);
+}
+
+.slot.selected {
+    background: rgba(255,220,70,.35);
+}
+
+/* =====================
+   ピース
+===================== */
+
+.pieces-title {
+    margin: 18px 0 8px;
+
+    color: #fff;
+
+    font-weight: bold;
+    font-size: 17px;
+}
+
+.pieces {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 10px;
+
+    padding: 10px;
+
+    background: #f5c26b;
+
+    border: 4px solid #d48a3f;
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 6px 0 #a85f2d,
+        inset 0 2px 5px rgba(255,255,255,.5);
+}
+
+/* =====================
+   おもちゃピース
+===================== */
+
+.piece {
+    position: relative;
+
+    aspect-ratio: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 17px;
+
+    border: 4px solid #fff;
+
+    cursor: pointer;
+
+    font-size: clamp(30px, 8vw, 48px);
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #e9e9e9
+        );
+
+    box-shadow:
+        0 5px 0 #b4a28c,
+        0 7px 12px rgba(0,0,0,.2),
+        inset 0 3px 5px rgba(255,255,255,.9);
+
+    transition:
+        transform .12s,
+        box-shadow .12s;
+}
+
+.piece::after {
+    content: "";
+
+    position: absolute;
+
+    width: 25%;
+    height: 25%;
+
+    right: 8%;
+    top: 8%;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.55);
+}
+
+.piece:active {
+    transform:
+        translateY(4px)
+        scale(.95);
+
+    box-shadow:
+        0 1px 0 #b4a28c,
+        inset 0 2px 4px rgba(0,0,0,.1);
+}
+
+.piece.selected {
+    transform:
+        translateY(-6px)
+        rotate(-2deg)
+        scale(1.05);
+
+    border-color: #ffeb3b;
+
+    box-shadow:
+        0 8px 0 #b98a22,
+        0 12px 20px rgba(0,0,0,.25),
+        0 0 15px #ffe44d;
+}
+
+.piece.used {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* 色 */
+
+.red {
+    background: linear-gradient(145deg,#ff8585,#e74343);
+}
+
+.blue {
+    background: linear-gradient(145deg,#79d8ff,#3898e8);
+}
+
+.green {
+    background: linear-gradient(145deg,#8eea9b,#45b95e);
+}
+
+.yellow {
+    background: linear-gradient(145deg,#ffe77b,#f3bc35);
+}
+
+.purple {
+    background: linear-gradient(145deg,#d39cff,#8b5bd8);
+}
+
+.orange {
+    background: linear-gradient(145deg,#ffbd72,#ed7736);
+}
+
+/* =====================
+   メッセージ
+===================== */
+
+.message {
+    min-height: 35px;
+
+    margin: 8px 0;
+
+    color: #fff;
+
+    font-weight: bold;
+
+    text-shadow:
+        0 2px 3px rgba(0,0,0,.2);
+}
+
+/* =====================
+   ボタン
+===================== */
+
+button {
+    border: none;
+
+    padding: 11px 25px;
+
+    border-radius: 30px;
+
+    background:
+        linear-gradient(#fff06b,#ffbd28);
+
+    color: #6b4700;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    box-shadow:
+        0 5px 0 #bd7b1c,
+        0 8px 12px rgba(0,0,0,.2);
+
+    cursor: pointer;
+}
+
+button:active {
+    transform: translateY(4px);
+
+    box-shadow:
+        0 1px 0 #bd7b1c;
+}
+
+/* =====================
+   正解アニメーション
+===================== */
+
+.correct {
+    animation:
+        correct .45s ease;
+}
+
+@keyframes correct {
+
+    0% {
+        transform: scale(.7)
+                   rotate(-8deg);
+    }
+
+    60% {
+        transform: scale(1.15)
+                   rotate(4deg);
+    }
+
+    100% {
+        transform: scale(1)
+                   rotate(0);
+    }
+}
+
+/* =====================
+   間違い
+===================== */
+
+.wrong {
+    animation:
+        shake .35s;
+}
+
+@keyframes shake {
+
+    0%,100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-9px);
+    }
+
+    75% {
+        transform: translateX(9px);
+    }
+}
+
+/* =====================
+   クリア
+===================== */
+
+.clear {
+    position: fixed;
+
+    inset: 0;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    background:
+        rgba(255,194,74,.75);
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: .4s;
+
+    z-index: 100;
+}
+
+.clear.show {
+    opacity: 1;
+
+    pointer-events: auto;
+}
+
+.clear-card {
+    width: min(88vw,400px);
+
+    padding: 30px 20px;
+
+    background: #fff8df;
+
+    border: 7px solid #d89448;
+
+    border-radius: 30px;
+
+    box-shadow:
+        0 10px 0 #9a592d,
+        0 20px 40px rgba(0,0,0,.3);
+
+    animation:
+        popup .45s ease;
+}
+
+.clear-card h2 {
+    margin: 0;
+
+    font-size: 42px;
+
+    color: #f29c25;
+}
+
+.clear-card p {
+    font-size: 18px;
+}
+
+@keyframes popup {
+
+    0% {
+        transform: scale(.5)
+                   rotate(-5deg);
+    }
+
+    70% {
+        transform: scale(1.08)
+                   rotate(2deg);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* =====================
+   スマホ
+===================== */
+
+@media (max-width: 430px) {
+
+    .game {
+        width: 95vw;
+    }
+
+    .pieces {
+        gap: 6px;
+        padding: 7px;
+    }
+
+    .piece {
+        border-width: 3px;
+        border-radius: 13px;
+    }
+
+    .board-frame {
+        padding: 8px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+    <h1>🧩 おもちゃパズル</h1>
+
+    <div class="subtitle">
+        ピースを選んで、同じ場所をタップ！
+    </div>
+
+    <div class="status">
+        <span>
+            🧩 <span id="count">0</span> / 12
+        </span>
+
+        <span>
+            ⭐ <span id="score">0</span>
+        </span>
+    </div>
+
+    <!-- =====================
+         パズル本体
+    ====================== -->
+
+    <div class="board-frame">
+
+        <div class="board" id="board">
+        </div>
+
+    </div>
+
+    <div class="pieces-title">
+        🧸 ピースを選んでください
+    </div>
+
+    <div class="pieces" id="pieces">
+    </div>
+
+    <div class="message" id="message">
+        ピースを1つタップしよう！
+    </div>
+
+    <button onclick="newGame()">
+        🔄 もう一度遊ぶ
+    </button>
+
+</div>
+
+
+<!-- =====================
+     クリア画面
+====================== -->
+
+<div class="clear" id="clear">
+
+    <div class="clear-card">
+
+        <h2>🎉 完成！</h2>
+
+        <p>
+            パズルが完成しました！
+        </p>
+
+        <p>
+            ⭐ スコア：
+            <strong id="finalScore">0</strong>
+        </p>
+
+        <button onclick="newGame()">
+            もう一度遊ぶ
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/*
+====================================
+    パズル設定
+====================================
+*/
+
+const ROWS = 3;
+const COLS = 4;
+
+const TOTAL = ROWS * COLS;
+
+
+/*
+====================================
+    イラスト
+====================================
+
+絵文字を使って、
+「おもちゃの絵合わせパズル」
+にしています。
+*/
+
+const picture = [
+    "🌈", "☀️", "☁️", "🦋",
+    "🌳", "🏠", "🌷", "🌼",
+    "🐶", "🌱", "🌻", "🦋"
+];
+
+
+/*
+====================================
+    色
+====================================
+*/
+
+const colors = [
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "purple",
+    "orange"
+];
+
+
+/*
+====================================
+    ゲーム変数
+====================================
+*/
+
+let selectedPiece = null;
+
+let placed = 0;
+
+let score = 0;
+
+
+/*
+====================================
+    ピースデータ
+====================================
+*/
+
+let pieces = [];
+
+
+/*
+====================================
+    新しいゲーム
+====================================
+*/
+
+function newGame() {
+
+    selectedPiece = null;
+
+    placed = 0;
+
+    score = 0;
+
+    document
+        .getElementById("clear")
+        .classList.remove("show");
+
+    document
+        .getElementById("message")
+        .textContent =
+        "ピースを1つタップしよう！";
+
+    createBoard();
+
+    createPieces();
+
+    updateStatus();
+}
+
+
+/*
+====================================
+    ボード作成
+====================================
+*/
+
+function createBoard() {
+
+    const board =
+        document.getElementById("board");
+
+    board.innerHTML = "";
+
+    for (
+        let i = 0;
+        i < TOTAL;
+        i++
+    ) {
+
+        const slot =
+            document.createElement("div");
+
+        slot.className = "slot";
+
+        slot.dataset.index = i;
+
+        /*
+         * うっすら絵を表示
+         */
+        slot.textContent =
+            picture[i];
+
+        /*
+         * タップされたら
+         * ピースを置く
+         */
+        slot.addEventListener(
+            "click",
+            () => placePiece(i, slot)
+        );
+
+        board.appendChild(slot);
+    }
+}
+
+
+/*
+====================================
+    ピース作成
+====================================
+*/
+
+function createPieces() {
+
+    const container =
+        document.getElementById("pieces");
+
+    container.innerHTML = "";
+
+    pieces = [];
+
+    /*
+     * 正解ピース
+     */
+
+    for (
+        let i = 0;
+        i < TOTAL;
+        i++
+    ) {
+
+        pieces.push({
+            id: i,
+            correct: i,
+            emoji: picture[i],
+            color:
+                colors[
+                    i % colors.length
+                ]
+        });
+    }
+
+
+    /*
+     * シャッフル
+     */
+
+    pieces.sort(
+        () => Math.random() - .5
+    );
+
+
+    /*
+     * 画面に表示
+     */
+
+    pieces.forEach(
+        (piece) => {
+
+            const element =
+                document.createElement("div");
+
+            element.className =
+                "piece " + piece.color;
+
+            element.textContent =
+                piece.emoji;
+
+            element.dataset.id =
+                piece.id;
+
+            element.addEventListener(
+                "click",
+                () => selectPiece(
+                    piece,
+                    element
+                )
+            );
+
+            container.appendChild(element);
+        }
+    );
+}
+
+
+/*
+====================================
+    ピースを選択
+====================================
+*/
+
+function selectPiece(
+    piece,
+    element
+) {
+
+    /*
+     * すでに置いたピース
+     */
+    if (
+        element.classList.contains("used")
+    ) {
+        return;
+    }
+
+
+    /*
+     * 前の選択を解除
+     */
+
+    document
+        .querySelectorAll(".piece.selected")
+        .forEach(
+            el =>
+                el.classList.remove(
+                    "selected"
+                )
+        );
+
+
+    /*
+     * 新しく選択
+     */
+
+    selectedPiece = {
+        piece: piece,
+        element: element
+    };
+
+    element.classList.add("selected");
+
+    document
+        .getElementById("message")
+        .textContent =
+        "📍 入れたい場所をタップ！";
+}
+
+
+/*
+====================================
+    ピースを置く
+====================================
+*/
+
+function placePiece(
+    index,
+    slot
+) {
+
+    /*
+     * ピースを選んでいない
+     */
+
+    if (!selectedPiece) {
+
+        document
+            .getElementById("message")
+            .textContent =
+            "先にピースを選んでください！";
+
+        return;
+    }
+
+
+    const piece =
+        selectedPiece.piece;
+
+    const element =
+        selectedPiece.element;
+
+
+    /*
+     * すでに埋まっている
+     */
+
+    if (
+        slot.dataset.filled === "true"
+    ) {
+
+        document
+            .getElementById("message")
+            .textContent =
+            "そこには置けません！";
+
+        slot.classList.add("wrong");
+
+        setTimeout(
+            () =>
+                slot.classList.remove("wrong"),
+            350
+        );
+
+        return;
+    }
+
+
+    /*
+     * 正しい場所
+     */
+
+    if (
+        piece.correct === index
+    ) {
+
+        score += 100;
+
+        placed++;
+
+        /*
+         * ピースを消す
+         */
+
+        element.classList.remove(
+            "selected"
+        );
+
+        element.classList.add(
+            "used"
+        );
+
+
+        /*
+         * ボードに表示
+         */
+
+        slot.textContent =
+            piece.emoji;
+
+        slot.dataset.filled =
+            "true";
+
+        slot.classList.add(
+            "selected",
+            "correct"
+        );
+
+
+        /*
+         * 選択解除
+         */
+
+        selectedPiece = null;
+
+
+        /*
+         * メッセージ
+         */
+
+        document
+            .getElementById("message")
+            .textContent =
+            "✨ カチッ！ 正解！";
+
+
+        updateStatus();
+
+
+        /*
+         * 完成
+         */
+
+        if (
+            placed === TOTAL
+        ) {
+
+            setTimeout(
+                showClear,
+                500
+            );
+        }
+
+    } else {
+
+        /*
+         * 間違った場所
+         */
+
+        score =
+            Math.max(
+                0,
+                score - 10
+            );
+
+        slot.classList.add(
+            "wrong"
+        );
+
+        document
+            .getElementById("message")
+            .textContent =
+            "❌ ここじゃないよ！";
+
+
+        setTimeout(
+            () => {
+                slot.classList.remove(
+                    "wrong"
+                );
+            },
+            350
+        );
+
+        updateStatus();
+    }
+}
+
+
+/*
+====================================
+    ステータス
+====================================
+*/
+
+function updateStatus() {
+
+    document
+        .getElementById("count")
+        .textContent =
+        placed;
+
+    document
+        .getElementById("score")
+        .textContent =
+        score;
+}
+
+
+/*
+====================================
+    クリア
+====================================
+*/
+
+function showClear() {
+
+    document
+        .getElementById("finalScore")
+        .textContent =
+        score;
+
+    document
+        .getElementById("clear")
+        .classList.add("show");
+
+}
+
+
+/*
+====================================
+    ゲーム開始
+====================================
+*/
+
+newGame();
+
+</script>
+
+</body>
+</html>
