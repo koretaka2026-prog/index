@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>NEON DROP</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --bg: #070914;
+    --panel: #10152b;
+    --cyan: #22d3ee;
+    --text: #ffffff;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top, #16224a 0%, #070914 45%),
+        #070914;
+    color: var(--text);
+
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        "Noto Sans JP",
+        sans-serif;
+
+    display: flex;
+    justify-content: center;
+
+    padding: 16px;
+
+    user-select: none;
+}
+
+.game {
+    width: min(94vw, 500px);
+}
+
+
+/* ================================
+   タイトル
+================================ */
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+
+    margin-bottom: 14px;
+}
+
+.subtitle {
+    color: #67e8f9;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    font-weight: bold;
+}
+
+h1 {
+    margin: 2px 0 0;
+
+    font-size: clamp(32px, 9vw, 46px);
+    font-style: italic;
+
+    line-height: 1;
+}
+
+button {
+    font: inherit;
+}
+
+.reset {
+    border: 1px solid #ffffff20;
+    background: #ffffff12;
+    color: white;
+
+    padding: 10px 15px;
+
+    border-radius: 12px;
+
+    cursor: pointer;
+}
+
+.reset:active {
+    transform: scale(0.96);
+}
+
+
+/* ================================
+   スコア
+================================ */
+
+.scores {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 8px;
+
+    margin-bottom: 10px;
+}
+
+.scoreBox {
+    text-align: center;
+
+    background: #ffffff0b;
+
+    border: 1px solid #ffffff15;
+
+    border-radius: 16px;
+
+    padding: 9px;
+}
+
+.scoreTitle {
+    font-size: 10px;
+
+    color: #94a3b8;
+
+    letter-spacing: 0.15em;
+}
+
+.scoreValue {
+    margin-top: 2px;
+
+    font-size: 22px;
+
+    font-weight: 900;
+}
+
+
+/* ================================
+   ゲームパネル
+================================ */
+
+.panel {
+    background: #ffffff08;
+
+    border: 1px solid #ffffff15;
+
+    border-radius: 24px;
+
+    padding: 12px;
+
+    box-shadow:
+        0 20px 50px #00000080;
+}
+
+
+/* ================================
+   次の玉
+================================ */
+
+.nextArea {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 4px 7px 12px;
+}
+
+.nextLabel {
+    color: #cbd5e1;
+
+    font-size: 13px;
+}
+
+.nextBall {
+    width: 30px;
+    height: 30px;
+
+    border-radius: 50%;
+}
+
+.rule {
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+
+/* ================================
+   盤面
+================================ */
+
+.board {
+    display: grid;
+
+    grid-template-columns: repeat(7, 1fr);
+
+    gap: 4px;
+
+    background: #0b1023;
+
+    padding: 8px;
+
+    border-radius: 16px;
+
+    touch-action: manipulation;
+}
+
+.cell {
+    position: relative;
+
+    aspect-ratio: 1;
+
+    background: #ffffff08;
+
+    border: 1px solid #ffffff08;
+
+    border-radius: 9px;
+
+    padding: 0;
+
+    cursor: pointer;
+}
+
+.cell:active {
+    background: #ffffff18;
+}
+
+.ball {
+    position: absolute;
+
+    width: 78%;
+    height: 78%;
+
+    left: 11%;
+    top: 11%;
+
+    border-radius: 50%;
+
+    animation: appear 0.15s ease-out;
+}
+
+@keyframes appear {
+    from {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+
+/* ================================
+   メッセージ
+================================ */
+
+.message {
+    min-height: 45px;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    margin-top: 10px;
+
+    border-radius: 13px;
+
+    background: #22d3ee12;
+
+    color: #a5f3fc;
+
+    font-weight: bold;
+}
+
+.message.gameover {
+    background: #f43f5e20;
+
+    color: #fda4af;
+}
+
+.description {
+    margin-top: 10px;
+
+    text-align: center;
+
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+/* ================================
+   スマートフォン
+================================ */
+
+@media (max-width: 450px) {
+
+    body {
+        padding: 10px;
+    }
+
+    .panel {
+        padding: 9px;
+    }
+
+    .board {
+        gap: 3px;
+        padding: 6px;
+    }
+
+    .rule {
+        display: none;
+    }
+}
+</style>
+</head>
+
+
+<body>
+
+<main class="game">
+
+    <header>
+
+        <div>
+
+            <div class="subtitle">
+                ENDLESS PUZZLE
+            </div>
+
+            <h1>
+                NEON DROP
+            </h1>
+
+        </div>
+
+
+        <button
+            class="reset"
+            id="resetButton">
+            RESET
+        </button>
+
+    </header>
+
+
+    <!-- スコア -->
+
+    <section class="scores">
+
+        <div class="scoreBox">
+
+            <div class="scoreTitle">
+                SCORE
+            </div>
+
+            <div
+                class="scoreValue"
+                id="score">
+                0
+            </div>
+
+        </div>
+
+
+        <div class="scoreBox">
+
+            <div class="scoreTitle">
+                BEST
+            </div>
+
+            <div
+                class="scoreValue"
+                id="best">
+                0
+            </div>
+
+        </div>
+
+
+        <div class="scoreBox">
+
+            <div class="scoreTitle">
+                COMBO
+            </div>
+
+            <div
+                class="scoreValue"
+                id="combo">
+                0
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="panel">
+
+        <!-- 次の玉 -->
+
+        <div class="nextArea">
+
+            <span class="nextLabel">
+                NEXT
+            </span>
+
+            <div
+                class="nextBall"
+                id="nextBall">
+            </div>
+
+            <span class="rule">
+                3個以上で消える
+            </span>
+
+        </div>
+
+
+        <!-- ゲーム盤 -->
+
+        <div
+            class="board"
+            id="board">
+        </div>
+
+
+        <div
+            class="message"
+            id="message">
+            列をタップしてネオンを落とそう
+        </div>
+
+    </section>
+
+
+    <div class="description">
+        同じ色を3つ以上つなげて消そう。
+        連鎖すると得点が一気に伸びます。
+    </div>
+
+</main>
+
+
+<script>
+(() => {
+
+"use strict";
+
+
+/* ========================================
+   ゲーム設定
+======================================== */
+
+const WIDTH = 7;
+const HEIGHT = 9;
+
+
+/*
+   ネオンの色
+*/
+const COLORS = [
+    "#22d3ee", // 水色
+    "#a78bfa", // 紫
+    "#fb7185", // ピンク
+    "#facc15", // 黄色
+    "#34d399"  // 緑
+];
+
+
+const boardElement =
+    document.getElementById("board");
+
+
+const scoreElement =
+    document.getElementById("score");
+
+
+const bestElement =
+    document.getElementById("best");
+
+
+const comboElement =
+    document.getElementById("combo");
+
+
+const nextBallElement =
+    document.getElementById("nextBall");
+
+
+const messageElement =
+    document.getElementById("message");
+
+
+const resetButton =
+    document.getElementById("resetButton");
+
+
+/* ========================================
+   ゲーム状態
+======================================== */
+
+let board;
+
+let nextColor;
+
+let score = 0;
+
+let combo = 0;
+
+let gameOver = false;
+
+let busy = false;
+
+
+/*
+   BESTスコアはブラウザに保存
+*/
+let bestScore =
+    Number(
+        localStorage.getItem(
+            "neonDropBest"
+        ) || 0
+    );
+
+
+/* ========================================
+   空の盤面
+======================================== */
+
+function createEmptyBoard() {
+
+    return Array.from(
+        { length: HEIGHT },
+        () => Array(WIDTH).fill(null)
+    );
+
+}
+
+
+/* ========================================
+   ランダムな色
+======================================== */
+
+function randomColor() {
+
+    return COLORS[
+        Math.floor(
+            Math.random() *
+            COLORS.length
+        )
+    ];
+
+}
+
+
+/* ========================================
+   少し待つ
+======================================== */
+
+function wait(ms) {
+
+    return new Promise(
+        resolve =>
+            setTimeout(resolve, ms)
+    );
+
+}
+
+
+/* ========================================
+   盤面表示
+======================================== */
+
+function render() {
+
+    boardElement.innerHTML = "";
+
+
+    for (
+        let row = 0;
+        row < HEIGHT;
+        row++
+    ) {
+
+        for (
+            let col = 0;
+            col < WIDTH;
+            col++
+        ) {
+
+            const cell =
+                document.createElement(
+                    "button"
+                );
+
+
+            cell.className =
+                "cell";
+
+
+            cell.setAttribute(
+                "aria-label",
+                `${row + 1}行 ${col + 1}列`
+            );
+
+
+            /*
+               このマスを押しても
+               同じ列に落下する
+            */
+            cell.addEventListener(
+                "click",
+                () => dropBall(col)
+            );
+
+
+            /*
+               玉が存在する場合
+            */
+            const color =
+                board[row][col];
+
+
+            if (color) {
+
+                const ball =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                ball.className =
+                    "ball";
+
+
+                ball.style.background =
+                    color;
+
+
+                ball.style.boxShadow =
+                    "0 0 15px " +
+                    color +
+                    ", 0 0 5px " +
+                    color;
+
+
+                cell.appendChild(
+                    ball
+                );
+
+            }
+
+
+            boardElement.appendChild(
+                cell
+            );
+
+        }
+
+    }
+
+
+    /*
+       スコア
+    */
+    scoreElement.textContent =
+        score;
+
+
+    bestElement.textContent =
+        bestScore;
+
+
+    comboElement.textContent =
+        combo;
+
+
+    /*
+       NEXT
+    */
+    nextBallElement.style.background =
+        nextColor;
+
+
+    nextBallElement.style.boxShadow =
+        "0 0 18px " +
+        nextColor;
+
+}
+
+
+/* ========================================
+   玉を落とす
+======================================== */
+
+async function dropBall(col) {
+
+    /*
+       処理中やゲーム終了後は
+       押せない
+    */
+    if (
+        busy ||
+        gameOver
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+       一番下の空きマスを探す
+    */
+    let row =
+        HEIGHT - 1;
+
+
+    while (
+        row >= 0 &&
+        board[row][col] !== null
+    ) {
+
+        row--;
+
+    }
+
+
+    /*
+       この列は満杯
+    */
+    if (row < 0) {
+
+        messageElement.textContent =
+            "この列にはもう置けません";
+
+        return;
+
+    }
+
+
+    busy = true;
+
+
+    board[row][col] =
+        nextColor;
+
+
+    /*
+       次の色を用意
+    */
+    nextColor =
+        randomColor();
+
+
+    render();
+
+
+    /*
+       消えるグループと
+       コンボを処理
+    */
+    await resolveBoard();
+
+
+    /*
+       ゲームオーバー判定
+    */
+    checkGameOver();
+
+
+    busy = false;
+
+}
+
+
+/* ========================================
+   同じ色のグループを探す
+======================================== */
+
+function findGroups() {
+
+    const visited =
+        new Set();
+
+
+    const groups = [];
+
+
+    for (
+        let row = 0;
+        row < HEIGHT;
+        row++
+    ) {
+
+        for (
+            let col = 0;
+            col < WIDTH;
+            col++
+        ) {
+
+            const color =
+                board[row][col];
+
+
+            if (!color) {
+
+                continue;
+
+            }
+
+
+            const startKey =
+                row + "," + col;
+
+
+            if (
+                visited.has(startKey)
+            ) {
+
+                continue;
+
+            }
+
+
+            /*
+               幅優先 / 深さ優先探索
+            */
+            const stack = [
+                [row, col]
+            ];
+
+
+            const group = [];
+
+
+            visited.add(
+                startKey
+            );
+
+
+            while (
+                stack.length > 0
+            ) {
+
+                const current =
+                    stack.pop();
+
+
+                const r =
+                    current[0];
+
+
+                const c =
+                    current[1];
+
+
+                group.push(
+                    [r, c]
+                );
+
+
+                /*
+                   上下左右のみ接続
+                */
+                const directions = [
+
+                    [1, 0],
+                    [-1, 0],
+                    [0, 1],
+                    [0, -1]
+
+                ];
+
+
+                for (
+                    const direction
+                    of directions
+                ) {
+
+                    const nr =
+                        r +
+                        direction[0];
+
+
+                    const nc =
+                        c +
+                        direction[1];
+
+
+                    if (
+                        nr < 0 ||
+                        nr >= HEIGHT ||
+                        nc < 0 ||
+                        nc >= WIDTH
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    const key =
+                        nr + "," + nc;
+
+
+                    if (
+                        visited.has(key)
+                    ) {
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        board[nr][nc]
+                        === color
+                    ) {
+
+                        visited.add(
+                            key
+                        );
+
+
+                        stack.push([
+                            nr,
+                            nc
+                        ]);
+
+                    }
+
+                }
+
+            }
+
+
+            /*
+               3個以上なら消す対象
+            */
+            if (
+                group.length >= 3
+            ) {
+
+                groups.push(
+                    group
+                );
+
+            }
+
+        }
+
+    }
+
+
+    return groups;
+
+}
+
+
+/* ========================================
+   玉を下に落とす
+======================================== */
+
+function collapseBoard() {
+
+    for (
+        let col = 0;
+        col < WIDTH;
+        col++
+    ) {
+
+        const balls = [];
+
+
+        /*
+           下から玉を集める
+        */
+        for (
+            let row = HEIGHT - 1;
+            row >= 0;
+            row--
+        ) {
+
+            if (
+                board[row][col]
+            ) {
+
+                balls.push(
+                    board[row][col]
+                );
+
+            }
+
+        }
+
+
+        /*
+           列を空にする
+        */
+        for (
+            let row = 0;
+            row < HEIGHT;
+            row++
+        ) {
+
+            board[row][col] =
+                null;
+
+        }
+
+
+        /*
+           下から詰める
+        */
+        let row =
+            HEIGHT - 1;
+
+
+        for (
+            const color of balls
+        ) {
+
+            board[row][col] =
+                color;
+
+            row--;
+
+        }
+
+    }
+
+}
+
+
+/* ========================================
+   消去＆連鎖処理
+======================================== */
+
+async function resolveBoard() {
+
+    let chain = 0;
+
+    let gainedScore = 0;
+
+
+    while (true) {
+
+        const groups =
+            findGroups();
+
+
+        /*
+           もう消える場所がない
+        */
+        if (
+            groups.length === 0
+        ) {
+
+            break;
+
+        }
+
+
+        chain++;
+
+
+        /*
+           消す座標をまとめる
+        */
+        const remove =
+            new Set();
+
+
+        for (
+            const group
+            of groups
+        ) {
+
+            for (
+                const position
+                of group
+            ) {
+
+                remove.add(
+                    position[0]
+                    +
+                    ","
+                    +
+                    position[1]
+                );
+
+            }
+
+        }
+
+
+        /*
+           コンボ倍率
+        */
+        const points =
+            remove.size *
+            10 *
+            chain;
+
+
+        gainedScore +=
+            points;
+
+
+        /*
+           玉を消す
+        */
+        for (
+            const key
+            of remove
+        ) {
+
+            const parts =
+                key.split(",");
+
+
+            const row =
+                Number(parts[0]);
+
+
+            const col =
+                Number(parts[1]);
+
+
+            board[row][col] =
+                null;
+
+        }
+
+
+        /*
+           メッセージ
+        */
+        if (
+            chain >= 2
+        ) {
+
+            messageElement.textContent =
+                chain +
+                " COMBO! +" +
+                points;
+
+        }
+
+        else {
+
+            messageElement.textContent =
+                remove.size +
+                "個消去！ +" +
+                points;
+
+        }
+
+
+        render();
+
+
+        /*
+           消えたところを見せる
+        */
+        await wait(230);
+
+
+        /*
+           重力で落下
+        */
+        collapseBoard();
+
+
+        render();
+
+
+        await wait(180);
+
+    }
+
+
+    score +=
+        gainedScore;
+
+
+    combo =
+        chain;
+
+
+    /*
+       ハイスコア更新
+    */
+    if (
+        score > bestScore
+    ) {
+
+        bestScore =
+            score;
+
+
+        localStorage.setItem(
+            "neonDropBest",
+            bestScore
+        );
+
+    }
+
+
+    render();
+
+
+    /*
+       コンボ結果表示
+    */
+    if (
+        chain >= 2
+    ) {
+
+        messageElement.textContent =
+            chain +
+            "コンボ成功！";
+
+    }
+
+    else if (
+        chain === 1
+    ) {
+
+        messageElement.textContent =
+            "消去成功！ 次も狙おう";
+
+    }
+
+    else {
+
+        messageElement.textContent =
+            "3つ以上つなげよう";
+
+    }
+
+}
+
+
+/* ========================================
+   ゲームオーバー
+======================================== */
+
+function checkGameOver() {
+
+    /*
+       一番上が全部埋まったら
+       ゲーム終了
+    */
+    const full =
+        board[0].every(
+            cell => cell !== null
+        );
+
+
+    if (!full) {
+
+        return;
+
+    }
+
+
+    gameOver = true;
+
+
+    messageElement.classList.add(
+        "gameover"
+    );
+
+
+    messageElement.textContent =
+        "GAME OVER　もう1回だけ…？";
+
+}
+
+
+/* ========================================
+   ゲーム開始
+======================================== */
+
+function startGame() {
+
+    board =
+        createEmptyBoard();
+
+
+    nextColor =
+        randomColor();
+
+
+    score = 0;
+
+    combo = 0;
+
+    gameOver = false;
+
+    busy = false;
+
+
+    messageElement.classList.remove(
+        "gameover"
+    );
+
+
+    messageElement.textContent =
+        "列をタップしてネオンを落とそう";
+
+
+    render();
+
+}
+
+
+/* ========================================
+   RESET
+======================================== */
+
+resetButton.addEventListener(
+    "click",
+    startGame
+);
+
+
+/* ========================================
+   ゲーム起動
+======================================== */
+
+startGame();
+
+})();
+</script>
+
+</body>
+</html>
