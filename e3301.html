@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パステルリバーシ</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#0b5d1e;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+}
+
+h1{
+    margin:10px 0;
+}
+
+#info{
+    margin:10px;
+    text-align:center;
+    font-size:18px;
+}
+
+#board{
+    display:grid;
+    grid-template-columns:repeat(8,min(10vw,60px));
+    grid-template-rows:repeat(8,min(10vw,60px));
+    gap:2px;
+    background:#063d11;
+    padding:4px;
+    border-radius:8px;
+}
+
+.cell{
+    width:min(10vw,60px);
+    height:min(10vw,60px);
+    background:#1f8a36;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    position:relative;
+}
+
+.cell.legal::after{
+    content:"";
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:rgba(255,255,0,.8);
+}
+
+.stone{
+    width:80%;
+    height:80%;
+    border-radius:50%;
+    position:relative;
+    overflow:hidden;
+    box-shadow:
+        0 0 8px rgba(255,255,255,.4),
+        0 3px 6px rgba(0,0,0,.5);
+}
+
+.stone::after{
+    content:"";
+    position:absolute;
+    top:12%;
+    left:18%;
+    width:35%;
+    height:35%;
+    border-radius:50%;
+    background:rgba(255,255,255,.55);
+}
+
+/* 薄紫（先手） */
+.black{
+    background:radial-gradient(
+        circle at 30% 30%,
+        #f3ecff,
+        #d8c4ff 60%,
+        #b79cff
+    );
+    border:2px solid #a07ff5;
+}
+
+/* 薄ピンク（後手） */
+.white{
+    background:radial-gradient(
+        circle at 30% 30%,
+        #fff4fa,
+        #ffd1e8 60%,
+        #ffadd5
+    );
+    border:2px solid #ff8fc7;
+}
+
+button{
+    margin-top:15px;
+    padding:10px 20px;
+    border:none;
+    border-radius:6px;
+    background:#2196f3;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:.9;
+}
+</style>
+</head>
+
+<body>
+
+<h1>💜🩷 パステルリバーシ 🩷💜</h1>
+
+<div id="info"></div>
+
+<div id="board"></div>
+
+<button id="resetBtn">リセット</button>
+
+<script>
+const SIZE = 8;
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = -1;
+
+let board;
+let currentPlayer;
+
+const boardEl = document.getElementById("board");
+const infoEl = document.getElementById("info");
+
+function initGame(){
+    board = Array(SIZE)
+        .fill()
+        .map(() => Array(SIZE).fill(EMPTY));
+
+    board[3][3] = WHITE;
+    board[3][4] = BLACK;
+    board[4][3] = BLACK;
+    board[4][4] = WHITE;
+
+    currentPlayer = BLACK;
+
+    render();
+}
+
+function inBounds(r,c){
+    return r >= 0 && r < SIZE && c >= 0 && c < SIZE;
+}
+
+const dirs = [
+    [-1,-1],[-1,0],[-1,1],
+    [0,-1],[0,1],
+    [1,-1],[1,0],[1,1]
+];
+
+function getFlips(row,col,player){
+
+    if(board[row][col] !== EMPTY){
+        return [];
+    }
+
+    let flips = [];
+
+    for(const [dr,dc] of dirs){
+
+        let r = row + dr;
+        let c = col + dc;
+
+        const temp = [];
+
+        while(
+            inBounds(r,c) &&
+            board[r][c] === -player
+        ){
+            temp.push([r,c]);
+            r += dr;
+            c += dc;
+        }
+
+        if(
+            temp.length &&
+            inBounds(r,c) &&
+            board[r][c] === player
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function getLegalMoves(player){
+
+    const moves = [];
+
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+
+            if(getFlips(r,c,player).length){
+                moves.push([r,c]);
+            }
+
+        }
+    }
+
+    return moves;
+}
+
+function placeStone(row,col){
+
+    const flips = getFlips(
+        row,
+        col,
+        currentPlayer
+    );
+
+    if(!flips.length){
+        return;
+    }
+
+    board[row][col] = currentPlayer;
+
+    flips.forEach(([r,c])=>{
+        board[r][c] = currentPlayer;
+    });
+
+    currentPlayer *= -1;
+
+    let moves = getLegalMoves(currentPlayer);
+
+    if(moves.length === 0){
+
+        currentPlayer *= -1;
+
+        moves = getLegalMoves(currentPlayer);
+
+        if(moves.length === 0){
+            finishGame();
+            return;
+        }
+
+        alert(
+            (currentPlayer === BLACK ? "ピンク" : "むらさき")
+            + "はパスです。"
+        );
+    }
+
+    render();
+}
+
+function countStones(){
+
+    let black = 0;
+    let white = 0;
+
+    for(let r=0;r<SIZE;r++){
+        for(let c=0;c<SIZE;c++){
+
+            if(board[r][c] === BLACK){
+                black++;
+            }
+
+            if(board[r][c] === WHITE){
+                white++;
+            }
+        }
+    }
+
+    return {black,white};
+}
+
+function finishGame(){
+
+    const {black,white} = countStones();
+
+    render();
+
+    let winner = "引き分け";
+
+    if(black > white){
+        winner = "💜むらさきの勝ち";
+    }
+    else if(white > black){
+        winner = "🩷ピンクの勝ち";
+    }
+
+    setTimeout(()=>{
+
+        alert(
+`ゲーム終了！
+
+💜むらさき: ${black}
+🩷ピンク: ${white}
+
+${winner}`
+        );
+
+    },100);
+}
+
+function render(){
+
+    boardEl.innerHTML = "";
+
+    const legalMoves = getLegalMoves(currentPlayer);
+
+    const legalSet = new Set(
+        legalMoves.map(
+            ([r,c]) => `${r},${c}`
+        )
+    );
+
+    for(let r=0;r<SIZE;r++){
+
+        for(let c=0;c<SIZE;c++){
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+
+            if(
+                legalSet.has(`${r},${c}`)
+            ){
+                cell.classList.add("legal");
+            }
+
+            cell.addEventListener(
+                "click",
+                ()=>placeStone(r,c)
+            );
+
+            if(board[r][c] !== EMPTY){
+
+                const stone =
+                    document.createElement("div");
+
+                stone.className =
+                    "stone " +
+                    (board[r][c] === BLACK
+                        ? "black"
+                        : "white");
+
+                cell.appendChild(stone);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    const count = countStones();
+
+    infoEl.innerHTML =
+        `手番: <b>${
+            currentPlayer === BLACK
+            ? "💜むらさき"
+            : "🩷ピンク"
+        }</b><br>` +
+        `💜 ${count.black}　🩷 ${count.white}`;
+}
+
+document
+.getElementById("resetBtn")
+.addEventListener("click",initGame);
+
+initGame();
+</script>
+
+</body>
+</html>
