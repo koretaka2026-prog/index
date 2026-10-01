@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>パフェづくり</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 20% 10%,
+      #fff 0%,
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      #fff4f8,
+      #ffd9e8
+    );
+
+  color: #5a3d49;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    Meiryo,
+    sans-serif;
+
+  touch-action: manipulation;
+}
+
+button {
+  font: inherit;
+}
+
+.game {
+  width: min(94vw, 850px);
+
+  margin: auto;
+
+  padding: 18px 12px 35px;
+
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+
+  color: #db477c;
+
+  font-size:
+    clamp(30px, 8vw, 46px);
+
+  text-shadow:
+    0 2px 0 white;
+}
+
+.subtitle {
+  margin: 5px 0 18px;
+
+  color: #96727f;
+
+  font-size: 14px;
+}
+
+.main {
+  display: grid;
+
+  grid-template-columns:
+    minmax(280px, 1fr)
+    minmax(280px, 1fr);
+
+  gap: 18px;
+
+  align-items: start;
+}
+
+.panel {
+  background:
+    rgba(255,255,255,.9);
+
+  border-radius: 18px;
+
+  padding: 16px;
+
+  box-shadow:
+    0 10px 30px rgba(120,50,80,.14);
+}
+
+.panel-title {
+  margin: 0 0 13px;
+
+  color: #d94377;
+
+  font-size: 19px;
+}
+
+
+/* =====================================================
+   パフェ作成エリア
+   ===================================================== */
+
+.parfait-stage {
+  position: relative;
+
+  width: 250px;
+  height: 430px;
+
+  margin: auto;
+}
+
+.spoon {
+  position: absolute;
+
+  right: 17px;
+  top: 3px;
+
+  width: 13px;
+  height: 170px;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #aaa,
+      #fff,
+      #aaa
+    );
+
+  transform: rotate(18deg);
+
+  z-index: 100;
+
+  box-shadow:
+    2px 3px 5px rgba(0,0,0,.18);
+}
+
+.spoon::before {
+  content: "";
+
+  position: absolute;
+
+  left: -10px;
+  top: -24px;
+
+  width: 34px;
+  height: 48px;
+
+  border-radius:
+    50% 50% 45% 45%;
+
+  background:
+    linear-gradient(
+      90deg,
+      #aaa,
+      #fff,
+      #aaa
+    );
+}
+
+
+/* =====================================================
+   グラス
+   ===================================================== */
+
+.glass {
+  position: absolute;
+
+  left: 50%;
+  bottom: 7px;
+
+  width: 205px;
+  height: 350px;
+
+  transform:
+    translateX(-50%);
+
+  display: flex;
+
+  flex-direction: column-reverse;
+
+  align-items: center;
+
+  padding:
+    12px 13px 22px;
+
+  overflow: hidden;
+
+  border:
+    4px solid rgba(255,255,255,.8);
+
+  border-radius:
+    18px 18px 38px 38px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,.35),
+      rgba(255,255,255,.08),
+      rgba(255,255,255,.32)
+    );
+
+  box-shadow:
+    inset 8px 0 15px rgba(255,255,255,.4),
+    inset -8px 0 15px rgba(255,255,255,.18),
+    0 10px 20px rgba(100,50,80,.15);
+
+  z-index: 10;
+}
+
+.glass::before {
+  content: "";
+
+  position: absolute;
+
+  left: 18px;
+  top: 15px;
+
+  width: 13px;
+  height: 275px;
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,.72),
+      rgba(255,255,255,0)
+    );
+
+  z-index: 100;
+
+  pointer-events: none;
+}
+
+.glass-base {
+  position: absolute;
+
+  left: 50%;
+  bottom: -12px;
+
+  width: 120px;
+  height: 28px;
+
+  transform:
+    translateX(-50%);
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      #fff,
+      #ccc
+    );
+
+  box-shadow:
+    0 5px 10px rgba(0,0,0,.18);
+
+  z-index: 5;
+}
+
+
+/* =====================================================
+   材料
+   ===================================================== */
+
+.ingredient {
+  flex-shrink: 0;
+
+  position: relative;
+
+  width: 172px;
+
+  margin-top: -4px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  animation:
+    ingredientIn .3s ease;
+
+  z-index: 20;
+}
+
+@keyframes ingredientIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-25px)
+      scale(.7);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+.ingredient.cereal {
+  height: 36px;
+
+  border-radius: 40%;
+
+  background:
+    repeating-linear-gradient(
+      20deg,
+      #d99a42 0 8px,
+      #f1c46a 9px 13px,
+      #bd792e 14px 18px
+    );
+}
+
+.ingredient.yogurt {
+  height: 48px;
+
+  border-radius:
+    50% 50% 45% 45%;
+
+  background:
+    linear-gradient(
+      #fff,
+      #fff1f7
+    );
+}
+
+.ingredient.strawberry {
+  height: 58px;
+
+  font-size: 45px;
+}
+
+.ingredient.banana {
+  height: 52px;
+
+  font-size: 40px;
+}
+
+.ingredient.kiwi {
+  height: 52px;
+
+  font-size: 40px;
+}
+
+.ingredient.icecream {
+  height: 75px;
+
+  font-size: 66px;
+}
+
+.ingredient.whipped {
+  height: 65px;
+
+  font-size: 58px;
+}
+
+.ingredient.chocolate {
+  height: 32px;
+
+  border-radius: 50%;
+
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #4a2419 0 10px,
+      #703626 11px 14px,
+      #351810 15px 19px
+    );
+}
+
+.ingredient.sprinkles {
+  height: 36px;
+
+  font-size: 27px;
+}
+
+
+/* =====================================================
+   材料ボタン
+   ===================================================== */
+
+.ingredients {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 9px;
+}
+
+.ingredient-button {
+  min-height: 92px;
+
+  padding: 7px 4px;
+
+  border:
+    2px solid #f1d2df;
+
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fff,
+      #fff4f8
+    );
+
+  color: #5a3d49;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  touch-action: manipulation;
+
+  transition:
+    transform .12s,
+    box-shadow .12s;
+}
+
+.ingredient-button:hover {
+  transform:
+    translateY(-2px);
+
+  box-shadow:
+    0 4px 10px rgba(210,72,121,.15);
+}
+
+.ingredient-button:active {
+  transform:
+    scale(.95);
+}
+
+.emoji {
+  display: block;
+
+  font-size: 35px;
+
+  line-height: 1.1;
+}
+
+.name {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 12px;
+
+  font-weight: bold;
+}
+
+.count {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #d94377;
+
+  font-size: 11px;
+}
+
+
+/* =====================================================
+   ボタン
+   ===================================================== */
+
+.controls {
+  display: flex;
+
+  gap: 9px;
+
+  margin-top: 14px;
+}
+
+.controls button {
+  flex: 1;
+
+  padding: 11px 6px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  font-weight: bold;
+
+  cursor: pointer;
+}
+
+#undoButton {
+  background: #eee3e8;
+
+  color: #735666;
+}
+
+#completeButton {
+  background:
+    linear-gradient(
+      135deg,
+      #ff79ab,
+      #e84e86
+    );
+
+  color: white;
+
+  box-shadow:
+    0 4px 10px rgba(225,68,125,.25);
+}
+
+.message {
+  min-height: 43px;
+
+  margin-top: 12px;
+
+  padding: 10px;
+
+  border-radius: 10px;
+
+  background: #fff4f8;
+
+  color: #96536d;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   完成画面
+   ===================================================== */
+
+.complete-screen {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 500;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 15px;
+
+  background:
+    rgba(66,28,48,.76);
+
+  overflow-y: auto;
+}
+
+.complete-box {
+  width: min(94vw, 470px);
+
+  max-height: 95vh;
+
+  padding: 18px;
+
+  overflow-y: auto;
+
+  text-align: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fff,
+      #fff0f7
+    );
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.35);
+
+  animation:
+    popup .35s ease;
+}
+
+@keyframes popup {
+  from {
+    opacity: 0;
+
+    transform:
+      scale(.75)
+      translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      scale(1)
+      translateY(0);
+  }
+}
+
+.complete-box h2 {
+  margin: 0;
+
+  color: #df4379;
+
+  font-size: 31px;
+}
+
+.complete-description {
+  margin: 5px 0 0;
+
+  color: #8d6878;
+
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   完成パフェのイラスト
+   ===================================================== */
+
+.illustration {
+  width: min(90vw, 390px);
+
+  height: 410px;
+
+  margin: 3px auto 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.illustration svg {
+  width: 100%;
+  height: 100%;
+
+  overflow: visible;
+
+  filter:
+    drop-shadow(
+      0 8px 7px rgba(70,30,50,.18)
+    );
+}
+
+
+/* =====================================================
+   結果
+   ===================================================== */
+
+.result-name {
+  margin: -3px 0 3px;
+
+  color: #d94377;
+
+  font-size: 22px;
+
+  font-weight: bold;
+}
+
+.result-description {
+  margin: 4px auto 12px;
+
+  color: #805b6b;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+#againButton {
+  width: 100%;
+
+  padding: 12px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ff79ab,
+      #e84e86
+    );
+
+  color: white;
+
+  font-weight: bold;
+
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+/* =====================================================
+   スマートフォン
+   ===================================================== */
+
+@media (max-width: 650px) {
+
+  .main {
+    grid-template-columns: 1fr;
+  }
+
+  .parfait-stage {
+    transform:
+      scale(.9);
+
+    transform-origin:
+      center bottom;
+
+    margin-bottom: -35px;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .ingredient-button {
+    min-height: 77px;
+  }
+
+  .emoji {
+    font-size: 28px;
+  }
+
+  .name {
+    font-size: 11px;
+  }
+
+  .parfait-stage {
+    transform:
+      scale(.8);
+
+    margin-bottom: -75px;
+  }
+
+  .illustration {
+    height: 360px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <h1>🍓 パフェづくり 🍨</h1>
+
+  <p class="subtitle">
+    好きな材料を選んで、オリジナルパフェを作ろう！
+  </p>
+
+
+  <div class="main">
+
+    <!-- =========================================
+         作成中
+         ========================================= -->
+
+    <section class="panel">
+
+      <h2 class="panel-title">
+        🥄 マイパフェ
+      </h2>
+
+      <div class="parfait-stage">
+
+        <div class="spoon"></div>
+
+        <div class="glass" id="glass"></div>
+
+        <div class="glass-base"></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================================
+         材料
+         ========================================= -->
+
+    <section class="panel">
+
+      <h2 class="panel-title">
+        🍓 材料を選ぶ
+      </h2>
+
+      <div
+        id="ingredients"
+        class="ingredients">
+      </div>
+
+      <div class="controls">
+
+        <button
+          id="undoButton"
+          type="button">
+          ↩ ひとつ戻す
+        </button>
+
+        <button
+          id="completeButton"
+          type="button">
+          🍨 完成！
+        </button>
+
+      </div>
+
+      <div
+        id="message"
+        class="message">
+        材料をタップするとパフェに追加されます。
+      </div>
+
+    </section>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     完成画面
+     ===================================================== -->
+
+<div
+  id="completeScreen"
+  class="complete-screen hidden">
+
+  <div class="complete-box">
+
+    <h2>
+      🎉 パフェ完成！
+    </h2>
+
+    <p class="complete-description">
+      あなたが選んだ材料から完成イラストを作りました！
+    </p>
+
+
+    <!--
+      JavaScriptで材料に合わせた
+      SVGイラストをここに生成します。
+    -->
+
+    <div
+      id="illustration"
+      class="illustration">
+    </div>
+
+
+    <div
+      id="resultName"
+      class="result-name">
+      オリジナルパフェ
+    </div>
+
+    <div
+      id="resultDescription"
+      class="result-description">
+    </div>
+
+
+    <button
+      id="againButton"
+      type="button">
+      🍓 もう一度つくる
+    </button>
+
+  </div>
+
+</div>
+
+
+<script>
+"use strict";
+
+
+/* =========================================================
+   材料データ
+   ========================================================= */
+
+const INGREDIENTS = [
+
+  {
+    id: "cereal",
+    name: "コーンフレーク",
+    emoji: "🥣"
+  },
+
+  {
+    id: "yogurt",
+    name: "ヨーグルト",
+    emoji: "🥛"
+  },
+
+  {
+    id: "strawberry",
+    name: "いちご",
+    emoji: "🍓"
+  },
+
+  {
+    id: "banana",
+    name: "バナナ",
+    emoji: "🍌"
+  },
+
+  {
+    id: "kiwi",
+    name: "キウイ",
+    emoji: "🥝"
+  },
+
+  {
+    id: "icecream",
+    name: "アイス",
+    emoji: "🍨"
+  },
+
+  {
+    id: "whipped",
+    name: "ホイップ",
+    emoji: "🍦"
+  },
+
+  {
+    id: "chocolate",
+    name: "チョコソース",
+    emoji: "🍫"
+  },
+
+  {
+    id: "sprinkles",
+    name: "カラフルスプレー",
+    emoji: "🌈"
+  }
+
+];
+
+
+/* =========================================================
+   状態
+   ========================================================= */
+
+let parfait = [];
+
+
+/* =========================================================
+   DOM
+   ========================================================= */
+
+const glass =
+  document.getElementById("glass");
+
+const ingredientsElement =
+  document.getElementById("ingredients");
+
+const undoButton =
+  document.getElementById("undoButton");
+
+const completeButton =
+  document.getElementById("completeButton");
+
+const message =
+  document.getElementById("message");
+
+const completeScreen =
+  document.getElementById("completeScreen");
+
+const illustration =
+  document.getElementById("illustration");
+
+const resultName =
+  document.getElementById("resultName");
+
+const resultDescription =
+  document.getElementById("resultDescription");
+
+const againButton =
+  document.getElementById("againButton");
+
+
+/* =========================================================
+   材料ボタン
+   ========================================================= */
+
+function createIngredientButtons() {
+
+  ingredientsElement.innerHTML = "";
+
+  INGREDIENTS.forEach(item => {
+
+    const button =
+      document.createElement("button");
+
+    button.type = "button";
+
+    button.className =
+      "ingredient-button";
+
+    button.dataset.id =
+      item.id;
+
+
+    button.innerHTML = `
+      <span class="emoji">
+        ${item.emoji}
+      </span>
+
+      <span class="name">
+        ${item.name}
+      </span>
+
+      <span class="count">
+        0個
+      </span>
+    `;
+
+
+    button.addEventListener(
+      "click",
+      () => addIngredient(item.id)
+    );
+
+
+    ingredientsElement.appendChild(button);
+  });
+}
+
+
+/* =========================================================
+   材料追加
+   ========================================================= */
+
+function addIngredient(id) {
+
+  parfait.push(id);
+
+  renderParfait();
+
+  updateCounts();
+
+  const item =
+    INGREDIENTS.find(
+      x => x.id === id
+    );
+
+  if (item) {
+
+    message.textContent =
+      `${item.emoji} ${item.name}を追加しました！`;
+  }
+}
+
+
+/* =========================================================
+   材料削除
+   ========================================================= */
+
+function undoIngredient() {
+
+  if (parfait.length === 0) {
+
+    message.textContent =
+      "まだ材料がありません。";
+
+    return;
+  }
+
+  const id =
+    parfait.pop();
+
+  renderParfait();
+
+  updateCounts();
+
+  const item =
+    INGREDIENTS.find(
+      x => x.id === id
+    );
+
+  if (item) {
+
+    message.textContent =
+      `${item.emoji} ${item.name}を取り除きました。`;
+  }
+}
+
+
+/* =========================================================
+   作成中パフェ
+   ========================================================= */
+
+function renderParfait() {
+
+  glass.innerHTML = "";
+
+
+  parfait.forEach(
+    (id, index) => {
+
+      const item =
+        INGREDIENTS.find(
+          x => x.id === id
+        );
+
+      if (!item) {
+        return;
+      }
+
+
+      const element =
+        document.createElement("div");
+
+      element.className =
+        `ingredient ${item.id}`;
+
+
+      if (
+        item.id !== "cereal" &&
+        item.id !== "chocolate"
+      ) {
+
+        element.textContent =
+          item.emoji;
+      }
+
+
+      if (
+        item.id === "strawberry" ||
+        item.id === "banana" ||
+        item.id === "kiwi"
+      ) {
+
+        const offset =
+          ((index % 3) - 1) * 9;
+
+        element.style.transform =
+          `translateX(${offset}px)`;
+      }
+
+
+      glass.appendChild(element);
+    }
+  );
+}
+
+
+/* =========================================================
+   個数表示
+   ========================================================= */
+
+function updateCounts() {
+
+  INGREDIENTS.forEach(item => {
+
+    const count =
+      parfait.filter(
+        id => id === item.id
+      ).length;
+
+
+    const button =
+      ingredientsElement.querySelector(
+        `[data-id="${item.id}"]`
+      );
+
+
+    if (button) {
+
+      button.querySelector(".count")
+        .textContent =
+        `${count}個`;
+    }
+  });
+}
+
+
+/* =========================================================
+   材料の個数を取得
+   ========================================================= */
+
+function count(id) {
+
+  return parfait.filter(
+    x => x === id
+  ).length;
+}
+
+
+/* =========================================================
+   SVG用の安全なテキスト
+   ========================================================= */
+
+function svgText(text) {
+
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+/* =========================================================
+   SVGのいちご
+   ========================================================= */
+
+function strawberrySVG(x, y, scale = 1) {
+
+  return `
+    <g transform="translate(${x} ${y}) scale(${scale})">
+
+      <path
+        d="M0 13
+           C-22 -13,-25 -36,0 -38
+           C25 -36,22 -13,0 13Z"
+        fill="#ef3f59"
+        stroke="#c92c48"
+        stroke-width="2"/>
+
+      <path
+        d="M-14 -33
+           L-4 -46
+           L0 -35
+           L9 -46
+           L12 -32
+           L23 -34
+           L13 -20
+           L-13 -20
+           L-23 -34Z"
+        fill="#4da94e"/>
+
+      <g fill="#ffd86b">
+
+        <ellipse cx="-9" cy="-18"
+                 rx="2" ry="4"/>
+
+        <ellipse cx="2" cy="-25"
+                 rx="2" ry="4"/>
+
+        <ellipse cx="11" cy="-14"
+                 rx="2" ry="4"/>
+
+        <ellipse cx="-2" cy="-8"
+                 rx="2" ry="4"/>
+
+      </g>
+
+      <ellipse
+        cx="-7"
+        cy="-25"
+        rx="6"
+        ry="3"
+        fill="rgba(255,255,255,.4)"
+        transform="rotate(-30)"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   バナナ
+   ========================================================= */
+
+function bananaSVG(x, y, scale = 1) {
+
+  return `
+    <g transform="translate(${x} ${y}) scale(${scale})">
+
+      <path
+        d="M-42 -4
+           C-25 28, 18 34, 42 2
+           C32 13, 13 18, -4 11
+           C-18 5, -27 -4, -42 -4Z"
+        fill="#ffd83d"
+        stroke="#d4a81e"
+        stroke-width="3"/>
+
+      <path
+        d="M-42 -4
+           L-48 -11
+           L-42 -16
+           L-35 -8"
+        fill="#8b5b22"/>
+
+      <path
+        d="M42 2
+           L48 -4
+           L45 -11
+           L38 -5"
+        fill="#8b5b22"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   キウイ
+   ========================================================= */
+
+function kiwiSVG(x, y, scale = 1) {
+
+  return `
+    <g transform="translate(${x} ${y}) scale(${scale})">
+
+      <circle
+        cx="0"
+        cy="0"
+        r="27"
+        fill="#8bc34a"
+        stroke="#4d8d2b"
+        stroke-width="4"/>
+
+      <circle
+        cx="0"
+        cy="0"
+        r="8"
+        fill="#f7f1c5"/>
+
+      <g
+        fill="#342718">
+
+        <ellipse cx="-13" cy="-8"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="-16" cy="3"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="-9" cy="14"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="11" cy="-10"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="16" cy="1"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="9" cy="13"
+                 rx="2" ry="5"/>
+
+        <ellipse cx="0" cy="-16"
+                 rx="2" ry="5"/>
+
+      </g>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   ホイップクリーム
+   ========================================================= */
+
+function whippedSVG(x, y, scale = 1) {
+
+  return `
+    <g transform="translate(${x} ${y}) scale(${scale})">
+
+      <path
+        d="M-43 23
+           C-48 5,-35 1,-29 -5
+           C-38 -18,-24 -28,-12 -24
+           C-13 -42,11 -47,17 -29
+           C34 -35,44 -19,34 -7
+           C49 -1,48 18,34 23
+           Z"
+        fill="#fff"
+        stroke="#e9dce3"
+        stroke-width="3"/>
+
+      <ellipse
+        cx="-15"
+        cy="5"
+        rx="13"
+        ry="7"
+        fill="#fff8fb"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   アイスクリーム
+   ========================================================= */
+
+function iceCreamSVG(x, y, color, scale = 1) {
+
+  return `
+    <g transform="translate(${x} ${y}) scale(${scale})">
+
+      <path
+        d="M-29 8
+           L29 8
+           L17 62
+           L-17 62Z"
+        fill="#d89b55"
+        stroke="#ad7135"
+        stroke-width="3"/>
+
+      <path
+        d="M-25 18
+           L25 18
+           M-21 32
+           L21 32
+           M-18 46
+           L18 46"
+        stroke="#a86d35"
+        stroke-width="3"/>
+
+      <circle
+        cx="0"
+        cy="-8"
+        r="31"
+        fill="${color}"
+        stroke="#d8c4cc"
+        stroke-width="3"/>
+
+      <circle
+        cx="-13"
+        cy="-18"
+        r="8"
+        fill="rgba(255,255,255,.55)"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   チョコソース
+   ========================================================= */
+
+function chocolateSVG(x, y) {
+
+  return `
+    <g transform="translate(${x} ${y})">
+
+      <path
+        d="M-78 0
+           C-55 -10,-35 11,-16 0
+           C2 -10,20 10,38 0
+           C54 -9,67 6,78 -2"
+        fill="none"
+        stroke="#5b2b1c"
+        stroke-width="9"
+        stroke-linecap="round"/>
+
+      <path
+        d="M-48 4
+           C-45 12,-50 21,-47 28"
+        fill="none"
+        stroke="#5b2b1c"
+        stroke-width="7"
+        stroke-linecap="round"/>
+
+      <path
+        d="M33 2
+           C31 12,37 18,33 25"
+        fill="none"
+        stroke="#5b2b1c"
+        stroke-width="7"
+        stroke-linecap="round"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   スプレー
+   ========================================================= */
+
+function sprinklesSVG() {
+
+  return `
+    <g>
+
+      <rect
+        x="-70"
+        y="-5"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#ff4d6d"
+        transform="rotate(-25 -70 -5)"/>
+
+      <rect
+        x="-38"
+        y="-18"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#42a5f5"
+        transform="rotate(20 -38 -18)"/>
+
+      <rect
+        x="-8"
+        y="-8"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#ffd43b"
+        transform="rotate(-30 -8 -8)"/>
+
+      <rect
+        x="22"
+        y="-18"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#64d66f"
+        transform="rotate(30 22 -18)"/>
+
+      <rect
+        x="50"
+        y="-3"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#b56cff"
+        transform="rotate(-20 50 -3)"/>
+
+      <rect
+        x="-54"
+        y="10"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#ff8a3d"
+        transform="rotate(30 -54 10)"/>
+
+      <rect
+        x="3"
+        y="7"
+        width="13"
+        height="4"
+        rx="2"
+        fill="#ff4d6d"
+        transform="rotate(20 3 7)"/>
+
+    </g>
+  `;
+}
+
+
+/* =========================================================
+   完成パフェのイラスト生成
+   ========================================================= */
+
+function createParfaitIllustration() {
+
+  const strawberries =
+    count("strawberry");
+
+  const bananas =
+    count("banana");
+
+  const kiwis =
+    count("kiwi");
+
+  const ice =
+    count("icecream");
+
+  const whipped =
+    count("whipped");
+
+  const chocolate =
+    count("chocolate");
+
+  const sprinkles =
+    count("sprinkles");
+
+  const cereal =
+    count("cereal");
+
+  const yogurt =
+    count("yogurt");
+
+
+  /*
+   * 材料に応じた色。
+   */
+
+  let creamColor =
+    "#fff5f8";
+
+  if (chocolate > strawberries &&
+      chocolate >= 1) {
+
+    creamColor =
+      "#ead0b5";
+  }
+
+  if (kiwis > strawberries &&
+      kiwis >= 1) {
+
+    creamColor =
+      "#f1f7df";
+  }
+
+
+  /*
+   * フルーツの種類を判定
+   */
+
+  const fruitCount =
+    strawberries +
+    bananas +
+    kiwis;
+
+
+  /*
+   * パフェ名
+   */
+
+  let name =
+    "オリジナルパフェ";
+
+  if (
+    strawberries >= 2 &&
+    strawberries >= bananas &&
+    strawberries >= kiwis
+  ) {
+
+    name =
+      "🍓 いちごたっぷりパフェ";
+
+  } else if (
+    chocolate >= 2 &&
+    chocolate >= fruitCount
+  ) {
+
+    name =
+      "🍫 チョコレートパフェ";
+
+  } else if (
+    fruitCount >= 3
+  ) {
+
+    name =
+      "🍓🍌🥝 フルーツパフェ";
+
+  } else if (
+    ice >= 2
+  ) {
+
+    name =
+      "🍨 アイスクリームパフェ";
+
+  } else if (
+    kiwis >= 2
+  ) {
+
+    name =
+      "🥝 キウイパフェ";
+
+  } else if (
+    bananas >= 2
+  ) {
+
+    name =
+      "🍌 バナナパフェ";
+
+  } else if (
+    strawberries >= 1
+  ) {
+
+    name =
+      "🍓 いちごパフェ";
+  }
+
+
+  /*
+   * 説明
+   */
+
+  let description =
+    "好きな材料を組み合わせた、世界にひとつだけのパフェです。";
+
+
+  if (
+    strawberries >= 2 &&
+    chocolate >= 1
+  ) {
+
+    description =
+      "甘酸っぱいいちごにチョコソースを合わせた贅沢なパフェ！";
+
+  } else if (
+    strawberries >= 1 &&
+    bananas >= 1
+  ) {
+
+    description =
+      "いちごとバナナの相性がぴったりなフルーツパフェ！";
+
+  } else if (
+    fruitCount >= 3
+  ) {
+
+    description =
+      "いろいろなフルーツがたっぷり入ったカラフルなパフェ！";
+
+  } else if (
+    chocolate >= 1
+  ) {
+
+    description =
+      "濃厚なチョコソースがアクセントになったパフェ！";
+
+  } else if (
+    strawberries >= 1
+  ) {
+
+    description =
+      "真っ赤ないちごが主役のかわいいパフェ！";
+  }
+
+
+  /*
+   * SVG開始
+   */
+
+  let svg = `
+
+  <svg
+    viewBox="0 0 360 470"
+    xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+
+      <linearGradient
+        id="glassGradient"
+        x1="0"
+        x2="1">
+
+        <stop
+          offset="0"
+          stop-color="#ffffff"
+          stop-opacity=".68"/>
+
+        <stop
+          offset=".35"
+          stop-color="#eaf8ff"
+          stop-opacity=".18"/>
+
+        <stop
+          offset=".7"
+          stop-color="#ffffff"
+          stop-opacity=".3"/>
+
+        <stop
+          offset="1"
+          stop-color="#dff5ff"
+          stop-opacity=".5"/>
+
+      </linearGradient>
+
+      <linearGradient
+        id="pinkCream"
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="1">
+
+        <stop
+          offset="0"
+          stop-color="#fff"/>
+
+        <stop
+          offset="1"
+          stop-color="${creamColor}"/>
+
+      </linearGradient>
+
+    </defs>
+
+
+    <!-- 影 -->
+
+    <ellipse
+      cx="180"
+      cy="445"
+      rx="105"
+      ry="17"
+      fill="#7c4d5d"
+      opacity=".15"/>
+
+
+    <!-- スプーン -->
+
+    <g
+      transform="rotate(16 300 100)">
+
+      <rect
+        x="291"
+        y="72"
+        width="12"
+        height="220"
+        rx="6"
+        fill="#bcbcbc"/>
+
+      <rect
+        x="294"
+        y="72"
+        width="5"
+        height="220"
+        rx="3"
+        fill="#fff"
+        opacity=".75"/>
+
+      <ellipse
+        cx="297"
+        cy="57"
+        rx="22"
+        ry="30"
+        fill="#d2d2d2"/>
+
+      <ellipse
+        cx="292"
+        cy="52"
+        rx="8"
+        ry="14"
+        fill="#fff"
+        opacity=".7"/>
+
+    </g>
+
+
+    <!-- グラス -->
+
+    <path
+      d="
+        M72 103
+        L288 103
+        L267 394
+        Q260 423 230 428
+        L130 428
+        Q100 423 93 394
+        Z"
+      fill="url(#glassGradient)"
+      stroke="#ffffff"
+      stroke-width="7"
+      opacity=".9"/>
+
+
+    <!-- パフェ内部 -->
+
+    <clipPath id="glassClip">
+
+      <path
+        d="
+          M82 110
+          L278 110
+          L258 389
+          Q253 413 226 417
+          L134 417
+          Q107 413 102 389
+          Z"/>
+
+    </clipPath>
+
+
+    <g clip-path="url(#glassClip)">
+
+      <!-- 底のヨーグルト -->
+
+      ${
+        yogurt > 0
+        ? `
+          <path
+            d="
+              M90 375
+              Q180 345 270 375
+              L270 430
+              L90 430Z"
+            fill="#fff8fc"/>
+        `
+        : ""
+      }
+
+
+      <!-- コーンフレーク -->
+
+      ${
+        cereal > 0
+        ? `
+          <path
+            d="
+              M82 354
+              Q180 325 278 354
+              L278 425
+              L82 425Z"
+            fill="#d69a43"/>
+        `
+        : ""
+      }
+
+
+      <!-- ヨーグルト層 -->
+
+      ${
+        yogurt > 0
+        ? `
+          <path
+            d="
+              M80 310
+              Q180 285 280 310
+              L280 350
+              Q180 370 80 350Z"
+            fill="#fff"
+            opacity=".97"/>
+        `
+        : ""
+      }
+
+
+      <!-- フルーツ層 -->
+
+      ${
+        fruitCount > 0
+        ? `
+          <path
+            d="
+              M78 250
+              Q180 222 282 250
+              L282 308
+              Q180 332 78 308Z"
+            fill="#fff0d6"/>
+        `
+        : ""
+      }
+
+
+      <!-- アイス下 -->
+
+      ${
+        ice > 0
+        ? `
+          <ellipse
+            cx="180"
+            cy="236"
+            rx="91"
+            ry="42"
+            fill="#fff5f6"/>
+        `
+        : ""
+      }
+
+
+      <!-- ホイップ下 -->
+
+      ${
+        whipped > 0
+        ? `
+          <ellipse
+            cx="180"
+            cy="198"
+            rx="95"
+            ry="38"
+            fill="#fff"/>
+        `
+        : ""
+      }
+
+
+      <!-- チョコ層 -->
+
+      ${
+        chocolate > 0
+        ? `
+          <path
+            d="
+              M76 285
+              Q130 272 180 285
+              Q230 298 284 280
+              L284 301
+              Q230 318 180 302
+              Q130 288 76 304Z"
+            fill="#5b2b1c"/>
+        `
+        : ""
+      }
+
+
+      <!-- チョコソース -->
+
+      ${
+        chocolate > 0
+        ? chocolateSVG(180, 190)
+        : ""
+      }
+
+
+      <!-- フルーツ -->
+
+      ${
+        strawberries > 0
+        ? strawberrySVG(130, 230, .72)
+        : ""
+      }
+
+      ${
+        strawberries > 1
+        ? strawberrySVG(220, 239, .65)
+        : ""
+      }
+
+      ${
+        strawberries > 2
+        ? strawberrySVG(176, 268, .55)
+        : ""
+      }
+
+
+      ${
+        bananas > 0
+        ? bananaSVG(180, 270, .65)
+        : ""
+      }
+
+
+      ${
+        kiwis > 0
+        ? kiwiSVG(235, 280, .58)
+        : ""
+      }
+
+    </g>
+
+
+    <!-- アイスクリーム -->
+
+    ${
+      ice > 0
+      ? iceCreamSVG(
+          140,
+          165,
+          strawberries > 0
+            ? "#ffb5c9"
+            : "#fff0d2",
+          .82
+        )
+      : ""
+    }
+
+    ${
+      ice > 1
+      ? iceCreamSVG(
+          218,
+          163,
+          chocolate > 0
+            ? "#b8784f"
+            : "#fff",
+          .78
+        )
+      : ""
+    }
+
+
+    <!-- ホイップ -->
+
+    ${
+      whipped > 0
+      ? whippedSVG(180, 135, .88)
+      : ""
+    }
+
+
+    <!-- いちごトップ -->
+
+    ${
+      strawberries > 0
+      ? strawberrySVG(180, 83, .75)
+      : ""
+    }
+
+
+    <!-- バナナトップ -->
+
+    ${
+      bananas > 0
+      ? bananaSVG(177, 108, .46)
+      : ""
+    }
+
+
+    <!-- キウイトップ -->
+
+    ${
+      kiwis > 0
+      ? kiwiSVG(222, 103, .42)
+      : ""
+    }
+
+
+    <!-- スプレー -->
+
+    ${
+      sprinkles > 0
+      ? sprinklesSVG()
+      : ""
+    }
+
+
+    <!-- グラスの光 -->
+
+    <path
+      d="
+        M101 124
+        L116 124
+        L105 363
+        Q104 382 113 397"
+      fill="none"
+      stroke="#fff"
+      stroke-width="10"
+      stroke-linecap="round"
+      opacity=".65"/>
+
+
+    <!-- グラス底 -->
+
+    <ellipse
+      cx="180"
+      cy="425"
+      rx="65"
+      ry="14"
+      fill="#ddd"
+      opacity=".75"/>
+
+    <ellipse
+      cx="180"
+      cy="421"
+      rx="55"
+      ry="9"
+      fill="#fff"
+      opacity=".7"/>
+
+
+    <!-- キラキラ -->
+
+    <g fill="#fff">
+
+      <text
+        x="47"
+        y="145"
+        font-size="27">
+        ✦
+      </text>
+
+      <text
+        x="292"
+        y="205"
+        font-size="24">
+        ✨
+      </text>
+
+      <text
+        x="52"
+        y="310"
+        font-size="20">
+        ✧
+      </text>
+
+    </g>
+
+  </svg>
+  `;
+
+
+  return {
+    svg,
+    name,
+    description
+  };
+}
+
+
+/* =========================================================
+   完成処理
+   ========================================================= */
+
+function completeParfait() {
+
+  if (parfait.length === 0) {
+
+    message.textContent =
+      "まず材料を1つ以上入れてください！";
+
+    return;
+  }
+
+
+  /*
+   * 現在の材料から
+   * 完成イラストを生成。
+   */
+
+  const result =
+    createParfaitIllustration();
+
+
+  illustration.innerHTML =
+    result.svg;
+
+  resultName.textContent =
+    result.name;
+
+  resultDescription.textContent =
+    result.description;
+
+
+  completeScreen.classList.remove(
+    "hidden"
+  );
+}
+
+
+/* =========================================================
+   リセット
+   ========================================================= */
+
+function resetGame() {
+
+  parfait = [];
+
+  completeScreen.classList.add(
+    "hidden"
+  );
+
+  renderParfait();
+
+  updateCounts();
+
+  message.textContent =
+    "材料をタップするとパフェに追加されます。";
+}
+
+
+/* =========================================================
+   イベント
+   ========================================================= */
+
+undoButton.addEventListener(
+  "click",
+  undoIngredient
+);
+
+completeButton.addEventListener(
+  "click",
+  completeParfait
+);
+
+againButton.addEventListener(
+  "click",
+  resetGame
+);
+
+
+/* =========================================================
+   開始
+   ========================================================= */
+
+createIngredientButtons();
+
+resetGame();
+
+</script>
+
+</body>
+</html>
