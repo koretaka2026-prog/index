@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>もぐらたたき フィーバー版</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+body{
+    margin:0;
+    padding:10px;
+    font-family:sans-serif;
+    text-align:center;
+    min-height:100vh;
+    overflow-x:hidden;
+    touch-action:manipulation;
+
+    background:
+    linear-gradient(
+      to bottom,
+      #87d6ff 0%,
+      #c8eeff 55%,
+      #90d86b 55%,
+      #69b94d 100%
+    );
+}
+
+/* 雲 */
+
+.cloud{
+    position:fixed;
+    background:white;
+    border-radius:50px;
+    opacity:.9;
+    z-index:0;
+}
+
+.cloud:before,
+.cloud:after{
+    content:"";
+    position:absolute;
+    background:white;
+    border-radius:50%;
+}
+
+.cloud:before{
+    width:50px;
+    height:50px;
+    left:12px;
+    top:-18px;
+}
+
+.cloud:after{
+    width:65px;
+    height:65px;
+    right:10px;
+    top:-28px;
+}
+
+.c1{
+    width:120px;
+    height:50px;
+    top:40px;
+    left:5%;
+    animation:cloudMove 45s linear infinite;
+}
+
+.c2{
+    width:160px;
+    height:60px;
+    top:100px;
+    left:45%;
+    animation:cloudMove 55s linear infinite;
+}
+
+.c3{
+    width:120px;
+    height:50px;
+    top:170px;
+    left:75%;
+    animation:cloudMove 50s linear infinite;
+}
+
+@keyframes cloudMove{
+    from{transform:translateX(0);}
+    to{transform:translateX(180px);}
+}
+
+/* 花 */
+
+.flower{
+    position:fixed;
+    bottom:15px;
+    z-index:0;
+    animation:sway 2s ease-in-out infinite alternate;
+}
+
+.flower:before{
+    content:"🌸";
+    font-size:34px;
+}
+
+.f1{left:8%;}
+.f2{left:20%;}
+.f3{left:45%;}
+.f4{left:75%;}
+.f5{left:90%;}
+
+@keyframes sway{
+    from{transform:rotate(-8deg);}
+    to{transform:rotate(8deg);}
+}
+
+/* 前面 */
+
+h1,
+.info,
+#startBtn,
+#message,
+.game{
+    position:relative;
+    z-index:10;
+}
+
+h1{
+    color:#4d3728;
+}
+
+.info{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.box{
+    background:white;
+    padding:10px 15px;
+    border-radius:15px;
+    box-shadow:0 3px 8px rgba(0,0,0,.15);
+    font-weight:bold;
+}
+
+#startBtn{
+    margin-top:15px;
+    border:none;
+    background:#ff9800;
+    color:white;
+    padding:12px 25px;
+    border-radius:15px;
+    font-size:1.1rem;
+    font-weight:bold;
+}
+
+#message{
+    min-height:45px;
+    font-size:1.5rem;
+    font-weight:bold;
+    color:#d84315;
+    margin-top:10px;
+}
+
+.game{
+    width:min(95vw,550px);
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+}
+
+/* 穴 */
+
+.hole{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:50%;
+    background:#5d4037;
+    overflow:hidden;
+    box-shadow:
+       inset 0 10px 18px rgba(0,0,0,.45);
+}
+
+.mole{
+    position:absolute;
+    width:78%;
+    height:78%;
+    left:50%;
+    bottom:-90%;
+    transform:translateX(-50%);
+    transition:bottom .2s;
+}
+
+.mole.up{
+    bottom:8%;
+}
+
+/* 顔 */
+
+.face{
+    width:100%;
+    height:100%;
+    position:relative;
+    background:#a17555;
+    border-radius:50%;
+}
+
+.fat .face{
+    transform:scale(1.15);
+}
+
+/* 耳 */
+
+.face:before,
+.face:after{
+    content:"";
+    position:absolute;
+    width:18%;
+    height:18%;
+    background:#b98967;
+    top:7%;
+    border-radius:50%;
+}
+
+.face:before{
+    left:15%;
+}
+
+.face:after{
+    right:15%;
+}
+
+.eye{
+    position:absolute;
+    width:10px;
+    height:10px;
+    background:#222;
+    border-radius:50%;
+    top:35%;
+}
+
+.left-eye{
+    left:30%;
+}
+
+.right-eye{
+    right:30%;
+}
+
+.nose{
+    position:absolute;
+    width:14px;
+    height:10px;
+    background:pink;
+    border-radius:50%;
+    left:50%;
+    top:55%;
+    transform:translateX(-50%);
+}
+
+.mouth{
+    position:absolute;
+    width:16px;
+    height:8px;
+    border-bottom:2px solid #222;
+    left:50%;
+    top:68%;
+    transform:translateX(-50%);
+}
+
+/* リボン */
+
+.ribbon-left,
+.ribbon-right{
+    position:absolute;
+    width:16px;
+    height:16px;
+    background:#ff4da6;
+    top:0;
+}
+
+.ribbon-left{
+    left:20px;
+    transform:rotate(25deg);
+}
+
+.ribbon-right{
+    left:34px;
+    transform:rotate(-25deg);
+}
+
+/* サングラス */
+
+.glasses{
+    position:absolute;
+    width:52%;
+    height:12%;
+    background:black;
+    left:24%;
+    top:32%;
+    border-radius:10px;
+}
+
+/* 泣き顔 */
+
+.face.cry .eye{
+    height:3px;
+}
+
+.face.cry .mouth{
+    border-bottom:none;
+    border-top:3px solid #222;
+    border-radius:10px;
+}
+
+.tear{
+    display:none;
+    position:absolute;
+    font-size:20px;
+    left:50%;
+    top:35%;
+    transform:translateX(-50%);
+}
+
+.face.cry .tear{
+    display:block;
+}
+
+/* フィーバー */
+
+.fever{
+    animation:feverFlash .4s infinite alternate;
+}
+
+@keyframes feverFlash{
+    from{
+       filter:saturate(100%);
+    }
+    to{
+       filter:saturate(180%);
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- 雲 -->
+<div class="cloud c1"></div>
+<div class="cloud c2"></div>
+<div class="cloud c3"></div>
+
+<!-- 花 -->
+<div class="flower f1"></div>
+<div class="flower f2"></div>
+<div class="flower f3"></div>
+<div class="flower f4"></div>
+<div class="flower f5"></div>
+
+<h1>🎯 もぐらたたき 🎯</h1>
+
+<div class="info">
+    <div class="box">得点 <span id="score">0</span></div>
+    <div class="box">残り <span id="time">30</span>秒</div>
+    <div class="box">コンボ <span id="combo">0</span></div>
+</div>
+
+<button id="startBtn">ゲーム開始</button>
+
+<div id="message"></div>
+
+<div class="game" id="game"></div>
+
+<script>
+
+const game=document.getElementById("game");
+
+for(let i=0;i<9;i++){
+
+    const hole=document.createElement("div");
+    hole.className="hole";
+
+    const mole=document.createElement("div");
+    mole.className="mole";
+
+    const types=["normal","ribbon","glass","fat"];
+    const type=types[Math.floor(Math.random()*types.length)];
+
+    let extra="";
+
+    if(type==="ribbon"){
+        extra=`
+        <div class="ribbon-left"></div>
+        <div class="ribbon-right"></div>
+        `;
+    }
+
+    if(type==="glass"){
+        extra=`<div class="glasses"></div>`;
+    }
+
+    if(type==="fat"){
+        mole.classList.add("fat");
+    }
+
+    mole.innerHTML=`
+    <div class="face">
+        ${extra}
+        <div class="eye left-eye"></div>
+        <div class="eye right-eye"></div>
+        <div class="nose"></div>
+        <div class="mouth"></div>
+        <div class="tear">💧</div>
+    </div>
+    `;
+
+    hole.appendChild(mole);
+    game.appendChild(hole);
+}
+
+const moles=document.querySelectorAll(".mole");
+
+let score=0;
+let combo=0;
+let speed=900;
+let fever=false;
+let running=false;
+let timeLeft=30;
+
+let spawnTimer;
+let timer;
+
+const scoreEl=document.getElementById("score");
+const comboEl=document.getElementById("combo");
+const timeEl=document.getElementById("time");
+const msg=document.getElementById("message");
+
+function showMoles(count){
+
+    const used=[];
+
+    while(used.length<count){
+
+        let n=Math.floor(Math.random()*moles.length);
+
+        if(!used.includes(n)){
+            used.push(n);
+        }
+    }
+
+    used.forEach(index=>{
+
+        let mole=moles[index];
+
+        mole.classList.add("up");
+
+        setTimeout(()=>{
+
+            mole.classList.remove("up");
+
+        },fever ? 500 : 700);
+    });
+}
+
+function startSpawner(){
+
+    clearInterval(spawnTimer);
+
+    spawnTimer=setInterval(()=>{
+
+        if(fever){
+
+            showMoles(4);
+
+        }else{
+
+            showMoles(1);
+
+            if(speed>250){
+
+                speed-=15;
+                startSpawner();
+            }
+        }
+
+    },speed);
+}
+
+function startFever(){
+
+    if(fever) return;
+
+    fever=true;
+
+    document.body.classList.add("fever");
+
+    msg.innerHTML="🔥 フィーバータイム!! 🔥";
+
+    clearInterval(spawnTimer);
+
+    spawnTimer=setInterval(()=>{
+        showMoles(4);
+    },250);
+
+    setTimeout(()=>{
+
+        fever=false;
+
+        document.body.classList.remove("fever");
+
+        msg.innerHTML="";
+
+        startSpawner();
+
+    },5000);
+}
+
+function endGame(){
+
+    running=false;
+
+    clearInterval(timer);
+    clearInterval(spawnTimer);
+
+    moles.forEach(m=>{
+        m.classList.remove("up");
+    });
+
+    msg.innerHTML=
+      "🎉 ゲーム終了！<br>スコア "+score+" 点";
+}
+
+function startGame(){
+
+    running=true;
+    score=0;
+    combo=0;
+    speed=900;
+    fever=false;
+    timeLeft=30;
+
+    scoreEl.textContent=0;
+    comboEl.textContent=0;
+    timeEl.textContent=30;
+    msg.innerHTML="";
+
+    startSpawner();
+
+    timer=setInterval(()=>{
+
+        timeLeft--;
+
+        timeEl.textContent=timeLeft;
+
+        if(timeLeft<=0){
+            endGame();
+        }
+
+    },1000);
+}
+
+moles.forEach(mole=>{
+
+    mole.addEventListener("pointerdown",()=>{
+
+        if(!running) return;
+        if(!mole.classList.contains("up")) return;
+
+        score++;
+        combo++;
+
+        scoreEl.textContent=score;
+        comboEl.textContent=combo;
+
+        const face=mole.querySelector(".face");
+
+        face.classList.add("cry");
+
+        setTimeout(()=>{
+
+            mole.classList.remove("up");
+            face.classList.remove("cry");
+
+        },250);
+
+        if(combo>0 && combo%5===0){
+
+            startFever();
+        }
+
+        if(navigator.vibrate){
+
+            navigator.vibrate(20);
+        }
+
+    });
+});
+
+document
+.getElementById("startBtn")
+.addEventListener("click",startGame);
+
+</script>
+
+</body>
+</html>
