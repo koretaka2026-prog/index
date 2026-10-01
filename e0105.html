@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ブラウザチェス</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #fffaf0;
+    font-family: "Yu Gothic", "Meiryo", sans-serif;
+    color: #333;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    margin: 20px 0 5px;
+}
+
+#status {
+    min-height: 30px;
+    margin: 8px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#board {
+    width: min(92vw, 560px);
+    aspect-ratio: 1 / 1;
+
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+
+    border: 5px solid #5d4037;
+    border-radius: 5px;
+    overflow: hidden;
+
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    touch-action: manipulation;
+}
+
+.square {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-family:
+        "Segoe UI Symbol",
+        "DejaVu Sans",
+        sans-serif;
+
+    font-size: clamp(32px, 9vw, 58px);
+}
+
+.light {
+    background: #f0d9b5;
+}
+
+.dark {
+    background: #b58863;
+}
+
+.selected {
+    box-shadow:
+        inset 0 0 0 5px #ffeb3b;
+}
+
+.last-move {
+    background-image:
+        linear-gradient(
+            rgba(255,235,59,0.25),
+            rgba(255,235,59,0.25)
+        );
+}
+
+.move::after {
+    content: "";
+
+    position: absolute;
+
+    width: 23%;
+    height: 23%;
+
+    border-radius: 50%;
+
+    background: rgba(20,120,60,0.65);
+}
+
+.capture::after {
+    content: "";
+
+    position: absolute;
+
+    width: 75%;
+    height: 75%;
+
+    border-radius: 50%;
+
+    border: 5px solid rgba(200,40,40,0.75);
+}
+
+.piece {
+    z-index: 2;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.white-piece {
+    color: white;
+
+    text-shadow:
+        -1px -1px 0 #333,
+         1px -1px 0 #333,
+        -1px  1px 0 #333,
+         1px  1px 0 #333,
+         0px  2px 3px rgba(0,0,0,0.4);
+}
+
+.black-piece {
+    color: #222;
+
+    text-shadow:
+        0px 1px 2px rgba(255,255,255,0.2);
+}
+
+#buttons {
+    margin: 16px 0;
+
+    display: flex;
+    gap: 10px;
+
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+button {
+    border: 0;
+    border-radius: 10px;
+
+    padding: 11px 20px;
+
+    background: #5d4037;
+    color: white;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+button:hover {
+    background: #795548;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+#help {
+    width: min(92vw, 560px);
+
+    margin-bottom: 25px;
+    padding: 15px;
+
+    background: white;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 3px 12px rgba(0,0,0,0.1);
+
+    line-height: 1.8;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<h1>♔ ブラウザチェス ♚</h1>
+
+<div id="status">
+白の番です
+</div>
+
+<div id="board"></div>
+
+<div id="buttons">
+
+<button onclick="undoMove()">
+↩ 1手戻す
+</button>
+
+<button onclick="resetGame()">
+↻ 最初から
+</button>
+
+</div>
+
+<div id="help">
+
+<b>遊び方</b><br>
+
+① 動かしたい駒をクリック／タップ<br>
+② 緑色の場所をクリック／タップすると移動<br>
+③ 赤い丸の場所では相手の駒を取れます<br>
+④ 白と黒が交互に操作します
+
+</div>
+
+
+<script>
+
+/* ==============================
+   駒
+============================== */
+
+const symbols = {
+
+    white: {
+        king: "♔",
+        queen: "♕",
+        rook: "♖",
+        bishop: "♗",
+        knight: "♘",
+        pawn: "♙"
+    },
+
+    black: {
+        king: "♚",
+        queen: "♛",
+        rook: "♜",
+        bishop: "♝",
+        knight: "♞",
+        pawn: "♟"
+    }
+
+};
+
+
+/* ==============================
+   ゲームの状態
+============================== */
+
+let board = [];
+
+let turn = "white";
+
+let selected = null;
+
+let legalMoves = [];
+
+let history = [];
+
+let lastMove = null;
+
+let gameOver = false;
+
+
+/* ==============================
+   HTML
+============================== */
+
+const boardElement =
+    document.getElementById("board");
+
+const statusElement =
+    document.getElementById("status");
+
+
+/* ==============================
+   駒を作る
+============================== */
+
+function piece(color, type) {
+
+    return {
+        color: color,
+        type: type
+    };
+
+}
+
+
+/* ==============================
+   初期配置
+============================== */
+
+function createBoard() {
+
+    let newBoard = [];
+
+    for (let r = 0; r < 8; r++) {
+
+        newBoard[r] = [];
+
+        for (let c = 0; c < 8; c++) {
+
+            newBoard[r][c] = null;
+
+        }
+
+    }
+
+
+    const back = [
+
+        "rook",
+        "knight",
+        "bishop",
+        "queen",
+        "king",
+        "bishop",
+        "knight",
+        "rook"
+
+    ];
+
+
+    /* 黒 */
+
+    for (let c = 0; c < 8; c++) {
+
+        newBoard[0][c] =
+            piece("black", back[c]);
+
+        newBoard[1][c] =
+            piece("black", "pawn");
+
+    }
+
+
+    /* 白 */
+
+    for (let c = 0; c < 8; c++) {
+
+        newBoard[6][c] =
+            piece("white", "pawn");
+
+        newBoard[7][c] =
+            piece("white", back[c]);
+
+    }
+
+
+    return newBoard;
+
+}
+
+
+/* ==============================
+   盤面をコピー
+============================== */
+
+function cloneBoard(source) {
+
+    return source.map(row =>
+
+        row.map(p =>
+
+            p
+                ? {
+                    color: p.color,
+                    type: p.type
+                }
+                : null
+
+        )
+
+    );
+
+}
+
+
+/* ==============================
+   初期化
+============================== */
+
+function resetGame() {
+
+    board = createBoard();
+
+    turn = "white";
+
+    selected = null;
+
+    legalMoves = [];
+
+    history = [];
+
+    lastMove = null;
+
+    gameOver = false;
+
+    updateStatus();
+
+    render();
+
+}
+
+
+/* ==============================
+   状態表示
+============================== */
+
+function updateStatus(message) {
+
+    if (message) {
+
+        statusElement.textContent =
+            message;
+
+        return;
+
+    }
+
+    if (turn === "white") {
+
+        statusElement.textContent =
+            "白の番です";
+
+    } else {
+
+        statusElement.textContent =
+            "黒の番です";
+
+    }
+
+}
+
+
+/* ==============================
+   盤面表示
+============================== */
+
+function render() {
+
+    boardElement.innerHTML = "";
+
+
+    for (let row = 0; row < 8; row++) {
+
+        for (let col = 0; col < 8; col++) {
+
+
+            const square =
+                document.createElement("div");
+
+
+            square.classList.add("square");
+
+
+            if ((row + col) % 2 === 0) {
+
+                square.classList.add("light");
+
+            } else {
+
+                square.classList.add("dark");
+
+            }
+
+
+            /* 最後の移動 */
+
+            if (lastMove) {
+
+                const from =
+                    lastMove.from.row === row &&
+                    lastMove.from.col === col;
+
+                const to =
+                    lastMove.to.row === row &&
+                    lastMove.to.col === col;
+
+
+                if (from || to) {
+
+                    square.classList.add(
+                        "last-move"
+                    );
+
+                }
+
+            }
+
+
+            /* 選択 */
+
+            if (
+                selected &&
+                selected.row === row &&
+                selected.col === col
+            ) {
+
+                square.classList.add(
+                    "selected"
+                );
+
+            }
+
+
+            /* 移動可能 */
+
+            const move =
+                legalMoves.find(m =>
+
+                    m.row === row &&
+                    m.col === col
+
+                );
+
+
+            if (move) {
+
+                if (board[row][col]) {
+
+                    square.classList.add(
+                        "capture"
+                    );
+
+                } else {
+
+                    square.classList.add(
+                        "move"
+                    );
+
+                }
+
+            }
+
+
+            /* 駒 */
+
+            const p =
+                board[row][col];
+
+
+            if (p) {
+
+                const span =
+                    document.createElement("span");
+
+
+                span.classList.add("piece");
+
+
+                if (p.color === "white") {
+
+                    span.classList.add(
+                        "white-piece"
+                    );
+
+                } else {
+
+                    span.classList.add(
+                        "black-piece"
+                    );
+
+                }
+
+
+                span.textContent =
+                    symbols[p.color][p.type];
+
+
+                square.appendChild(span);
+
+            }
+
+
+            square.dataset.row = row;
+
+            square.dataset.col = col;
+
+
+            square.addEventListener(
+                "click",
+                squareClick
+            );
+
+
+            boardElement.appendChild(
+                square
+            );
+
+        }
+
+    }
+
+}
+
+
+/* ==============================
+   マスを押したとき
+============================== */
+
+function squareClick(event) {
+
+    if (gameOver) {
+
+        return;
+
+    }
+
+
+    const row =
+        Number(
+            event.currentTarget.dataset.row
+        );
+
+    const col =
+        Number(
+            event.currentTarget.dataset.col
+        );
+
+
+    const p =
+        board[row][col];
+
+
+    /* 何も選択していない */
+
+    if (!selected) {
+
+        if (
+            p &&
+            p.color === turn
+        ) {
+
+            selectPiece(row, col);
+
+        }
+
+        return;
+
+    }
+
+
+    /* 移動できるマス */
+
+    const destination =
+        legalMoves.find(m =>
+
+            m.row === row &&
+            m.col === col
+
+        );
+
+
+    if (destination) {
+
+        movePiece(
+            selected.row,
+            selected.col,
+            row,
+            col
+        );
+
+        return;
+
+    }
+
+
+    /* 味方の別の駒 */
+
+    if (
+        p &&
+        p.color === turn
+    ) {
+
+        selectPiece(row, col);
+
+        return;
+
+    }
+
+
+    /* 選択解除 */
+
+    selected = null;
+
+    legalMoves = [];
+
+    render();
+
+}
+
+
+/* ==============================
+   駒選択
+============================== */
+
+function selectPiece(row, col) {
+
+    selected = {
+
+        row: row,
+        col: col
+
+    };
+
+
+    legalMoves =
+        getMoves(row, col);
+
+
+    render();
+
+}
+
+
+/* ==============================
+   駒を動かす
+============================== */
+
+function movePiece(
+    fromRow,
+    fromCol,
+    toRow,
+    toCol
+) {
+
+    history.push({
+
+        board:
+            cloneBoard(board),
+
+        turn:
+            turn,
+
+        lastMove:
+            lastMove
+                ? JSON.parse(
+                    JSON.stringify(lastMove)
+                )
+                : null,
+
+        gameOver:
+            gameOver
+
+    });
+
+
+    const movingPiece =
+        board[fromRow][fromCol];
+
+
+    board[toRow][toCol] =
+        movingPiece;
+
+    board[fromRow][fromCol] =
+        null;
+
+
+    /* ポーン昇格 */
+
+    if (
+        movingPiece.type === "pawn" &&
+        (
+            toRow === 0 ||
+            toRow === 7
+        )
+    ) {
+
+        movingPiece.type =
+            "queen";
+
+    }
+
+
+    lastMove = {
+
+        from: {
+            row: fromRow,
+            col: fromCol
+        },
+
+        to: {
+            row: toRow,
+            col: toCol
+        }
+
+    };
+
+
+    selected = null;
+
+    legalMoves = [];
+
+
+    /* 相手キング確認 */
+
+    const enemy =
+
+        movingPiece.color === "white"
+            ? "black"
+            : "white";
+
+
+    if (!kingExists(enemy)) {
+
+        gameOver = true;
+
+        render();
+
+
+        if (movingPiece.color === "white") {
+
+            updateStatus(
+                "♔ 白の勝ち！"
+            );
+
+        } else {
+
+            updateStatus(
+                "♚ 黒の勝ち！"
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    /* 手番交代 */
+
+    turn =
+        turn === "white"
+            ? "black"
+            : "white";
+
+
+    updateStatus();
+
+    render();
+
+}
+
+
+/* ==============================
+   キング確認
+============================== */
+
+function kingExists(color) {
+
+    for (let row = 0; row < 8; row++) {
+
+        for (let col = 0; col < 8; col++) {
+
+
+            const p =
+                board[row][col];
+
+
+            if (
+                p &&
+                p.color === color &&
+                p.type === "king"
+            ) {
+
+                return true;
+
+            }
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+
+/* ==============================
+   移動可能マス
+============================== */
+
+function getMoves(row, col) {
+
+    const p =
+        board[row][col];
+
+
+    if (!p) {
+
+        return [];
+
+    }
+
+
+    if (p.type === "pawn") {
+
+        return pawnMoves(
+            row,
+            col,
+            p.color
+        );
+
+    }
+
+
+    if (p.type === "rook") {
+
+        return slideMoves(
+            row,
+            col,
+            p.color,
+            [
+                [-1,0],
+                [1,0],
+                [0,-1],
+                [0,1]
+            ]
+        );
+
+    }
+
+
+    if (p.type === "bishop") {
+
+        return slideMoves(
+            row,
+            col,
+            p.color,
+            [
+                [-1,-1],
+                [-1,1],
+                [1,-1],
+                [1,1]
+            ]
+        );
+
+    }
+
+
+    if (p.type === "queen") {
+
+        return slideMoves(
+            row,
+            col,
+            p.color,
+            [
+                [-1,0],
+                [1,0],
+                [0,-1],
+                [0,1],
+                [-1,-1],
+                [-1,1],
+                [1,-1],
+                [1,1]
+            ]
+        );
+
+    }
+
+
+    if (p.type === "knight") {
+
+        return knightMoves(
+            row,
+            col,
+            p.color
+        );
+
+    }
+
+
+    if (p.type === "king") {
+
+        return kingMoves(
+            row,
+            col,
+            p.color
+        );
+
+    }
+
+
+    return [];
+
+}
+
+
+/* ==============================
+   ポーン
+============================== */
+
+function pawnMoves(
+    row,
+    col,
+    color
+) {
+
+    const result = [];
+
+
+    const direction =
+        color === "white"
+            ? -1
+            : 1;
+
+
+    const start =
+        color === "white"
+            ? 6
+            : 1;
+
+
+    const one =
+        row + direction;
+
+
+    /* 1マス */
+
+    if (
+        inside(one, col) &&
+        !board[one][col]
+    ) {
+
+        result.push({
+
+            row: one,
+            col: col
+
+        });
+
+
+        /* 最初の2マス */
+
+        const two =
+            row + direction * 2;
+
+
+        if (
+            row === start &&
+            inside(two, col) &&
+            !board[two][col]
+        ) {
+
+            result.push({
+
+                row: two,
+                col: col
+
+            });
+
+        }
+
+    }
+
+
+    /* 斜め取り */
+
+    for (const dc of [-1, 1]) {
+
+        const r =
+            row + direction;
+
+        const c =
+            col + dc;
+
+
+        if (!inside(r, c)) {
+
+            continue;
+
+        }
+
+
+        const target =
+            board[r][c];
+
+
+        if (
+            target &&
+            target.color !== color
+        ) {
+
+            result.push({
+
+                row: r,
+                col: c
+
+            });
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* ==============================
+   直線移動
+============================== */
+
+function slideMoves(
+    row,
+    col,
+    color,
+    directions
+) {
+
+    const result = [];
+
+
+    for (const direction of directions) {
+
+        const dr =
+            direction[0];
+
+        const dc =
+            direction[1];
+
+
+        let r =
+            row + dr;
+
+        let c =
+            col + dc;
+
+
+        while (inside(r, c)) {
+
+
+            const target =
+                board[r][c];
+
+
+            /* 空き */
+
+            if (!target) {
+
+                result.push({
+
+                    row: r,
+                    col: c
+
+                });
+
+            }
+
+            /* 相手 */
+
+            else if (
+                target.color !== color
+            ) {
+
+                result.push({
+
+                    row: r,
+                    col: c
+
+                });
+
+                break;
+
+            }
+
+            /* 味方 */
+
+            else {
+
+                break;
+
+            }
+
+
+            r += dr;
+
+            c += dc;
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* ==============================
+   ナイト
+============================== */
+
+function knightMoves(
+    row,
+    col,
+    color
+) {
+
+    const result = [];
+
+
+    const jumps = [
+
+        [-2,-1],
+        [-2,1],
+
+        [-1,-2],
+        [-1,2],
+
+        [1,-2],
+        [1,2],
+
+        [2,-1],
+        [2,1]
+
+    ];
+
+
+    for (const jump of jumps) {
+
+        const r =
+            row + jump[0];
+
+        const c =
+            col + jump[1];
+
+
+        if (!inside(r, c)) {
+
+            continue;
+
+        }
+
+
+        const target =
+            board[r][c];
+
+
+        if (
+            !target ||
+            target.color !== color
+        ) {
+
+            result.push({
+
+                row: r,
+                col: c
+
+            });
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* ==============================
+   キング
+============================== */
+
+function kingMoves(
+    row,
+    col,
+    color
+) {
+
+    const result = [];
+
+
+    for (
+        let dr = -1;
+        dr <= 1;
+        dr++
+    ) {
+
+        for (
+            let dc = -1;
+            dc <= 1;
+            dc++
+        ) {
+
+
+            if (
+                dr === 0 &&
+                dc === 0
+            ) {
+
+                continue;
+
+            }
+
+
+            const r =
+                row + dr;
+
+            const c =
+                col + dc;
+
+
+            if (!inside(r, c)) {
+
+                continue;
+
+            }
+
+
+            const target =
+                board[r][c];
+
+
+            if (
+                !target ||
+                target.color !== color
+            ) {
+
+                result.push({
+
+                    row: r,
+                    col: c
+
+                });
+
+            }
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* ==============================
+   盤面の中か
+============================== */
+
+function inside(row, col) {
+
+    return (
+        row >= 0 &&
+        row < 8 &&
+        col >= 0 &&
+        col < 8
+    );
+
+}
+
+
+/* ==============================
+   1手戻す
+============================== */
+
+function undoMove() {
+
+    if (history.length === 0) {
+
+        updateStatus(
+            "これ以上戻せません"
+        );
+
+        return;
+
+    }
+
+
+    const previous =
+        history.pop();
+
+
+    board =
+        cloneBoard(
+            previous.board
+        );
+
+
+    turn =
+        previous.turn;
+
+
+    lastMove =
+        previous.lastMove;
+
+
+    gameOver =
+        previous.gameOver;
+
+
+    selected = null;
+
+    legalMoves = [];
+
+
+    updateStatus();
+
+    render();
+
+}
+
+
+/* ==============================
+   スタート
+============================== */
+
+resetGame();
+
+</script>
+
+</body>
+</html>
