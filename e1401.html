@@ -1,0 +1,2820 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キャラバトル・リバーシ</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --green1: #064e3b;
+    --green2: #022c22;
+    --yellow: #fde047;
+    --board: #15965b;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    padding: 14px;
+    color: white;
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Yu Gothic",
+        Meiryo,
+        sans-serif;
+    background:
+        radial-gradient(circle at top, #16855c 0%, #064e3b 45%, #020f0b 100%);
+    user-select: none;
+}
+
+button {
+    font: inherit;
+    touch-action: manipulation;
+}
+
+.app {
+    width: min(100%, 680px);
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin: 10px 0 18px;
+}
+
+.english-title {
+    color: var(--yellow);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .32em;
+}
+
+h1 {
+    margin: 5px 0;
+    font-size: clamp(29px, 7vw, 45px);
+}
+
+.subtitle {
+    margin: 0;
+    color: #b8ead4;
+    font-size: 13px;
+}
+
+/* ================================
+   カード
+================================ */
+
+.card {
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 22px;
+    background: rgba(0,0,0,.25);
+    box-shadow: 0 18px 45px rgba(0,0,0,.3);
+}
+
+.section-title {
+    margin: 2px 0 10px;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+/* ================================
+   キャラクター
+================================ */
+
+.characters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+}
+
+.character {
+    padding: 8px;
+    color: white;
+    border: 2px solid transparent;
+    border-radius: 15px;
+    background: rgba(255,255,255,.07);
+    cursor: pointer;
+}
+
+.character.selected {
+    border-color: var(--yellow);
+    background: rgba(255,255,255,.16);
+    box-shadow: 0 0 15px rgba(253,224,71,.2);
+}
+
+.character:active {
+    transform: scale(.96);
+}
+
+.character-icon {
+    aspect-ratio: 1.25;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    font-size: clamp(31px, 9vw, 48px);
+}
+
+.character-name {
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.knight { background: linear-gradient(135deg, #3b82f6, #3730a3); }
+.mage   { background: linear-gradient(135deg, #8b5cf6, #a21caf); }
+.cat    { background: linear-gradient(135deg, #fbbf24, #ea580c); }
+.robot  { background: linear-gradient(135deg, #06b6d4, #0369a1); }
+.dragon { background: linear-gradient(135deg, #ef4444, #881337); }
+.ghost  { background: linear-gradient(135deg, #94a3b8, #334155); }
+
+.character-preview {
+    margin-top: 13px;
+    padding: 13px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.preview-icon {
+    font-size: 56px;
+}
+
+.preview-name {
+    font-size: 19px;
+    font-weight: 900;
+}
+
+.preview-line {
+    font-size: 14px;
+}
+
+/* ================================
+   選択ボタン
+================================ */
+
+.options {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.options.two {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.options.three {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.option {
+    min-height: 48px;
+    padding: 8px;
+
+    color: white;
+    border: 2px solid transparent;
+    border-radius: 13px;
+
+    background: rgba(255,255,255,.09);
+
+    font-size: 13px;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.option.selected {
+    color: #052e26;
+    border-color: #fff3a2;
+    background: var(--yellow);
+}
+
+.option:active {
+    transform: scale(.97);
+}
+
+.start-button {
+    width: 100%;
+    min-height: 56px;
+    margin-top: 7px;
+
+    border: none;
+    border-radius: 15px;
+
+    background: linear-gradient(135deg, #fde047, #fb923c);
+    color: #053829;
+
+    font-size: 18px;
+    font-weight: 900;
+
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+}
+
+.start-button:active {
+    transform: scale(.98);
+}
+
+/* ================================
+   ゲーム画面
+================================ */
+
+#gameScreen {
+    display: none;
+}
+
+.battle-top {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 9px;
+}
+
+.fighter {
+    padding: 8px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.27);
+    text-align: center;
+}
+
+.fighter.active {
+    outline: 2px solid var(--yellow);
+}
+
+.fighter-icon {
+    font-size: 35px;
+}
+
+.fighter-label {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.vs {
+    color: var(--yellow);
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.mode-info {
+    margin-bottom: 5px;
+    text-align: center;
+    color: #b6e9d2;
+    font-size: 12px;
+}
+
+.message {
+    min-height: 31px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    color: #fff7ad;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+/* ================================
+   スコア
+================================ */
+
+.score-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+
+.score {
+    padding: 8px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: rgba(0,0,0,.28);
+    text-align: center;
+    font-weight: 800;
+}
+
+.score.turn {
+    border-color: var(--yellow);
+}
+
+.mini-disc {
+    width: 17px;
+    height: 17px;
+    margin-right: 5px;
+    display: inline-block;
+    vertical-align: -3px;
+    border-radius: 50%;
+}
+
+.mini-disc.black {
+    background: #080808;
+}
+
+.mini-disc.white {
+    background: white;
+    border: 1px solid #aaa;
+}
+
+/* ================================
+   盤面
+================================ */
+
+.board {
+    width: 100%;
+    aspect-ratio: 1;
+
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+
+    overflow: hidden;
+
+    border: 6px solid #022c1c;
+    border-radius: 16px;
+
+    background: #087747;
+
+    box-shadow: 0 15px 35px rgba(0,0,0,.38);
+    touch-action: manipulation;
+}
+
+.cell {
+    position: relative;
+
+    padding: 0;
+    border: 1px solid rgba(0,50,26,.8);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: var(--board);
+    cursor: pointer;
+}
+
+.cell:active {
+    background: #1bae69;
+}
+
+.cell.legal::after {
+    content: "";
+    position: absolute;
+
+    width: 15%;
+    height: 15%;
+    min-width: 6px;
+    min-height: 6px;
+
+    border-radius: 50%;
+    background: var(--yellow);
+
+    box-shadow:
+        0 0 5px #fde047,
+        0 0 9px rgba(253,224,71,.5);
+}
+
+.disc {
+    position: relative;
+    z-index: 2;
+
+    width: 77%;
+    height: 77%;
+    border-radius: 50%;
+
+    animation: putDisc .18s ease-out;
+}
+
+.disc.black {
+    background:
+        radial-gradient(circle at 32% 27%, #555, #151515 40%, #020202 78%);
+    box-shadow:
+        0 4px 6px rgba(0,0,0,.45),
+        inset 0 2px 2px rgba(255,255,255,.18);
+}
+
+.disc.white {
+    background:
+        radial-gradient(circle at 32% 27%, #fff, #eee 43%, #ccc 80%);
+    box-shadow:
+        0 4px 6px rgba(0,0,0,.38),
+        inset 0 2px 2px rgba(255,255,255,.8);
+}
+
+@keyframes putDisc {
+    0% {
+        transform: scale(.25);
+        opacity: .3;
+    }
+    75% {
+        transform: scale(1.12);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ================================
+   ゲーム操作
+================================ */
+
+.controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 13px;
+}
+
+.control {
+    min-height: 46px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.restart {
+    color: #06422e;
+    background: white;
+}
+
+.settings-button {
+    color: white;
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.12);
+}
+
+.help {
+    margin-top: 10px;
+    color: #a9dac5;
+    text-align: center;
+    font-size: 11px;
+}
+
+/* ================================
+   結果画面
+================================ */
+
+.result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    padding: 18px;
+
+    display: none;
+    justify-content: center;
+    align-items: center;
+
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(5px);
+}
+
+.result-overlay.show {
+    display: flex;
+    animation: fadeIn .35s ease;
+}
+
+.result-box {
+    position: relative;
+    z-index: 3;
+
+    width: min(100%, 370px);
+    padding: 27px;
+
+    border: 2px solid rgba(255,255,255,.35);
+    border-radius: 27px;
+
+    text-align: center;
+
+    animation: resultPop .6s cubic-bezier(.2,1.6,.4,1);
+}
+
+.result-box.win {
+    color: #06422e;
+    background: linear-gradient(180deg, #fde047, #fb923c);
+}
+
+.result-box.lose {
+    color: white;
+    background: linear-gradient(180deg, #475569, #0f172a);
+}
+
+.result-box.draw {
+    color: white;
+    background: linear-gradient(180deg, #0891b2, #0f172a);
+}
+
+.result-character {
+    font-size: 85px;
+    line-height: 1;
+}
+
+.result-box.win .result-character {
+    animation: happy .75s infinite;
+}
+
+.result-box.lose .result-character {
+    animation: sad 1.5s infinite;
+}
+
+.result-box.draw .result-character {
+    animation: drawMove 1.2s infinite;
+}
+
+.result-title {
+    margin: 13px 0 5px;
+    font-size: 38px;
+    font-weight: 1000;
+}
+
+.result-score {
+    margin-top: 7px;
+    font-size: 19px;
+    font-weight: 900;
+}
+
+.result-line {
+    margin-top: 8px;
+    font-weight: 800;
+}
+
+.result-button {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 19px;
+
+    border: none;
+    border-radius: 13px;
+
+    color: white;
+    background: #063d2c;
+
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.lose .result-button,
+.draw .result-button {
+    color: #132019;
+    background: white;
+}
+
+/* ================================
+   紙吹雪
+================================ */
+
+.confetti {
+    position: fixed;
+    top: -40px;
+    z-index: 2;
+    pointer-events: none;
+    font-size: 22px;
+    animation: fall linear forwards;
+}
+
+@keyframes fall {
+    from {
+        transform: translateY(-40px) rotate(0deg);
+    }
+    to {
+        transform: translateY(115vh) rotate(720deg);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes resultPop {
+    0% {
+        opacity: 0;
+        transform: scale(.3) rotate(-6deg);
+    }
+    70% {
+        transform: scale(1.06);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes happy {
+    0%,100% {
+        transform: translateY(0) rotate(0);
+    }
+    35% {
+        transform: translateY(-20px) rotate(-8deg) scale(1.12);
+    }
+    65% {
+        transform: translateY(-16px) rotate(8deg) scale(1.12);
+    }
+}
+
+@keyframes sad {
+    0%,100% {
+        transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+        transform: translateY(8px) rotate(3deg);
+    }
+}
+
+@keyframes drawMove {
+    0%,100% { transform: rotate(-6deg); }
+    50%     { transform: rotate(6deg); }
+}
+
+@media (min-width: 570px) {
+    .characters {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (max-width: 430px) {
+    body {
+        padding: 8px;
+    }
+
+    .card {
+        padding: 13px;
+    }
+
+    .option {
+        font-size: 11px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header class="header">
+        <div class="english-title">
+            CHARACTER REVERSI
+        </div>
+        <h1>キャラバトル・リバーシ</h1>
+        <p class="subtitle">
+            キャラクターを選んで対戦しよう！
+        </p>
+    </header>
+
+    <!-- ==========================
+         設定画面
+    =========================== -->
+
+    <section id="settingsScreen" class="card">
+
+        <div class="section-title">
+            ① キャラクター
+        </div>
+
+        <div id="characters" class="characters"></div>
+
+        <div
+            id="characterPreview"
+            class="character-preview cat"
+        >
+            <div
+                id="previewIcon"
+                class="preview-icon"
+            >
+                🐱
+            </div>
+
+            <div>
+                <div
+                    id="previewName"
+                    class="preview-name"
+                >
+                    ねこ
+                </div>
+
+                <div
+                    id="previewLine"
+                    class="preview-line"
+                >
+                    「負けないニャ！」
+                </div>
+            </div>
+        </div>
+
+
+        <div class="section-title" style="margin-top:20px">
+            ② 対戦モード
+        </div>
+
+        <div class="options two">
+            <button
+                class="option"
+                data-mode="human"
+            >
+                👥 人 対 人
+            </button>
+
+            <button
+                class="option selected"
+                data-mode="cpu"
+            >
+                🤖 人 対 CPU
+            </button>
+        </div>
+
+
+        <div id="cpuSettings">
+
+            <div class="section-title">
+                ③ あなたの手番
+            </div>
+
+            <div class="options two">
+                <button
+                    class="option selected"
+                    data-color="1"
+                >
+                    ● 黒・先攻
+                </button>
+
+                <button
+                    class="option"
+                    data-color="2"
+                >
+                    ○ 白・後攻
+                </button>
+            </div>
+
+
+            <div class="section-title">
+                ④ コンピュータの強さ
+            </div>
+
+            <div class="options three">
+                <button
+                    class="option"
+                    data-difficulty="easy"
+                >
+                    🌱 かんたん
+                </button>
+
+                <button
+                    class="option selected"
+                    data-difficulty="normal"
+                >
+                    ⚔️ ふつう
+                </button>
+
+                <button
+                    class="option"
+                    data-difficulty="hard"
+                >
+                    🔥 つよい
+                </button>
+            </div>
+
+        </div>
+
+
+        <button
+            id="startButton"
+            class="start-button"
+        >
+            このキャラでゲームスタート！
+        </button>
+
+    </section>
+
+
+    <!-- ==========================
+         ゲーム画面
+    =========================== -->
+
+    <section id="gameScreen">
+
+        <div class="battle-top">
+
+            <div
+                id="humanFighter"
+                class="fighter"
+            >
+                <div
+                    id="humanIcon"
+                    class="fighter-icon"
+                >
+                    🐱
+                </div>
+                <div class="fighter-label">
+                    YOU
+                </div>
+            </div>
+
+
+            <div class="vs">
+                VS
+            </div>
+
+
+            <div
+                id="enemyFighter"
+                class="fighter"
+            >
+                <div
+                    id="enemyIcon"
+                    class="fighter-icon"
+                >
+                    🤖
+                </div>
+                <div
+                    id="enemyLabel"
+                    class="fighter-label"
+                >
+                    CPU
+                </div>
+            </div>
+
+        </div>
+
+
+        <div
+            id="modeInfo"
+            class="mode-info"
+        ></div>
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+
+        <div class="score-row">
+
+            <div
+                id="blackScoreBox"
+                class="score"
+            >
+                <span class="mini-disc black"></span>
+                黒
+                <span id="blackScore">2</span>
+            </div>
+
+            <div
+                id="whiteScoreBox"
+                class="score"
+            >
+                <span class="mini-disc white"></span>
+                白
+                <span id="whiteScore">2</span>
+            </div>
+
+        </div>
+
+
+        <div
+            id="board"
+            class="board"
+        ></div>
+
+
+        <div class="controls">
+
+            <button
+                id="restartButton"
+                class="control restart"
+            >
+                ↻ 最初から
+            </button>
+
+            <button
+                id="settingsButton"
+                class="control settings-button"
+            >
+                ⚙ 設定を変更
+            </button>
+
+        </div>
+
+        <div class="help">
+            黄色い点が置ける場所です。
+            マスをクリックまたはタップしてください。
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- ==============================
+     結果画面
+=============================== -->
+
+<div
+    id="resultOverlay"
+    class="result-overlay"
+>
+    <div
+        id="resultBox"
+        class="result-box"
+    >
+        <div
+            id="resultCharacter"
+            class="result-character"
+        ></div>
+
+        <div
+            id="resultTitle"
+            class="result-title"
+        ></div>
+
+        <div
+            id="resultScore"
+            class="result-score"
+        ></div>
+
+        <div
+            id="resultLine"
+            class="result-line"
+        ></div>
+
+        <button
+            id="resultRestart"
+            class="result-button"
+        >
+            もう一度
+        </button>
+    </div>
+</div>
+
+
+<script>
+(() => {
+"use strict";
+
+/* =========================================
+   定数
+========================================= */
+
+const SIZE = 8;
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = 2;
+
+const DIRECTIONS = [
+    [-1,-1], [0,-1], [1,-1],
+    [-1, 0],          [1, 0],
+    [-1, 1], [0, 1], [1, 1]
+];
+
+const WEIGHTS = [
+    [120,-25, 20,  5,  5, 20,-25,120],
+    [-25,-45, -5, -5, -5, -5,-45,-25],
+    [ 20, -5, 15,  3,  3, 15, -5, 20],
+    [  5, -5,  3,  3,  3,  3, -5,  5],
+    [  5, -5,  3,  3,  3,  3, -5,  5],
+    [ 20, -5, 15,  3,  3, 15, -5, 20],
+    [-25,-45, -5, -5, -5, -5,-45,-25],
+    [120,-25, 20,  5,  5, 20,-25,120]
+];
+
+
+/* =========================================
+   キャラクター
+========================================= */
+
+const CHARACTERS = [
+    {
+        id: "knight",
+        name: "ナイト",
+        icon: "🛡️",
+        css: "knight",
+        start: "正々堂々、勝負だ！",
+        win: "我らの勝利だ！",
+        lose: "見事だ…次こそは！"
+    },
+    {
+        id: "mage",
+        name: "マジシャン",
+        icon: "🧙",
+        css: "mage",
+        start: "盤面の未来が見えるぞ！",
+        win: "未来は予想どおりだ！",
+        lose: "この未来は読めなかった…"
+    },
+    {
+        id: "cat",
+        name: "ねこ",
+        icon: "🐱",
+        css: "cat",
+        start: "負けないニャ！",
+        win: "やったニャー！",
+        lose: "くやしいニャ…"
+    },
+    {
+        id: "robot",
+        name: "ロボ",
+        icon: "🤖",
+        css: "robot",
+        start: "最善手ヲ計算シマス。",
+        win: "勝利ヲ確認シマシタ！",
+        lose: "再計算ガ必要デス…"
+    },
+    {
+        id: "dragon",
+        name: "ドラゴン",
+        icon: "🐲",
+        css: "dragon",
+        start: "我が力、見せてやろう！",
+        win: "我が炎の勝利だ！",
+        lose: "なかなかやるな…！"
+    },
+    {
+        id: "ghost",
+        name: "ゴースト",
+        icon: "👻",
+        css: "ghost",
+        start: "ふふふ…捕まえられるかな？",
+        win: "びっくりした？ ボクの勝ち！",
+        lose: "うらめしや～…"
+    }
+];
+
+
+/* =========================================
+   DOM
+========================================= */
+
+const settingsScreen =
+    document.getElementById("settingsScreen");
+
+const gameScreen =
+    document.getElementById("gameScreen");
+
+const charactersElement =
+    document.getElementById("characters");
+
+const characterPreview =
+    document.getElementById("characterPreview");
+
+const previewIcon =
+    document.getElementById("previewIcon");
+
+const previewName =
+    document.getElementById("previewName");
+
+const previewLine =
+    document.getElementById("previewLine");
+
+const cpuSettings =
+    document.getElementById("cpuSettings");
+
+const boardElement =
+    document.getElementById("board");
+
+const messageElement =
+    document.getElementById("message");
+
+const modeInfo =
+    document.getElementById("modeInfo");
+
+const blackScore =
+    document.getElementById("blackScore");
+
+const whiteScore =
+    document.getElementById("whiteScore");
+
+const blackScoreBox =
+    document.getElementById("blackScoreBox");
+
+const whiteScoreBox =
+    document.getElementById("whiteScoreBox");
+
+const humanFighter =
+    document.getElementById("humanFighter");
+
+const enemyFighter =
+    document.getElementById("enemyFighter");
+
+const humanIcon =
+    document.getElementById("humanIcon");
+
+const enemyIcon =
+    document.getElementById("enemyIcon");
+
+const enemyLabel =
+    document.getElementById("enemyLabel");
+
+const resultOverlay =
+    document.getElementById("resultOverlay");
+
+const resultBox =
+    document.getElementById("resultBox");
+
+const resultCharacter =
+    document.getElementById("resultCharacter");
+
+const resultTitle =
+    document.getElementById("resultTitle");
+
+const resultScore =
+    document.getElementById("resultScore");
+
+const resultLine =
+    document.getElementById("resultLine");
+
+
+/* =========================================
+   状態
+========================================= */
+
+let board;
+
+let currentPlayer = BLACK;
+
+let mode = "cpu";
+
+let humanColor = BLACK;
+let cpuColor = WHITE;
+
+let difficulty = "normal";
+
+let selectedCharacter = "cat";
+
+let gameOver = false;
+let cpuThinking = false;
+
+let cpuTimer = null;
+
+
+/* =========================================
+   キャラクター選択
+========================================= */
+
+function getCharacter() {
+    return CHARACTERS.find(
+        c => c.id === selectedCharacter
+    );
+}
+
+
+function createCharacterButtons() {
+
+    charactersElement.innerHTML = "";
+
+    CHARACTERS.forEach(character => {
+
+        const button =
+            document.createElement("button");
+
+        button.className =
+            "character" +
+            (
+                selectedCharacter === character.id
+                ? " selected"
+                : ""
+            );
+
+        button.innerHTML = `
+            <div class="character-icon ${character.css}">
+                ${character.icon}
+            </div>
+            <div class="character-name">
+                ${character.name}
+            </div>
+        `;
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                selectedCharacter =
+                    character.id;
+
+                createCharacterButtons();
+                updateCharacterPreview();
+            }
+        );
+
+        charactersElement.appendChild(
+            button
+        );
+    });
+}
+
+
+function updateCharacterPreview() {
+
+    const character =
+        getCharacter();
+
+    characterPreview.className =
+        "character-preview "
+        + character.css;
+
+    previewIcon.textContent =
+        character.icon;
+
+    previewName.textContent =
+        character.name;
+
+    previewLine.textContent =
+        "「"
+        + character.start
+        + "」";
+}
+
+
+/* =========================================
+   設定ボタン
+========================================= */
+
+document
+    .querySelectorAll("[data-mode]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll("[data-mode]")
+                    .forEach(b =>
+                        b.classList.remove("selected")
+                    );
+
+                button.classList.add("selected");
+
+                mode =
+                    button.dataset.mode;
+
+                cpuSettings.style.display =
+                    mode === "cpu"
+                    ? "block"
+                    : "none";
+            }
+        );
+    });
+
+
+document
+    .querySelectorAll("[data-color]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll("[data-color]")
+                    .forEach(b =>
+                        b.classList.remove("selected")
+                    );
+
+                button.classList.add(
+                    "selected"
+                );
+
+                humanColor =
+                    Number(
+                        button.dataset.color
+                    );
+
+                cpuColor =
+                    opponent(humanColor);
+            }
+        );
+    });
+
+
+document
+    .querySelectorAll("[data-difficulty]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(
+                        "[data-difficulty]"
+                    )
+                    .forEach(b =>
+                        b.classList.remove(
+                            "selected"
+                        )
+                    );
+
+                button.classList.add(
+                    "selected"
+                );
+
+                difficulty =
+                    button.dataset.difficulty;
+            }
+        );
+    });
+
+
+/* =========================================
+   基本処理
+========================================= */
+
+function opponent(player) {
+    return player === BLACK
+        ? WHITE
+        : BLACK;
+}
+
+
+function playerName(player) {
+    return player === BLACK
+        ? "黒"
+        : "白";
+}
+
+
+function inside(x, y) {
+    return (
+        x >= 0 &&
+        x < SIZE &&
+        y >= 0 &&
+        y < SIZE
+    );
+}
+
+
+function copyBoard(source) {
+    return source.map(
+        row => row.slice()
+    );
+}
+
+
+function newBoard() {
+
+    const result =
+        Array.from(
+            { length: SIZE },
+            () =>
+                Array(SIZE).fill(EMPTY)
+        );
+
+    result[3][3] = WHITE;
+    result[3][4] = BLACK;
+    result[4][3] = BLACK;
+    result[4][4] = WHITE;
+
+    return result;
+}
+
+
+/* =========================================
+   裏返せる石
+========================================= */
+
+function getFlips(
+    targetBoard,
+    x,
+    y,
+    player
+) {
+
+    if (
+        targetBoard[y][x] !== EMPTY
+    ) {
+        return [];
+    }
+
+    const enemy =
+        opponent(player);
+
+    const total = [];
+
+
+    for (
+        const [dx, dy]
+        of DIRECTIONS
+    ) {
+
+        const line = [];
+
+        let nx =
+            x + dx;
+
+        let ny =
+            y + dy;
+
+
+        while (
+            inside(nx, ny) &&
+            targetBoard[ny][nx] === enemy
+        ) {
+
+            line.push([nx, ny]);
+
+            nx += dx;
+            ny += dy;
+        }
+
+
+        if (
+            line.length > 0 &&
+            inside(nx, ny) &&
+            targetBoard[ny][nx] === player
+        ) {
+
+            total.push(...line);
+        }
+    }
+
+
+    return total;
+}
+
+
+/* =========================================
+   合法手
+========================================= */
+
+function legalMoves(
+    targetBoard,
+    player
+) {
+
+    const result = [];
+
+
+    for (
+        let y = 0;
+        y < SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < SIZE;
+            x++
+        ) {
+
+            const flips =
+                getFlips(
+                    targetBoard,
+                    x,
+                    y,
+                    player
+                );
+
+
+            if (flips.length) {
+
+                result.push({
+                    x,
+                    y,
+                    flips
+                });
+            }
+        }
+    }
+
+
+    return result;
+}
+
+
+/* =========================================
+   着手
+========================================= */
+
+function applyMove(
+    source,
+    move,
+    player
+) {
+
+    const result =
+        copyBoard(source);
+
+    result[move.y][move.x] =
+        player;
+
+
+    move.flips.forEach(
+        ([x, y]) => {
+
+            result[y][x] =
+                player;
+        }
+    );
+
+
+    return result;
+}
+
+
+/* =========================================
+   石数
+========================================= */
+
+function countDiscs(
+    targetBoard
+) {
+
+    let black = 0;
+    let white = 0;
+
+
+    targetBoard.forEach(row => {
+
+        row.forEach(value => {
+
+            if (value === BLACK) {
+                black++;
+            }
+
+            if (value === WHITE) {
+                white++;
+            }
+        });
+    });
+
+
+    return {
+        black,
+        white
+    };
+}
+
+
+function countEmpty(
+    targetBoard
+) {
+
+    let count = 0;
+
+    targetBoard.forEach(row => {
+        row.forEach(value => {
+
+            if (value === EMPTY) {
+                count++;
+            }
+
+        });
+    });
+
+    return count;
+}
+
+
+/* =========================================
+   人間が操作可能か
+========================================= */
+
+function humanCanPlay() {
+
+    if (
+        gameOver ||
+        cpuThinking
+    ) {
+        return false;
+    }
+
+    if (mode === "human") {
+        return true;
+    }
+
+    return (
+        currentPlayer === humanColor
+    );
+}
+
+
+/* =========================================
+   描画
+========================================= */
+
+function render() {
+
+    boardElement.innerHTML = "";
+
+    const moves =
+        legalMoves(
+            board,
+            currentPlayer
+        );
+
+    const moveMap =
+        new Map();
+
+
+    moves.forEach(move => {
+
+        moveMap.set(
+            move.x + "," + move.y,
+            move
+        );
+    });
+
+
+    for (
+        let y = 0;
+        y < SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < SIZE;
+            x++
+        ) {
+
+            const cell =
+                document.createElement(
+                    "button"
+                );
+
+            cell.className =
+                "cell";
+
+            cell.type =
+                "button";
+
+
+            if (
+                moveMap.has(
+                    x + "," + y
+                ) &&
+                humanCanPlay()
+            ) {
+
+                cell.classList.add(
+                    "legal"
+                );
+            }
+
+
+            const value =
+                board[y][x];
+
+
+            if (value !== EMPTY) {
+
+                const disc =
+                    document.createElement(
+                        "div"
+                    );
+
+                disc.className =
+                    "disc "
+                    +
+                    (
+                        value === BLACK
+                        ? "black"
+                        : "white"
+                    );
+
+                cell.appendChild(
+                    disc
+                );
+            }
+
+
+            cell.addEventListener(
+                "click",
+                () =>
+                    humanMove(x, y)
+            );
+
+
+            boardElement.appendChild(
+                cell
+            );
+        }
+    }
+
+
+    updateStatus();
+}
+
+
+/* =========================================
+   表示情報更新
+========================================= */
+
+function updateStatus() {
+
+    const score =
+        countDiscs(board);
+
+    blackScore.textContent =
+        score.black;
+
+    whiteScore.textContent =
+        score.white;
+
+
+    blackScoreBox.classList.toggle(
+        "turn",
+        !gameOver &&
+        currentPlayer === BLACK
+    );
+
+    whiteScoreBox.classList.toggle(
+        "turn",
+        !gameOver &&
+        currentPlayer === WHITE
+    );
+
+
+    if (gameOver) {
+        return;
+    }
+
+
+    if (
+        mode === "cpu" &&
+        currentPlayer === cpuColor
+    ) {
+
+        messageElement.textContent =
+            cpuThinking
+            ? "🤔 コンピュータが考えています…"
+            : "コンピュータの番です";
+
+    } else {
+
+        messageElement.textContent =
+            playerName(currentPlayer)
+            + "の番です";
+    }
+
+
+    if (mode === "cpu") {
+
+        humanFighter.classList.toggle(
+            "active",
+            currentPlayer === humanColor
+        );
+
+        enemyFighter.classList.toggle(
+            "active",
+            currentPlayer === cpuColor
+        );
+    }
+}
+
+
+/* =========================================
+   人間の着手
+========================================= */
+
+function humanMove(x, y) {
+
+    if (!humanCanPlay()) {
+        return;
+    }
+
+
+    const flips =
+        getFlips(
+            board,
+            x,
+            y,
+            currentPlayer
+        );
+
+
+    if (!flips.length) {
+        return;
+    }
+
+
+    board =
+        applyMove(
+            board,
+            {
+                x,
+                y,
+                flips
+            },
+            currentPlayer
+        );
+
+
+    finishTurn();
+}
+
+
+/* =========================================
+   ターン終了
+========================================= */
+
+function finishTurn() {
+
+    const next =
+        opponent(currentPlayer);
+
+
+    if (
+        legalMoves(
+            board,
+            next
+        ).length
+    ) {
+
+        currentPlayer =
+            next;
+
+        render();
+        cpuIfNeeded();
+
+        return;
+    }
+
+
+    /*
+       相手が打てないが
+       自分はまだ打てる場合はパス
+    */
+
+    if (
+        legalMoves(
+            board,
+            currentPlayer
+        ).length
+    ) {
+
+        render();
+
+        messageElement.textContent =
+            playerName(next)
+            + "は置けないためパスです";
+
+
+        setTimeout(
+            () => {
+
+                if (gameOver) {
+                    return;
+                }
+
+                render();
+                cpuIfNeeded();
+
+            },
+            800
+        );
+
+        return;
+    }
+
+
+    /*
+       両者打てない
+    */
+
+    finishGame();
+}
+
+
+/* =========================================
+   CPU
+========================================= */
+
+function cpuIfNeeded() {
+
+    if (
+        gameOver ||
+        mode !== "cpu" ||
+        currentPlayer !== cpuColor
+    ) {
+        return;
+    }
+
+
+    cpuThinking = true;
+
+    render();
+
+    clearTimeout(cpuTimer);
+
+
+    cpuTimer =
+        setTimeout(
+            cpuMove,
+            400
+        );
+}
+
+
+function cpuMove() {
+
+    if (
+        gameOver ||
+        currentPlayer !== cpuColor
+    ) {
+
+        cpuThinking = false;
+        return;
+    }
+
+
+    const moves =
+        legalMoves(
+            board,
+            cpuColor
+        );
+
+
+    if (!moves.length) {
+
+        cpuThinking = false;
+        finishTurn();
+
+        return;
+    }
+
+
+    let move;
+
+
+    if (difficulty === "easy") {
+
+        move =
+            easyMove(moves);
+
+    } else if (
+        difficulty === "normal"
+    ) {
+
+        move =
+            normalMove(moves);
+
+    } else {
+
+        move =
+            hardMove(moves);
+    }
+
+
+    board =
+        applyMove(
+            board,
+            move,
+            cpuColor
+        );
+
+
+    cpuThinking = false;
+
+    finishTurn();
+}
+
+
+/* =========================================
+   CPU かんたん
+========================================= */
+
+function easyMove(moves) {
+
+    return moves[
+        Math.floor(
+            Math.random()
+            * moves.length
+        )
+    ];
+}
+
+
+/* =========================================
+   CPU ふつう
+========================================= */
+
+function normalMove(moves) {
+
+    let best =
+        moves[0];
+
+    let bestValue =
+        -Infinity;
+
+
+    moves.forEach(move => {
+
+        const next =
+            applyMove(
+                board,
+                move,
+                cpuColor
+            );
+
+
+        let value =
+            WEIGHTS
+                [move.y]
+                [move.x];
+
+
+        value +=
+            move.flips.length * 2;
+
+
+        value -=
+            legalMoves(
+                next,
+                opponent(cpuColor)
+            ).length * 3;
+
+
+        value +=
+            Math.random() * 1.5;
+
+
+        if (
+            value > bestValue
+        ) {
+
+            bestValue =
+                value;
+
+            best =
+                move;
+        }
+    });
+
+
+    return best;
+}
+
+
+/* =========================================
+   CPU つよい
+========================================= */
+
+function hardMove(moves) {
+
+    const empty =
+        countEmpty(board);
+
+    let depth = 4;
+
+    if (empty <= 18) {
+        depth = 5;
+    }
+
+    if (empty <= 11) {
+        depth = 7;
+    }
+
+
+    let best =
+        moves[0];
+
+    let bestValue =
+        -Infinity;
+
+
+    const ordered =
+        [...moves].sort(
+            (a, b) =>
+                WEIGHTS[b.y][b.x]
+                -
+                WEIGHTS[a.y][a.x]
+        );
+
+
+    ordered.forEach(move => {
+
+        const next =
+            applyMove(
+                board,
+                move,
+                cpuColor
+            );
+
+
+        const value =
+            minimax(
+                next,
+                depth - 1,
+                opponent(cpuColor),
+                -Infinity,
+                Infinity
+            );
+
+
+        if (
+            value > bestValue
+        ) {
+
+            bestValue =
+                value;
+
+            best =
+                move;
+        }
+    });
+
+
+    return best;
+}
+
+
+/* =========================================
+   Minimax + αβ枝刈り
+========================================= */
+
+function minimax(
+    target,
+    depth,
+    player,
+    alpha,
+    beta
+) {
+
+    const moves =
+        legalMoves(
+            target,
+            player
+        );
+
+    const other =
+        opponent(player);
+
+
+    if (!moves.length) {
+
+        const otherMoves =
+            legalMoves(
+                target,
+                other
+            );
+
+
+        if (!otherMoves.length) {
+
+            return finalEvaluation(
+                target
+            );
+        }
+
+
+        return minimax(
+            target,
+            Math.max(0, depth - 1),
+            other,
+            alpha,
+            beta
+        );
+    }
+
+
+    if (depth <= 0) {
+
+        return evaluate(
+            target
+        );
+    }
+
+
+    const ordered =
+        [...moves].sort(
+            (a, b) =>
+                WEIGHTS[b.y][b.x]
+                -
+                WEIGHTS[a.y][a.x]
+        );
+
+
+    if (
+        player === cpuColor
+    ) {
+
+        let value =
+            -Infinity;
+
+
+        for (const move of ordered) {
+
+            const next =
+                applyMove(
+                    target,
+                    move,
+                    player
+                );
+
+
+            value =
+                Math.max(
+                    value,
+                    minimax(
+                        next,
+                        depth - 1,
+                        other,
+                        alpha,
+                        beta
+                    )
+                );
+
+
+            alpha =
+                Math.max(
+                    alpha,
+                    value
+                );
+
+
+            if (alpha >= beta) {
+                break;
+            }
+        }
+
+
+        return value;
+    }
+
+
+    let value =
+        Infinity;
+
+
+    for (const move of ordered) {
+
+        const next =
+            applyMove(
+                target,
+                move,
+                player
+            );
+
+
+        value =
+            Math.min(
+                value,
+                minimax(
+                    next,
+                    depth - 1,
+                    other,
+                    alpha,
+                    beta
+                )
+            );
+
+
+        beta =
+            Math.min(
+                beta,
+                value
+            );
+
+
+        if (alpha >= beta) {
+            break;
+        }
+    }
+
+
+    return value;
+}
+
+
+/* =========================================
+   CPU評価
+========================================= */
+
+function evaluate(target) {
+
+    let value = 0;
+
+    const enemy =
+        opponent(cpuColor);
+
+
+    for (
+        let y = 0;
+        y < SIZE;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < SIZE;
+            x++
+        ) {
+
+            if (
+                target[y][x]
+                === cpuColor
+            ) {
+
+                value +=
+                    WEIGHTS[y][x];
+
+            } else if (
+                target[y][x]
+                === enemy
+            ) {
+
+                value -=
+                    WEIGHTS[y][x];
+            }
+        }
+    }
+
+
+    const cpuMoves =
+        legalMoves(
+            target,
+            cpuColor
+        ).length;
+
+    const enemyMoves =
+        legalMoves(
+            target,
+            enemy
+        ).length;
+
+
+    value +=
+        (cpuMoves - enemyMoves)
+        * 7;
+
+
+    const score =
+        countDiscs(target);
+
+    const mine =
+        cpuColor === BLACK
+        ? score.black
+        : score.white;
+
+    const theirs =
+        cpuColor === BLACK
+        ? score.white
+        : score.black;
+
+
+    if (
+        countEmpty(target) < 20
+    ) {
+
+        value +=
+            (mine - theirs)
+            * 5;
+    }
+
+
+    return value;
+}
+
+
+function finalEvaluation(target) {
+
+    const score =
+        countDiscs(target);
+
+    const mine =
+        cpuColor === BLACK
+        ? score.black
+        : score.white;
+
+    const theirs =
+        cpuColor === BLACK
+        ? score.white
+        : score.black;
+
+
+    if (mine > theirs) {
+
+        return (
+            100000
+            + mine
+            - theirs
+        );
+    }
+
+
+    if (mine < theirs) {
+
+        return (
+            -100000
+            - theirs
+            + mine
+        );
+    }
+
+
+    return 0;
+}
+
+
+/* =========================================
+   ゲーム終了
+========================================= */
+
+function finishGame() {
+
+    gameOver = true;
+    cpuThinking = false;
+
+    render();
+
+    const score =
+        countDiscs(board);
+
+
+    setTimeout(
+        () => {
+
+            showResult(
+                score
+            );
+
+        },
+        450
+    );
+}
+
+
+/* =========================================
+   結果アニメーション
+========================================= */
+
+function showResult(score) {
+
+    const character =
+        getCharacter();
+
+    let type;
+    let title;
+    let line;
+
+
+    if (mode === "cpu") {
+
+        const humanScore =
+            humanColor === BLACK
+            ? score.black
+            : score.white;
+
+        const computerScore =
+            humanColor === BLACK
+            ? score.white
+            : score.black;
+
+
+        if (humanScore > computerScore) {
+
+            type = "win";
+            title = "WIN!";
+            line = character.win;
+
+        } else if (
+            humanScore < computerScore
+        ) {
+
+            type = "lose";
+            title = "LOSE...";
+            line = character.lose;
+
+        } else {
+
+            type = "draw";
+            title = "DRAW!";
+            line = "いい勝負だったね！";
+        }
+
+    } else {
+
+        if (
+            score.black === score.white
+        ) {
+
+            type = "draw";
+
+            title = "DRAW!";
+
+            line =
+                "引き分け！ いい勝負でした！";
+
+        } else {
+
+            type = "win";
+
+            title =
+                score.black > score.white
+                ? "黒の勝利！"
+                : "白の勝利！";
+
+            line =
+                "ナイスゲーム！";
+        }
+    }
+
+
+    resultBox.className =
+        "result-box " + type;
+
+    resultCharacter.textContent =
+        character.icon;
+
+    resultTitle.textContent =
+        title;
+
+    resultScore.textContent =
+        "黒 "
+        + score.black
+        + " － "
+        + score.white
+        + " 白";
+
+    resultLine.textContent =
+        "「"
+        + line
+        + "」";
+
+
+    resultOverlay.classList.add(
+        "show"
+    );
+
+
+    if (type === "win") {
+        createConfetti();
+    }
+}
+
+
+/* =========================================
+   紙吹雪
+========================================= */
+
+function createConfetti() {
+
+    const symbols =
+        ["✨", "⭐", "🎉", "🟡", "🟠"];
+
+
+    for (
+        let i = 0;
+        i < 35;
+        i++
+    ) {
+
+        const item =
+            document.createElement(
+                "div"
+            );
+
+        item.className =
+            "confetti";
+
+        item.textContent =
+            symbols[
+                i % symbols.length
+            ];
+
+        item.style.left =
+            Math.random()
+            * 100
+            + "vw";
+
+        item.style.animationDuration =
+            (
+                1.8
+                + Math.random() * 2
+            )
+            + "s";
+
+        item.style.animationDelay =
+            (
+                Math.random() * .7
+            )
+            + "s";
+
+
+        resultOverlay.appendChild(
+            item
+        );
+
+
+        setTimeout(
+            () => item.remove(),
+            5000
+        );
+    }
+}
+
+
+/* =========================================
+   ゲーム設定表示
+========================================= */
+
+function updateGameHeader() {
+
+    const character =
+        getCharacter();
+
+
+    humanIcon.textContent =
+        character.icon;
+
+
+    if (mode === "cpu") {
+
+        enemyIcon.textContent =
+            "🤖";
+
+        enemyLabel.textContent =
+            "CPU";
+
+
+        const difficultyNames = {
+            easy: "かんたん",
+            normal: "ふつう",
+            hard: "つよい"
+        };
+
+
+        modeInfo.textContent =
+            "あなた："
+            +
+            (
+                humanColor === BLACK
+                ? "● 黒・先攻"
+                : "○ 白・後攻"
+            )
+            +
+            " ／ CPU："
+            +
+            difficultyNames[difficulty];
+
+    } else {
+
+        enemyIcon.textContent =
+            "👤";
+
+        enemyLabel.textContent =
+            "PLAYER 2";
+
+        modeInfo.textContent =
+            "人 対 人";
+    }
+}
+
+
+/* =========================================
+   ゲーム開始
+========================================= */
+
+function startGame() {
+
+    clearTimeout(cpuTimer);
+
+    board =
+        newBoard();
+
+    currentPlayer =
+        BLACK;
+
+    gameOver =
+        false;
+
+    cpuThinking =
+        false;
+
+    resultOverlay.classList.remove(
+        "show"
+    );
+
+
+    settingsScreen.style.display =
+        "none";
+
+    gameScreen.style.display =
+        "block";
+
+
+    updateGameHeader();
+    render();
+
+    cpuIfNeeded();
+}
+
+
+/* =========================================
+   再戦
+========================================= */
+
+function restartGame() {
+
+    resultOverlay.classList.remove(
+        "show"
+    );
+
+    startGame();
+}
+
+
+/* =========================================
+   設定へ戻る
+========================================= */
+
+function backToSettings() {
+
+    clearTimeout(cpuTimer);
+
+    gameOver =
+        true;
+
+    cpuThinking =
+        false;
+
+    resultOverlay.classList.remove(
+        "show"
+    );
+
+    gameScreen.style.display =
+        "none";
+
+    settingsScreen.style.display =
+        "block";
+}
+
+
+/* =========================================
+   イベント
+========================================= */
+
+document
+    .getElementById("startButton")
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+
+document
+    .getElementById("restartButton")
+    .addEventListener(
+        "click",
+        restartGame
+    );
+
+
+document
+    .getElementById("settingsButton")
+    .addEventListener(
+        "click",
+        backToSettings
+    );
+
+
+document
+    .getElementById("resultRestart")
+    .addEventListener(
+        "click",
+        restartGame
+    );
+
+
+/* =========================================
+   初期化
+========================================= */
+
+createCharacterButtons();
+updateCharacterPreview();
+
+})();
+</script>
+
+</body>
+</html>
+<!-- かわいい背景デコレーション -->
+
+<div class="bg-decoration bg-star1">⭐</div>
+<div class="bg-decoration bg-star2">🌟</div>
+
+<div class="bg-decoration bg-heart1">💗</div>
+<div class="bg-decoration bg-heart2">💖</div>
+
+<div class="bg-decoration bg-sparkle1">✨</div>
+<div class="bg-decoration bg-sparkle2">✨</div>
