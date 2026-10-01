@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>おじさん毛抜きリズムDX</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:sans-serif;
+    background:linear-gradient(#ffe7f2,#fff8cc);
+    touch-action:manipulation;
+}
+
+#game{
+    width:100vw;
+    height:100vh;
+    position:relative;
+    overflow:hidden;
+}
+
+#score{
+    position:absolute;
+    left:10px;
+    top:10px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+#combo{
+    position:absolute;
+    right:10px;
+    top:10px;
+    font-size:24px;
+    font-weight:bold;
+    color:#ff4a90;
+}
+
+#judge{
+    position:absolute;
+    top:70px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:36px;
+    font-weight:bold;
+    text-align:center;
+    pointer-events:none;
+}
+
+#lane{
+    position:absolute;
+    width:160px;
+    left:50%;
+    transform:translateX(-50%);
+    top:0;
+    bottom:0;
+}
+
+.note{
+    position:absolute;
+    width:50px;
+    height:70px;
+    left:55px;
+    transition:transform .1s;
+}
+
+.note::before{
+    content:"";
+    position:absolute;
+    width:4px;
+    height:50px;
+    left:23px;
+    top:0;
+    background:#222;
+    border-radius:10px;
+}
+
+.note::after{
+    content:"";
+    position:absolute;
+    width:20px;
+    height:20px;
+    border:3px solid #222;
+    border-radius:50%;
+    left:12px;
+    bottom:0;
+}
+
+#hitline{
+    position:absolute;
+    width:180px;
+    height:50px;
+    left:50%;
+    bottom:240px;
+    transform:translateX(-50%);
+    background:rgba(255,64,128,0.2);
+    border:4px solid #ff4a90;
+    border-radius:20px;
+    box-shadow:0 0 20px #ff4a90;
+}
+
+#target{
+    position:absolute;
+    width:80px;
+    height:80px;
+    left:50%;
+    bottom:225px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    border:5px solid gold;
+    box-shadow:0 0 20px gold;
+}
+
+#ojiWrap{
+    position:absolute;
+    left:50%;
+    bottom:20px;
+    transform:translateX(-50%);
+    text-align:center;
+}
+
+#name{
+    font-size:24px;
+    font-weight:bold;
+}
+
+#remaining{
+    margin-bottom:5px;
+}
+
+#start{
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,.95);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:999;
+}
+
+button{
+    font-size:26px;
+    padding:14px 40px;
+    border:none;
+    border-radius:20px;
+    background:#ff4a90;
+    color:white;
+}
+
+h1{
+    text-align:center;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+<div id="score">SCORE 0</div>
+<div id="combo">COMBO 0</div>
+
+<div id="judge"></div>
+
+<div id="lane"></div>
+
+<div id="hitline"></div>
+<div id="target"></div>
+
+<div id="ojiWrap">
+
+<div id="name"></div>
+<div id="remaining"></div>
+
+<svg width="260" height="240" viewBox="0 0 260 240">
+
+<g id="tweezer">
+    <line x1="120" y1="12" x2="112" y2="42"
+          stroke="#BBBBBB" stroke-width="5"/>
+    <line x1="135" y1="12" x2="123" y2="42"
+          stroke="#EEEEEE" stroke-width="5"/>
+</g>
+
+<ellipse id="face"
+cx="130" cy="120"
+rx="85" ry="80"
+fill="#ffd7b2"/>
+
+<circle cx="100" cy="110" r="8"/>
+<circle cx="160" cy="110" r="8"/>
+
+<circle id="cheekL"
+cx="72" cy="130"
+r="12"
+fill="#ffb6c1"/>
+
+<circle id="cheekR"
+cx="188" cy="130"
+r="12"
+fill="#ffb6c1"/>
+
+<path id="mouth"
+d="M100 160 Q130 180 160 160"
+fill="none"
+stroke="black"
+stroke-width="5"/>
+
+<g id="hairGroup"></g>
+
+</svg>
+
+</div>
+
+<div id="start">
+
+<h1>🎵 おじさん毛抜きリズムDX 🎵</h1>
+
+<p>金色の丸でタップしよう！</p>
+<p>PERFECTを狙え！</p>
+
+<button onclick="startGame()">
+スタート
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+const ojisans=[
+{
+ name:"ダンディおじさん",
+ color:"#ffd7b2"
+},
+{
+ name:"ワイルドおじさん",
+ color:"#f2c39e"
+},
+{
+ name:"アイドルおじさん",
+ color:"#ffd1d1"
+},
+{
+ name:"おしゃれおじさん",
+ color:"#ffe0b8"
+}
+];
+
+let currentOjisan=0;
+let score=0;
+let combo=0;
+let playing=false;
+
+let hairs=[];
+let notes=[];
+
+const lane=document.getElementById("lane");
+const judge=document.getElementById("judge");
+
+const rhythm=[
+250,250,500,
+350,350,600,
+200,200,200,400,
+700,
+250,250,250,250
+];
+
+let rhythmIndex=0;
+
+function showJudge(text,color){
+    judge.textContent=text;
+    judge.style.color=color;
+
+    clearTimeout(judge.timer);
+
+    judge.timer=setTimeout(()=>{
+        judge.textContent="";
+    },700);
+}
+
+function createHairs(){
+
+    hairs=[];
+
+    const group=
+      document.getElementById("hairGroup");
+
+    group.innerHTML="";
+
+    const positions=[
+        [90,45],
+        [105,28],
+        [120,18],
+        [135,18],
+        [150,28],
+        [165,45]
+    ];
+
+    positions.forEach((p,i)=>{
+
+        const line=document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line");
+
+        line.id="hair"+i;
+
+        line.setAttribute("x1",p[0]);
+        line.setAttribute("y1",p[1]);
+        line.setAttribute("x2",p[0]);
+        line.setAttribute("y2",p[1]+30);
+
+        line.setAttribute("stroke","#222");
+        line.setAttribute("stroke-width","4");
+
+        group.appendChild(line);
+
+        hairs.push(line.id);
+    });
+
+    updateHairCount();
+}
+
+function updateHairCount(){
+
+    document.getElementById("remaining")
+    .textContent=
+    "残りの毛: "+hairs.length+"本";
+
+}
+
+function loadOjisan(){
+
+    const o=
+      ojisans[currentOjisan %
+      ojisans.length];
+
+    document.getElementById("name")
+    .textContent=o.name;
+
+    document.getElementById("face")
+    .setAttribute("fill",o.color);
+
+    createHairs();
+}
+
+function happyFace(){
+
+    document.getElementById("mouth")
+    .setAttribute(
+    "d",
+    "M95 150 Q130 195 165 150"
+    );
+
+    document.getElementById("cheekL")
+    .setAttribute("fill","#ff6aa0");
+
+    document.getElementById("cheekR")
+    .setAttribute("fill","#ff6aa0");
+
+    setTimeout(normalFace,500);
+}
+
+function normalFace(){
+
+    document.getElementById("mouth")
+    .setAttribute(
+    "d",
+    "M100 160 Q130 180 160 160"
+    );
+
+    document.getElementById("cheekL")
+    .setAttribute("fill","#ffb6c1");
+
+    document.getElementById("cheekR")
+    .setAttribute("fill","#ffb6c1");
+}
+
+function tweezerPull(){
+
+    document.getElementById("tweezer")
+    .animate([
+      {transform:"translateY(0px)"},
+      {transform:"translateY(12px)"},
+      {transform:"translateY(0px)"}
+    ],{
+      duration:180
+    });
+
+}
+
+function removeHair(){
+
+    if(!hairs.length) return;
+
+    const index=
+      Math.floor(Math.random()*hairs.length);
+
+    const id=hairs[index];
+
+    const hair=
+      document.getElementById(id);
+
+    if(hair){
+        hair.remove();
+    }
+
+    hairs.splice(index,1);
+
+    updateHairCount();
+
+    if(hairs.length===0){
+
+        showJudge(
+          "✨ツルツル完成✨",
+          "gold"
+        );
+
+        document.getElementById("ojiWrap")
+        .animate([
+          {transform:"translateX(-50%) translateY(0px)"},
+          {transform:"translateX(-50%) translateY(-25px)"},
+          {transform:"translateX(-50%) translateY(0px)"}
+        ],{
+          duration:700
+        });
+
+        setTimeout(()=>{
+
+            currentOjisan++;
+
+            loadOjisan();
+
+            showJudge(
+              "新しいおじさん登場！",
+              "#00aa88"
+            );
+
+        },1200);
+    }
+}
+
+function createNote(){
+
+    const note=
+      document.createElement("div");
+
+    note.className="note";
+
+    lane.appendChild(note);
+
+    notes.push({
+      el:note,
+      y:-80
+    });
+}
+
+function scheduleNotes(){
+
+    if(!playing) return;
+
+    createNote();
+
+    const next=
+      rhythm[rhythmIndex];
+
+    rhythmIndex=
+    (rhythmIndex+1)%rhythm.length;
+
+    setTimeout(scheduleNotes,next);
+}
+
+function success(note){
+
+    note.el.remove();
+
+    notes=
+      notes.filter(n=>n!==note);
+
+    document.getElementById("score")
+    .textContent=
+      "SCORE "+score;
+
+    document.getElementById("combo")
+    .textContent=
+      "COMBO "+combo;
+
+    happyFace();
+    tweezerPull();
+    removeHair();
+}
+
+function tap(){
+
+    if(!playing) return;
+
+    const hitY=
+      window.innerHeight-330;
+
+    let best=null;
+    let bestDiff=9999;
+
+    notes.forEach(n=>{
+
+        const diff=
+          Math.abs(n.y-hitY);
+
+        if(diff<bestDiff){
+
+            bestDiff=diff;
+            best=n;
+        }
+
+    });
+
+    if(best && bestDiff<35){
+
+        combo++;
+
+        score+=200+combo*10;
+
+        showJudge(
+        "🌟 PERFECT!",
+        "gold"
+        );
+
+        success(best);
+
+    }
+    else if(best && bestDiff<90){
+
+        combo++;
+
+        score+=100+combo*5;
+
+        showJudge(
+        "GOOD!",
+        "#45b6ff"
+        );
+
+        success(best);
+
+    }
+    else{
+
+        combo=0;
+
+        document.getElementById("combo")
+        .textContent=
+        "COMBO 0";
+
+        showJudge("MISS","#888");
+    }
+}
+
+document.addEventListener(
+"pointerdown",
+tap
+);
+
+function gameLoop(){
+
+    if(!playing) return;
+
+    const hitY=
+      window.innerHeight-330;
+
+    for(let i=notes.length-1;i>=0;i--){
+
+        notes[i].y+=4;
+
+        notes[i].el.style.top=
+        notes[i].y+"px";
+
+        const diff=
+        Math.abs(notes[i].y-hitY);
+
+        if(diff<70){
+
+            notes[i].el.style.transform=
+            "scale(1.4)";
+
+            notes[i].el.style.filter=
+            "drop-shadow(0 0 10px gold)";
+        }
+        else{
+
+            notes[i].el.style.transform=
+            "scale(1)";
+
+            notes[i].el.style.filter=
+            "none";
+        }
+
+        if(notes[i].y>
+          window.innerHeight){
+
+            notes[i].el.remove();
+            notes.splice(i,1);
+
+            combo=0;
+
+            document.getElementById("combo")
+            .textContent=
+            "COMBO 0";
+        }
+    }
+
+    requestAnimationFrame(
+      gameLoop
+    );
+}
+
+function startGame(){
+
+    document.getElementById("start")
+    .style.display="none";
+
+    playing=true;
+
+    loadOjisan();
+
+    scheduleNotes();
+
+    gameLoop();
+}
+
+</script>
+
+</body>
+</html>
+#judge{
+    position:absolute;
+    top:70px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:52px;
+    font-weight:bold;
+    text-align:center;
+    pointer-events:none;
+    text-shadow:
+      0 0 10px white,
+      0 0 20px gold;
+}
