@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>七並べ</title>
+
+<style>
+body{
+    margin:0;
+    background:#0b6b24;
+    color:white;
+    font-family:sans-serif;
+}
+
+h1{
+    text-align:center;
+    margin:10px 0;
+}
+
+#top{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+#info{
+    text-align:center;
+    font-size:20px;
+    margin:10px;
+}
+
+#players{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:10px;
+}
+
+.playerInfo{
+    background:#194d23;
+    padding:8px 12px;
+    border-radius:8px;
+}
+
+#board{
+    width:95%;
+    margin:auto;
+}
+
+.suitRow{
+    display:grid;
+    grid-template-columns:repeat(13,minmax(30px,50px));
+    gap:4px;
+    justify-content:center;
+    margin:5px 0;
+}
+
+.slot{
+    height:70px;
+    background:#13531d;
+    border:1px solid #2f8d42;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.cardPlaced{
+    background:white;
+}
+
+.heart,.diamond{
+    color:red;
+}
+
+.spade,.club{
+    color:black;
+}
+
+#hand{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+    padding:12px;
+}
+
+.card{
+    width:60px;
+    height:85px;
+    background:white;
+    color:black;
+    border-radius:8px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    border:2px solid #bbb;
+    font-weight:bold;
+}
+
+.playable{
+    border:3px solid gold;
+    transform:translateY(-5px);
+}
+
+#controls{
+    text-align:center;
+}
+
+button,select{
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
+#log{
+    width:90%;
+    height:150px;
+    overflow:auto;
+    background:rgba(0,0,0,0.3);
+    margin:15px auto;
+    padding:10px;
+    border-radius:8px;
+    box-sizing:border-box;
+}
+</style>
+</head>
+
+<body>
+
+<h1>七並べ</h1>
+
+<div id="top">
+<select id="difficulty">
+    <option value="easy">初級</option>
+    <option value="normal">中級</option>
+    <option value="hard">上級</option>
+</select>
+
+<button onclick="setupGame()">新しいゲーム</button>
+</div>
+
+<div id="info"></div>
+
+<div id="players"></div>
+
+<div id="board"></div>
+
+<div id="hand"></div>
+
+<div id="controls">
+<button id="passBtn">パス</button>
+</div>
+
+<div id="log"></div>
+
+<script>
+
+const suits=["♠","♥","♦","♣"];
+const suitClasses=["spade","heart","diamond","club"];
+
+let players=[];
+let board={};
+let currentPlayer=0;
+let gameEnded=false;
+
+function rankText(rank){
+    if(rank===1) return "A";
+    if(rank===11) return "J";
+    if(rank===12) return "Q";
+    if(rank===13) return "K";
+    return rank;
+}
+
+function cardText(card){
+    return card.suit + rankText(card.rank);
+}
+
+function createDeck(){
+
+    let deck=[];
+
+    for(let s=0;s<4;s++){
+        for(let r=1;r<=13;r++){
+            deck.push({
+                suit:suits[s],
+                suitClass:suitClasses[s],
+                suitIndex:s,
+                rank:r
+            });
+        }
+    }
+
+    for(let i=deck.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [deck[i],deck[j]]=[deck[j],deck[i]];
+    }
+
+    return deck;
+}
+
+function createBoard(){
+
+    document.getElementById("board").innerHTML="";
+    board={};
+
+    suits.forEach((s)=>{
+
+        board[s]={};
+
+        const row=document.createElement("div");
+        row.className="suitRow";
+
+        for(let r=1;r<=13;r++){
+
+            let cell=document.createElement("div");
+
+            cell.id=`${s}_${r}`;
+            cell.className="slot";
+
+            if(r===7){
+                cell.textContent="7";
+            }
+
+            row.appendChild(cell);
+        }
+
+        document.getElementById("board").appendChild(row);
+    });
+}
+
+function setupGame(){
+
+    gameEnded=false;
+
+    createBoard();
+
+    players=[
+        {name:"あなた",hand:[],passes:0,alive:true},
+        {name:"CPU1",hand:[],passes:0,alive:true},
+        {name:"CPU2",hand:[],passes:0,alive:true},
+        {name:"CPU3",hand:[],passes:0,alive:true}
+    ];
+
+    let deck=createDeck();
+
+    deck.forEach((card,index)=>{
+        players[index%4].hand.push(card);
+    });
+
+    players.forEach(p=>{
+        p.hand.sort((a,b)=>{
+            if(a.suitIndex!==b.suitIndex){
+                return a.suitIndex-b.suitIndex;
+            }
+            return a.rank-b.rank;
+        });
+    });
+
+    for(let i=0;i<4;i++){
+
+        board[suits[i]][7]=true;
+
+        placeCard({
+            suit:suits[i],
+            suitClass:suitClasses[i],
+            rank:7
+        });
+    }
+
+    currentPlayer=0;
+
+    document.getElementById("log").innerHTML="";
+
+    addLog("ゲーム開始");
+
+    updatePlayers();
+    renderHand();
+    updateInfo();
+}
+
+function placeCard(card){
+
+    let cell=document.getElementById(
+        `${card.suit}_${card.rank}`
+    );
+
+    cell.classList.add("cardPlaced");
+    cell.classList.add(card.suitClass);
+
+    cell.textContent=
+        card.suit + rankText(card.rank);
+}
+
+function isPlayable(card){
+
+    if(card.rank===7) return false;
+
+    if(card.rank<7){
+        return board[card.suit][card.rank+1];
+    }else{
+        return board[card.suit][card.rank-1];
+    }
+}
+
+function renderHand(){
+
+    const hand=document.getElementById("hand");
+    hand.innerHTML="";
+
+    players[0].hand.forEach((card,index)=>{
+
+        let div=document.createElement("div");
+
+        div.className=`card ${card.suitClass}`;
+
+        if(isPlayable(card)){
+            div.classList.add("playable");
+        }
+
+        div.textContent=cardText(card);
+
+        div.onclick=()=>{
+
+            if(currentPlayer!==0) return;
+
+            if(gameEnded) return;
+
+            if(!isPlayable(card)) return;
+
+            playCard(0,index);
+        };
+
+        hand.appendChild(div);
+    });
+}
+
+function updatePlayers(){
+
+    let area=document.getElementById("players");
+    area.innerHTML="";
+
+    players.forEach((p,index)=>{
+
+        let div=document.createElement("div");
+
+        div.className="playerInfo";
+
+        if(p.alive){
+            div.textContent=
+                `${p.name} ${p.hand.length}枚 パス:${p.passes}/2`;
+        }else{
+            div.textContent=
+                `${p.name} 失格`;
+        }
+
+        if(index===currentPlayer &&
+           p.alive){
+            div.style.border="2px solid gold";
+        }
+
+        area.appendChild(div);
+    });
+}
+
+function updateInfo(){
+
+    if(gameEnded) return;
+
+    if(currentPlayer===0){
+        document.getElementById("info").textContent=
+            "あなたの番です";
+    }else{
+        document.getElementById("info").textContent=
+            players[currentPlayer].name+" の番";
+    }
+}
+
+function addLog(text){
+
+    const log=document.getElementById("log");
+
+    log.innerHTML+=text+"<br>";
+
+    log.scrollTop=log.scrollHeight;
+}
+
+function playCard(playerIndex,handIndex){
+
+    const player=players[playerIndex];
+    const card=player.hand[handIndex];
+
+    board[card.suit][card.rank]=true;
+
+    placeCard(card);
+
+    player.hand.splice(handIndex,1);
+
+    addLog(
+      `${player.name} → ${cardText(card)}`
+    );
+
+    updatePlayers();
+
+    if(player.hand.length===0){
+
+        gameEnded=true;
+
+        document.getElementById("info")
+        .textContent=
+        player.name+" の勝利！";
+
+        renderHand();
+        return;
+    }
+
+    nextTurn();
+}
+
+function eliminatePlayer(index){
+
+    players[index].alive=false;
+
+    addLog(players[index].name+" が失格");
+
+    updatePlayers();
+
+    let alive=
+    players.filter(p=>p.alive);
+
+    if(alive.length===1){
+
+        gameEnded=true;
+
+        document.getElementById("info")
+        .textContent=
+        alive[0].name+" の勝利！";
+    }
+}
+
+function nextTurn(){
+
+    if(gameEnded) return;
+
+    do{
+        currentPlayer=
+        (currentPlayer+1)%4;
+    }
+    while(!players[currentPlayer].alive);
+
+    updatePlayers();
+    renderHand();
+    updateInfo();
+
+    if(currentPlayer!==0){
+        setTimeout(cpuTurn,600);
+    }
+}
+
+function cpuTurn(){
+
+    if(gameEnded) return;
+
+    const player=players[currentPlayer];
+
+    const playable=[];
+
+    player.hand.forEach((card,index)=>{
+
+        if(isPlayable(card)){
+            playable.push(index);
+        }
+
+    });
+
+    if(playable.length===0){
+
+        player.passes++;
+
+        addLog(
+           `${player.name} パス (${player.passes}/2)`
+        );
+
+        if(player.passes>=3){
+
+            eliminatePlayer(currentPlayer);
+
+            if(gameEnded) return;
+        }
+
+        nextTurn();
+        return;
+    }
+
+    const difficulty=
+    document.getElementById("difficulty").value;
+
+    let selected;
+
+    if(difficulty==="easy"){
+
+        selected=
+        playable[
+            Math.floor(
+                Math.random()*playable.length
+            )
+        ];
+
+    }else if(difficulty==="normal"){
+
+        selected=
+        playable.sort((a,b)=>{
+
+            return Math.abs(
+                player.hand[b].rank-7
+            )
+            -
+            Math.abs(
+                player.hand[a].rank-7
+            );
+
+        })[0];
+
+    }else{
+
+        selected=
+        playable.sort((a,b)=>{
+
+            return Math.abs(
+                player.hand[a].rank-7
+            )
+            -
+            Math.abs(
+                player.hand[b].rank-7
+            );
+
+        })[0];
+    }
+
+    playCard(currentPlayer,selected);
+}
+
+document.getElementById("passBtn").onclick=()=>{
+
+    if(gameEnded) return;
+
+    if(currentPlayer!==0) return;
+
+    players[0].passes++;
+
+    addLog(
+      `あなた パス (${players[0].passes}/2)`
+    );
+
+    if(players[0].passes>=3){
+
+        eliminatePlayer(0);
+
+        if(gameEnded) return;
+    }
+
+    nextTurn();
+};
+
+setupGame();
+
+</script>
+
+</body>
+</html>
+``
