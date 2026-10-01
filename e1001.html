@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かわいい真剣衰弱 CPU対戦</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:15px;
+    min-height:100vh;
+
+    font-family:
+        "Yu Gothic",
+        "Hiragino Sans",
+        sans-serif;
+
+    text-align:center;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffe4f1 0%,
+            #fff0d8 100%
+        );
+
+    color:#7a5c5c;
+}
+
+h1{
+    margin:10px 0 15px;
+
+    color:#ff69b4;
+
+    text-shadow:
+        2px 2px 0 #fff,
+        0 0 12px rgba(255,105,180,.5);
+}
+
+#controls{
+    background:rgba(255,255,255,.8);
+    max-width:850px;
+    margin:auto;
+    padding:12px;
+    border-radius:20px;
+
+    box-shadow:
+        0 4px 12px rgba(255,182,193,.35);
+}
+
+select,
+button{
+    padding:10px;
+    font-size:16px;
+    border:none;
+    border-radius:12px;
+    margin:5px;
+}
+
+button{
+    background:#ff87c5;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    filter:brightness(1.08);
+}
+
+#info,
+#score,
+#turn{
+    margin:10px;
+}
+
+#turn{
+    color:#ff69b4;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#score{
+    font-size:20px;
+    font-weight:bold;
+}
+
+#board{
+    width:min(96vw,900px);
+    margin:auto;
+    display:grid;
+    gap:10px;
+}
+
+.card{
+
+    aspect-ratio:1;
+
+    border-radius:22px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    position:relative;
+
+    cursor:pointer;
+
+    font-size:2.2rem;
+
+    user-select:none;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffb6d9,
+            #ffd9ec
+        );
+
+    border:3px solid white;
+
+    box-shadow:
+        0 6px 12px rgba(255,182,193,.4),
+        inset 0 2px 0 rgba(255,255,255,.8);
+
+    transition:.25s;
+}
+
+.card:hover{
+    transform:
+        translateY(-3px)
+        scale(1.04);
+}
+
+.card::before{
+    content:"🎀";
+}
+
+.card.open{
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff8df,
+            #ffeaa7
+        );
+
+    color:#444;
+
+    transform:scale(1.05);
+
+    box-shadow:
+        0 0 20px rgba(255,215,0,.5);
+}
+
+.card.open::before{
+    display:none;
+}
+
+.card.matched{
+
+    background:
+        linear-gradient(
+            135deg,
+            #b8f9c3,
+            #7ce39c
+        );
+
+    color:white;
+
+    animation:bounce .8s infinite alternate;
+}
+
+.card.matched::after{
+    content:"💖";
+
+    position:absolute;
+    top:5px;
+    right:7px;
+
+    font-size:1rem;
+}
+
+@keyframes bounce{
+    from{
+        transform:scale(1);
+    }
+    to{
+        transform:scale(1.08);
+    }
+}
+
+@media(max-width:600px){
+
+    .card{
+        font-size:1.4rem;
+    }
+
+    h1{
+        font-size:1.8rem;
+    }
+}
+
+</style>
+</head>
+<body>
+
+<h1>🐰 かわいい真剣衰弱 🧸</h1>
+
+<div id="controls">
+
+盤面:
+<select id="boardSize">
+    <option value="4">かんたん (4×4)</option>
+    <option value="6">ふつう (6×6)</option>
+    <option value="8">むずかしい (8×8)</option>
+</select>
+
+CPU:
+<select id="cpuLevel">
+    <option value="easy">初級</option>
+    <option value="normal">中級</option>
+    <option value="hard">上級</option>
+</select>
+
+<button onclick="startGame()">
+🎮 ゲーム開始
+</button>
+
+</div>
+
+<div id="info">
+手数：<span id="moves">0</span>
+｜
+時間：<span id="time">0</span>秒
+</div>
+
+<div id="turn">
+あなたの番
+</div>
+
+<div id="score">
+😊 あなた：<span id="humanScore">0</span>
+｜
+🤖 CPU：<span id="cpuScore">0</span>
+</div>
+
+<br>
+
+<div id="board"></div>
+
+<script>
+
+const ALL_SYMBOLS = [
+"🐰","🐻","🐱","🐶",
+"🦊","🐼","🐹","🐨",
+"🦄","🐷","🐸","🐣",
+"🍓","🍰","🍩","🧁",
+"🍭","🍬","🍪","🍫",
+"🌸","🌷","🌼","🌈",
+"💖","🎀","✨","⭐",
+"🧸","☁️","🌙","🦋"
+];
+
+let cards=[];
+let firstCard=null;
+let secondCard=null;
+let lockBoard=false;
+
+let currentPlayer="human";
+
+let humanScore=0;
+let cpuScore=0;
+
+let matchedPairs=0;
+
+let moves=0;
+
+let timer=0;
+let timerId=null;
+
+let cpuMemory={};
+
+const board=document.getElementById("board");
+
+function shuffle(array){
+
+    for(let i=array.length-1;i>0;i--){
+
+        const j=Math.floor(Math.random()*(i+1));
+
+        [array[i],array[j]]=
+        [array[j],array[i]];
+    }
+
+    return array;
+}
+
+function updateUI(){
+
+    document.getElementById("moves").textContent=moves;
+
+    document.getElementById("time").textContent=timer;
+
+    document.getElementById("humanScore").textContent=
+        humanScore;
+
+    document.getElementById("cpuScore").textContent=
+        cpuScore;
+
+    document.getElementById("turn").textContent=
+        currentPlayer==="human"
+        ? "😊 あなたの番"
+        : "🤖 CPUの番";
+}
+
+function startGame(){
+
+    clearInterval(timerId);
+
+    const size=
+        parseInt(
+            document.getElementById("boardSize").value
+        );
+
+    const pairCount=(size*size)/2;
+
+    cards=shuffle([
+        ...ALL_SYMBOLS.slice(0,pairCount),
+        ...ALL_SYMBOLS.slice(0,pairCount)
+    ]);
+
+    board.style.gridTemplateColumns=
+        `repeat(${size},1fr)`;
+
+    firstCard=null;
+    secondCard=null;
+    lockBoard=false;
+
+    currentPlayer="human";
+
+    matchedPairs=0;
+
+    humanScore=0;
+    cpuScore=0;
+
+    moves=0;
+    timer=0;
+
+    cpuMemory={};
+
+    board.innerHTML="";
+
+    cards.forEach(symbol=>{
+
+        const card=document.createElement("div");
+
+        card.className="card";
+
+        card.dataset.symbol=symbol;
+
+        card.textContent="";
+
+        card.addEventListener("click",()=>{
+            playerFlip(card);
+        });
+
+        board.appendChild(card);
+
+    });
+
+    timerId=setInterval(()=>{
+
+        timer++;
+
+        document.getElementById("time").textContent=
+            timer;
+
+    },1000);
+
+    updateUI();
+}
+
+function remember(card){
+
+    const s=card.dataset.symbol;
+
+    if(!cpuMemory[s]){
+        cpuMemory[s]=[];
+    }
+
+    if(!cpuMemory[s].includes(card)){
+        cpuMemory[s].push(card);
+    }
+}
+
+function openCard(card){
+
+    card.classList.add("open");
+    card.textContent=card.dataset.symbol;
+
+    remember(card);
+}
+
+function closeCard(card){
+
+    card.classList.remove("open");
+    card.textContent="";
+}
+
+function playerFlip(card){
+
+    if(currentPlayer!=="human") return;
+    if(lockBoard) return;
+    if(card.classList.contains("matched")) return;
+    if(card===firstCard) return;
+
+    openCard(card);
+
+    if(!firstCard){
+
+        firstCard=card;
+        return;
+    }
+
+    secondCard=card;
+    lockBoard=true;
+
+    moves++;
+
+    if(
+        firstCard.dataset.symbol===
+        secondCard.dataset.symbol
+    ){
+
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+
+        humanScore++;
+        matchedPairs++;
+
+        resetTurn();
+
+        updateUI();
+
+        checkGameEnd();
+
+    }else{
+
+        setTimeout(()=>{
+
+            closeCard(firstCard);
+            closeCard(secondCard);
+
+            resetTurn();
+
+            currentPlayer="cpu";
+
+            updateUI();
+
+            setTimeout(cpuTurn,700);
+
+        },1000);
+    }
+}
+
+function resetTurn(){
+
+    firstCard=null;
+    secondCard=null;
+    lockBoard=false;
+}
+
+function memoryRate(){
+
+    const level=
+        document.getElementById("cpuLevel").value;
+
+    if(level==="hard") return 1;
+    if(level==="normal") return 0.7;
+
+    return 0.35;
+}
+
+function cpuTurn(){
+
+    if(currentPlayer!=="cpu"){
+        return;
+    }
+
+    let pair=null;
+
+    if(Math.random()<memoryRate()){
+
+        for(const key in cpuMemory){
+
+            const list=cpuMemory[key].filter(
+                c=>!c.classList.contains("matched")
+            );
+
+            if(list.length>=2){
+
+                pair=list.slice(0,2);
+                break;
+            }
+        }
+    }
+
+    const candidates=
+    [...document.querySelectorAll(".card")]
+    .filter(card=>
+        !card.classList.contains("matched") &&
+        !card.classList.contains("open")
+    );
+
+    if(!pair){
+
+        const first=
+        candidates[
+            Math.floor(Math.random()*candidates.length)
+        ];
+
+        candidates.splice(
+            candidates.indexOf(first),
+            1
+        );
+
+        const second=
+        candidates[
+            Math.floor(Math.random()*candidates.length)
+        ];
+
+        pair=[first,second];
+    }
+
+    const c1=pair[0];
+    const c2=pair[1];
+
+    openCard(c1);
+
+    setTimeout(()=>{
+
+        openCard(c2);
+
+        if(
+            c1.dataset.symbol===
+            c2.dataset.symbol
+        ){
+
+            setTimeout(()=>{
+
+                c1.classList.add("matched");
+                c2.classList.add("matched");
+
+                cpuScore++;
+                matchedPairs++;
+
+                updateUI();
+
+                if(checkGameEnd()) return;
+
+                setTimeout(cpuTurn,700);
+
+            },700);
+
+        }else{
+
+            setTimeout(()=>{
+
+                closeCard(c1);
+                closeCard(c2);
+
+                currentPlayer="human";
+
+                updateUI();
+
+            },1000);
+        }
+
+    },700);
+}
+
+function checkGameEnd(){
+
+    if(matchedPairs!==cards.length/2){
+        return false;
+    }
+
+    clearInterval(timerId);
+
+    let result="";
+
+    if(humanScore>cpuScore){
+
+        result="🎉 あなたの勝ち！";
+
+    }else if(cpuScore>humanScore){
+
+        result="🤖 CPUの勝ち！";
+
+    }else{
+
+        result="🤝 引き分け！";
+    }
+
+    setTimeout(()=>{
+
+        alert(
+            result +
+            "\n\n😊 あなた："+humanScore+
+            "\n🤖 CPU："+cpuScore+
+            "\n\n手数："+moves+
+            "\n時間："+timer+"秒"
+        );
+
+    },300);
+
+    return true;
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
