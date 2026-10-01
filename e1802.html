@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>射的ゲーム</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:sans-serif;
+    background:linear-gradient(#87CEEB,#EAF8FF);
+    touch-action:manipulation;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:100;
+    background:rgba(255,255,255,0.9);
+    padding:10px;
+    border-radius:10px;
+}
+
+#game{
+    width:100vw;
+    height:100vh;
+    position:relative;
+}
+
+.target{
+    position:absolute;
+    border-radius:50%;
+    background:
+    radial-gradient(circle,
+        #ff0000 0% 20%,
+        #ffffff 20% 40%,
+        #ff0000 40% 60%,
+        #ffffff 60% 80%,
+        #ff0000 80% 100%);
+    box-shadow:0 0 10px rgba(0,0,0,0.5);
+    cursor:pointer;
+}
+
+.hit{
+    position:absolute;
+    font-size:40px;
+    pointer-events:none;
+    animation:boom .5s forwards;
+}
+
+@keyframes boom{
+    from{
+        opacity:1;
+        transform:scale(0.5);
+    }
+    to{
+        opacity:0;
+        transform:scale(2);
+    }
+}
+
+#message{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:white;
+    padding:25px;
+    border-radius:15px;
+    display:none;
+    text-align:center;
+    z-index:200;
+}
+
+button,select{
+    padding:5px;
+    font-size:16px;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+    得点: <span id="score">0</span><br>
+    残り時間: <span id="time">30</span>秒<br><br>
+
+    難易度:
+    <select id="difficulty">
+        <option value="2">初級</option>
+        <option value="4" selected>中級</option>
+        <option value="7">上級</option>
+    </select>
+
+    <button onclick="startGame()">開始</button>
+</div>
+
+<div id="game"></div>
+
+<div id="message">
+    <h2>ゲーム終了！</h2>
+    <p>得点: <span id="finalScore"></span></p>
+    <button onclick="startGame()">もう一度遊ぶ</button>
+</div>
+
+<script>
+
+const game=document.getElementById("game");
+const scoreEl=document.getElementById("score");
+const timeEl=document.getElementById("time");
+
+let score=0;
+let time=30;
+let timer=null;
+let targets=[];
+
+function createTarget(){
+
+    const t=document.createElement("div");
+    t.className="target";
+
+    const size=60;
+
+    t.style.width=size+"px";
+    t.style.height=size+"px";
+
+    let x=Math.random()*(window.innerWidth-size);
+    let y=Math.random()*(window.innerHeight-size);
+
+    t.style.left=x+"px";
+    t.style.top=y+"px";
+
+    const baseSpeed=
+        Number(document.getElementById("difficulty").value);
+
+    let vx=(Math.random()*baseSpeed+1)
+        *(Math.random()<0.5?-1:1);
+
+    let vy=(Math.random()*baseSpeed+1)
+        *(Math.random()<0.5?-1:1);
+
+    t.dataset.vx=vx;
+    t.dataset.vy=vy;
+
+    function hit(e){
+
+        e.preventDefault();
+
+        score+=10;
+        scoreEl.textContent=score;
+
+        const boom=document.createElement("div");
+        boom.className="hit";
+        boom.textContent="💥";
+
+        boom.style.left=
+            (parseFloat(t.style.left)+20)+"px";
+
+        boom.style.top=
+            (parseFloat(t.style.top)+10)+"px";
+
+        game.appendChild(boom);
+
+        setTimeout(()=>boom.remove(),500);
+
+        t.remove();
+
+        targets=targets.filter(a=>a!==t);
+
+        createTarget();
+    }
+
+    t.addEventListener("click",hit);
+    t.addEventListener("touchstart",hit,{passive:false});
+
+    game.appendChild(t);
+    targets.push(t);
+}
+
+function moveTargets(){
+
+    targets.forEach(t=>{
+
+        const size=t.offsetWidth;
+
+        let x=parseFloat(t.style.left);
+        let y=parseFloat(t.style.top);
+
+        let vx=Number(t.dataset.vx);
+        let vy=Number(t.dataset.vy);
+
+        x+=vx;
+        y+=vy;
+
+        if(x<=0 || x>=window.innerWidth-size){
+            vx=-vx;
+        }
+
+        if(y<=0 || y>=window.innerHeight-size){
+            vy=-vy;
+        }
+
+        t.dataset.vx=vx;
+        t.dataset.vy=vy;
+
+        t.style.left=x+"px";
+        t.style.top=y+"px";
+    });
+
+    requestAnimationFrame(moveTargets);
+}
+
+function endGame(){
+
+    clearInterval(timer);
+
+    targets.forEach(t=>{
+        t.style.pointerEvents="none";
+    });
+
+    document.getElementById("finalScore").textContent=
+        score;
+
+    document.getElementById("message").style.display=
+        "block";
+}
+
+function startGame(){
+
+    score=0;
+    time=30;
+
+    scoreEl.textContent=0;
+    timeEl.textContent=30;
+
+    document.getElementById("message").style.display=
+        "none";
+
+    clearInterval(timer);
+
+    targets.forEach(t=>t.remove());
+    targets=[];
+
+    for(let i=0;i<5;i++){
+        createTarget();
+    }
+
+    timer=setInterval(()=>{
+
+        time--;
+        timeEl.textContent=time;
+
+        if(time<=0){
+            endGame();
+        }
+
+    },1000);
+}
+
+moveTargets();
+startGame();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>キラキラ星座占い</title>
+
+<style>
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:"Yu Gothic",sans-serif;
+}
+
+body{
+background:linear-gradient(180deg,#2b1055,#7597de);
+min-height:100vh;
+overflow-x:hidden;
+color:white;
+}
+
+.star{
+position:fixed;
+width:3px;
+height:3px;
+background:white;
+border-radius:50%;
+animation:twinkle 2s infinite;
+}
+
+@keyframes twinkle{
+50%{opacity:.3;}
+}
+
+.shooting{
+position:fixed;
+width:120px;
+height:2px;
+background:linear-gradient(to right,#fff,transparent);
+transform:rotate(-20deg);
+animation:shoot 5s linear infinite;
+}
+
+@keyframes shoot{
+0%{
+top:-50px;
+left:-150px;
+opacity:1;
+}
+100%{
+top:80%;
+left:120%;
+opacity:0;
+}
+}
+
+.container{
+width:95%;
+max-width:700px;
+margin:20px auto;
+background:rgba(255,255,255,.15);
+backdrop-filter:blur(10px);
+padding:20px;
+border-radius:25px;
+box-shadow:0 0 20px rgba(255,255,255,.3);
+text-align:center;
+}
+
+h1{
+font-size:2.2em;
+color:#ffe86d;
+margin-bottom:10px;
+}
+
+.crystal{
+font-size:70px;
+animation:float 2s infinite;
+}
+
+@keyframes float{
+50%{
+transform:translateY(-8px);
+}
+}
+
+select{
+width:100%;
+max-width:320px;
+padding:12px;
+font-size:18px;
+border-radius:15px;
+border:none;
+margin:15px 0;
+}
+
+button{
+padding:14px 35px;
+font-size:22px;
+border:none;
+border-radius:999px;
+background:#ff5bbd;
+color:white;
+cursor:pointer;
+transition:.2s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+#result{
+margin-top:20px;
+padding:20px;
+background:rgba(255,255,255,.15);
+border-radius:20px;
+}
+
+.rank{
+font-size:50px;
+font-weight:bold;
+color:#ffe86d;
+}
+
+.bar{
+height:20px;
+background:#ffffff33;
+border-radius:20px;
+overflow:hidden;
+margin:5px 0 15px 0;
+}
+
+.fill{
+height:100%;
+background:linear-gradient(
+to right,
+#ff7bd5,
+#ffe86d
+);
+}
+
+.section{
+margin:15px 0;
+text-align:left;
+}
+
+.section h3{
+margin-bottom:5px;
+}
+
+.rankingList{
+margin-top:20px;
+text-align:left;
+background:rgba(255,255,255,.1);
+padding:15px;
+border-radius:15px;
+}
+
+.item{
+padding:4px 0;
+}
+
+.first{
+font-weight:bold;
+color:gold;
+font-size:1.1em;
+}
+
+.footer{
+margin-top:10px;
+opacity:.8;
+font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="shooting"></div>
+
+<div class="container">
+
+<div class="crystal">🔮</div>
+
+<h1>キラキラ星座占い</h1>
+
+<p>あなたの星座を選んで占ってね✨</p>
+
+<select id="sign">
+<option>おひつじ座 ♈</option>
+<option>おうし座 ♉</option>
+<option>ふたご座 ♊</option>
+<option>かに座 ♋</option>
+<option>しし座 ♌</option>
+<option>おとめ座 ♍</option>
+<option>てんびん座 ♎</option>
+<option>さそり座 ♏</option>
+<option>いて座 ♐</option>
+<option>やぎ座 ♑</option>
+<option>みずがめ座 ♒</option>
+<option>うお座 ♓</option>
+</select>
+
+<br>
+
+<button id="fortuneBtn">
+✨ 占う ✨
+</button>
+
+<div id="result">
+占いボタンを押してください。
+</div>
+
+<div class="footer">
+今日の運勢は毎回ランダムに変化します
+</div>
+
+</div>
+
+<script>
+
+for(let i=0;i<80;i++){
+const star=document.createElement("div");
+star.className="star";
+star.style.left=Math.random()*100+"%";
+star.style.top=Math.random()*100+"%";
+star.style.animationDelay=Math.random()*2+"s";
+document.body.appendChild(star);
+}
+
+const signs=[
+"おひつじ座 ♈",
+"おうし座 ♉",
+"ふたご座 ♊",
+"かに座 ♋",
+"しし座 ♌",
+"おとめ座 ♍",
+"てんびん座 ♎",
+"さそり座 ♏",
+"いて座 ♐",
+"やぎ座 ♑",
+"みずがめ座 ♒",
+"うお座 ♓"
+];
+
+const colors=[
+"ピンク💖",
+"ブルー💙",
+"グリーン💚",
+"イエロー💛",
+"パープル💜",
+"オレンジ🧡",
+"レッド❤️"
+];
+
+const items=[
+"ネコ🐱",
+"ゲーム🎮",
+"虹🌈",
+"ケーキ🍰",
+"チョコ🍫",
+"本📚",
+"音楽🎵",
+"花🌸",
+"アイス🍦",
+"クッキー🍪"
+];
+
+function shuffle(array){
+let arr=[...array];
+
+for(let i=arr.length-1;i>0;i--){
+const j=Math.floor(Math.random()*(i+1));
+[arr[i],arr[j]]=[arr[j],arr[i]];
+}
+return arr;
+}
+
+function createBar(value){
+return `
+<div class="bar">
+<div class="fill" style="width:${value}%"></div>
+</div>
+`;
+}
+
+function beep(){
+
+try{
+const ctx=new(
+window.AudioContext||
+window.webkitAudioContext
+)();
+
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+
+osc.type="triangle";
+osc.frequency.value=880;
+
+osc.connect(gain);
+gain.connect(ctx.destination);
+
+gain.gain.value=0.05;
+
+osc.start();
+
+setTimeout(()=>{
+osc.stop();
+},150);
+
+}catch(e){}
+}
+
+document
+.getElementById("fortuneBtn")
+.addEventListener("click",()=>{
+
+beep();
+
+const mySign=
+document.getElementById("sign").value;
+
+const ranking=
+shuffle(signs);
+
+const rank=
+ranking.indexOf(mySign)+1;
+
+const overall=
+Math.floor(Math.random()*41)+60;
+
+const love=
+Math.floor(Math.random()*41)+60;
+
+const money=
+Math.floor(Math.random()*41)+60;
+
+const study=
+Math.floor(Math.random()*41)+60;
+
+const work=
+Math.floor(Math.random()*41)+60;
+
+const luckyColor=
+colors[Math.floor(Math.random()*colors.length)];
+
+const luckyItem=
+items[Math.floor(Math.random()*items.length)];
+
+let rankingHtml="";
+
+ranking.forEach((sign,index)=>{
+
+let cls="item";
+
+if(index===0){
+cls+=" first";
+}
+
+rankingHtml+=`
+<div class="${cls}">
+${index+1}位 ${sign}
+${sign===mySign?" ← あなた":""}
+</div>
+`;
+
+});
+
+let crown="";
+
+if(rank===1){
+crown="<h2>👑 今日の主役です！ 👑</h2>";
+}
+
+document.getElementById("result").innerHTML=`
+
+${crown}
+
+<h2>${mySign}</h2>
+
+<div class="rank">
+${rank}位🏆
+</div>
+
+<div class="section">
+<h3>🍀 総合運 ${overall}点</h3>
+${createBar(overall)}
+</div>
+
+<div class="section">
+<h3>❤️ 恋愛運 ${love}点</h3>
+${createBar(love)}
+</div>
+
+<div class="section">
+<h3>💰 金運 ${money}点</h3>
+${createBar(money)}
+</div>
+
+<div class="section">
+<h3>📚 勉強運 ${study}点</h3>
+${createBar(study)}
+</div>
+
+<div class="section">
+<h3>💼 仕事運 ${work}点</h3>
+${createBar(work)}
+</div>
+
+<p><strong>🎨 ラッキーカラー:</strong>
+${luckyColor}</p>
+
+<p><strong>🎁 ラッキーアイテム:</strong>
+${luckyItem}</p>
+
+<div class="rankingList">
+<h3>🌟 今日の12星座ランキング</h3>
+${rankingHtml}
+</div>
+
+`;
+
+});
+
+</script>
+
+</body>
+</html>
