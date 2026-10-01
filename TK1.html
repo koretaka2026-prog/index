@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐰もふもふリバーシ🐻</title>
+
+<style>
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+font-family:"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+background:linear-gradient(180deg,#ffe6f3,#e6f7ff);
+min-height:100vh;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:15px;
+color:#444;
+}
+
+h1{
+color:#ff5aa5;
+margin-bottom:12px;
+text-shadow:2px 2px 0 #fff;
+font-size:clamp(24px,5vw,42px);
+}
+
+.controls{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:8px;
+margin-bottom:12px;
+}
+
+select,
+button{
+padding:10px 16px;
+border:none;
+border-radius:999px;
+background:white;
+box-shadow:0 3px 8px rgba(0,0,0,.12);
+font-size:14px;
+}
+
+button{
+background:#ff7eb9;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+#status{
+background:white;
+padding:12px 20px;
+border-radius:20px;
+margin-bottom:12px;
+text-align:center;
+box-shadow:0 3px 10px rgba(0,0,0,.12);
+font-weight:bold;
+}
+
+#board{
+width:min(92vw,600px);
+height:min(92vw,600px);
+background:#8ed081;
+border:10px solid #ffd86e;
+border-radius:24px;
+overflow:hidden;
+display:grid;
+grid-template-columns:repeat(8,1fr);
+grid-template-rows:repeat(8,1fr);
+box-shadow:0 10px 25px rgba(0,0,0,.18);
+touch-action:manipulation;
+}
+
+.cell{
+border:1px solid rgba(255,255,255,.5);
+position:relative;
+}
+
+.cell.playable::after{
+content:"✨";
+position:absolute;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+font-size:20px;
+animation:twinkle 1s infinite;
+}
+
+@keyframes twinkle{
+50%{
+opacity:.2;
+transform:translate(-50%,-50%) scale(1.3);
+}
+}
+
+.stone{
+position:absolute;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:84%;
+height:84%;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:clamp(16px,3vw,34px);
+box-shadow:
+inset 0 2px 6px rgba(255,255,255,.5),
+0 3px 8px rgba(0,0,0,.2);
+animation:pop .15s ease-out;
+}
+
+@keyframes pop{
+from{
+transform:translate(-50%,-50%) scale(.2);
+}
+to{
+transform:translate(-50%,-50%) scale(1);
+}
+}
+
+.black{
+background:linear-gradient(#666,#111);
+}
+
+.white{
+background:linear-gradient(#fff,#e9e9e9);
+}
+
+#message{
+margin-top:14px;
+font-size:20px;
+font-weight:bold;
+min-height:40px;
+text-align:center;
+}
+
+.win{
+animation:bounce .6s infinite alternate;
+}
+
+@keyframes bounce{
+from{
+transform:translateY(0px);
+}
+to{
+transform:translateY(-5px);
+}
+}
+</style>
+</head>
+
+<body>
+
+<h1>🐰 もふもふリバーシ 🐻</h1>
+
+<div class="controls">
+
+<select id="mode">
+<option value="cpu">CPUと対戦</option>
+<option value="human">2人で遊ぶ</option>
+</select>
+
+<select id="playerColor">
+<option value="1">🐻 先攻（くま）</option>
+<option value="-1">🐰 後攻（うさぎ）</option>
+</select>
+
+<select id="difficulty">
+<option value="1">CPU よわい</option>
+<option value="2">CPU ふつう</option>
+<option value="3">CPU つよい</option>
+</select>
+
+<button onclick="startGame()">🌟 あたらしく遊ぶ</button>
+
+</div>
+
+<div id="status"></div>
+
+<div id="board"></div>
+
+<div id="message"></div>
+
+<script>
+
+const EMPTY=0;
+const BLACK=1;
+const WHITE=-1;
+
+let board=[];
+let turn=BLACK;
+let gameOver=false;
+
+const boardEl=document.getElementById("board");
+const statusEl=document.getElementById("status");
+const messageEl=document.getElementById("message");
+
+const dirs=[
+[-1,-1],[0,-1],[1,-1],
+[-1,0],[1,0],
+[-1,1],[0,1],[1,1]
+];
+
+function startGame(){
+
+board=Array(8).fill().map(()=>Array(8).fill(0));
+
+board[3][3]=WHITE;
+board[4][4]=WHITE;
+board[3][4]=BLACK;
+board[4][3]=BLACK;
+
+turn=BLACK;
+gameOver=false;
+
+messageEl.className="";
+messageEl.textContent="";
+
+draw();
+
+if(isCpuTurn()){
+setTimeout(cpuMove,500);
+}
+}
+
+function inside(x,y){
+return x>=0 && x<8 && y>=0 && y<8;
+}
+
+function isValidMove(b,x,y,player){
+
+if(!inside(x,y)) return false;
+if(b[y][x]!==EMPTY) return false;
+
+for(const [dx,dy] of dirs){
+
+let nx=x+dx;
+let ny=y+dy;
+let foundEnemy=false;
+
+while(
+inside(nx,ny) &&
+b[ny][nx]===-player
+){
+foundEnemy=true;
+nx+=dx;
+ny+=dy;
+}
+
+if(
+foundEnemy &&
+inside(nx,ny) &&
+b[ny][nx]===player
+){
+return true;
+}
+}
+
+return false;
+}
+
+function getValidMoves(b,player){
+
+const moves=[];
+
+for(let y=0;y<8;y++){
+for(let x=0;x<8;x++){
+
+if(isValidMove(b,x,y,player)){
+moves.push({x,y});
+}
+
+}
+}
+
+return moves;
+}
+
+function placeStone(b,x,y,player){
+
+b[y][x]=player;
+
+for(const [dx,dy] of dirs){
+
+let nx=x+dx;
+let ny=y+dy;
+
+const flips=[];
+
+while(
+inside(nx,ny) &&
+b[ny][nx]===-player
+){
+flips.push([nx,ny]);
+nx+=dx;
+ny+=dy;
+}
+
+if(
+inside(nx,ny) &&
+b[ny][nx]===player
+){
+for(const [fx,fy] of flips){
+b[fy][fx]=player;
+}
+}
+}
+}
+
+function draw(){
+
+boardEl.innerHTML="";
+
+let blackCount=0;
+let whiteCount=0;
+
+const validMoves=getValidMoves(board,turn);
+
+for(let y=0;y<8;y++){
+
+for(let x=0;x<8;x++){
+
+if(board[y][x]===BLACK) blackCount++;
+if(board[y][x]===WHITE) whiteCount++;
+
+const cell=document.createElement("div");
+cell.className="cell";
+
+if(validMoves.some(m=>m.x===x && m.y===y)){
+cell.classList.add("playable");
+}
+
+cell.addEventListener("click",()=>{
+cellTap(x,y);
+});
+
+if(board[y][x]!==EMPTY){
+
+const stone=document.createElement("div");
+
+stone.className=
+"stone " +
+(board[y][x]===BLACK ? "black":"white");
+
+stone.textContent=
+(board[y][x]===BLACK ? "🐻":"🐰");
+
+cell.appendChild(stone);
+}
+
+boardEl.appendChild(cell);
+}
+}
+
+statusEl.innerHTML=
+`
+🐻 ${blackCount}　　🐰 ${whiteCount}
+<br>
+現在の手番：
+${turn===BLACK ? "🐻 くま":"🐰 うさぎ"}
+`;
+}
+
+function cellTap(x,y){
+
+if(gameOver) return;
+if(isCpuTurn()) return;
+
+if(!isValidMove(board,x,y,turn)){
+return;
+}
+
+placeStone(board,x,y,turn);
+
+nextTurn();
+}
+
+function nextTurn(){
+
+turn*=-1;
+
+if(getValidMoves(board,turn).length===0){
+
+turn*=-1;
+
+if(getValidMoves(board,turn).length===0){
+finishGame();
+return;
+}
+
+messageEl.textContent="🌼 パスになったよ！";
+}
+
+draw();
+
+if(isCpuTurn()){
+setTimeout(cpuMove,300);
+}
+}
+
+function cloneBoard(b){
+return b.map(r=>[...r]);
+}
+
+function evaluateBoard(b,cpu){
+
+const table=[
+[120,-20,20,5,5,20,-20,120],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[20,-5,15,3,3,15,-5,20],
+[5,-5,3,3,3,3,-5,5],
+[5,-5,3,3,3,3,-5,5],
+[20,-5,15,3,3,15,-5,20],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[120,-20,20,5,5,20,-20,120]
+];
+
+let score=0;
+
+for(let y=0;y<8;y++){
+for(let x=0;x<8;x++){
+
+if(b[y][x]===cpu){
+score+=table[y][x];
+}
+else if(b[y][x]===-cpu){
+score-=table[y][x];
+}
+}
+}
+
+return score;
+}
+
+function cpuMove(){
+
+const moves=getValidMoves(board,turn);
+
+if(moves.length===0){
+nextTurn();
+return;
+}
+
+const level=
+Number(document.getElementById("difficulty").value);
+
+let bestMove=moves[0];
+
+if(level===1){
+
+bestMove=
+moves[Math.floor(Math.random()*moves.length)];
+
+}else{
+
+let best=-999999;
+
+for(const move of moves){
+
+const temp=cloneBoard(board);
+
+placeStone(
+temp,
+move.x,
+move.y,
+turn
+);
+
+let score=
+evaluateBoard(temp,turn);
+
+if(level===3){
+score-=
+getValidMoves(temp,-turn).length * 8;
+}
+
+if(score>best){
+best=score;
+bestMove=move;
+}
+}
+}
+
+placeStone(
+board,
+bestMove.x,
+bestMove.y,
+turn
+);
+
+nextTurn();
+}
+
+function isCpuTurn(){
+
+const mode=
+document.getElementById("mode").value;
+
+if(mode==="human"){
+return false;
+}
+
+const humanColor=
+Number(
+document.getElementById("playerColor").value
+);
+
+return turn!==humanColor;
+}
+
+function finishGame(){
+
+gameOver=true;
+
+let black=0;
+let white=0;
+
+for(const row of board){
+for(const v of row){
+if(v===BLACK) black++;
+if(v===WHITE) white++;
+}
+}
+
+draw();
+
+messageEl.classList.add("win");
+
+if(black>white){
+
+messageEl.innerHTML=
+"🎉 🐻くまさんの勝ち！ 🎉";
+
+}
+else if(white>black){
+
+messageEl.innerHTML=
+"🎉 🐰うさぎさんの勝ち！ 🎉";
+
+}
+else{
+
+messageEl.innerHTML=
+"🌈 なかよく引き分け 🌈";
+
+}
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
