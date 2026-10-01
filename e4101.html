@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+  <title>トランプ 7並べ (Sevens)</title>
+  <style>
+    :root {
+      --bg-color: #0b6623;
+      --board-bg: #145a32;
+      --card-bg: #ffffff;
+      --card-border: #cccccc;
+      --card-text-red: #d9534f;
+      --card-text-black: #222222;
+      --primary: #f39c12;
+      --primary-hover: #d35400;
+      --active-turn: #f1c40f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: hidden;
+    }
+
+    /* ヘッダー・設定エリア */
+    header {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px 15px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+
+    select, button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    select {
+      background: #ffffff;
+      color: #333;
+    }
+
+    button.btn-primary {
+      background: var(--primary);
+      color: white;
+      transition: background 0.2s;
+    }
+
+    button.btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ゲームメインエリア */
+    main {
+      width: 100%;
+      max-width: 900px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    /* プレイヤー情報バー */
+    .players-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .player-card {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .player-card.active {
+      border-color: var(--active-turn);
+      background: rgba(241, 196, 15, 0.2);
+      transform: scale(1.02);
+    }
+
+    .player-card.finished {
+      opacity: 0.7;
+      background: rgba(46, 204, 113, 0.2);
+    }
+
+    .player-card.retired {
+      opacity: 0.5;
+      background: rgba(231, 76, 60, 0.2);
+    }
+
+    .player-name {
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-status {
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    /* 7並べ Board */
+    .board {
+      background: var(--board-bg);
+      border-radius: 12px;
+      border: 3px solid rgba(255,255,255,0.1);
+      padding: 10px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      gap: 6px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .suit-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .suit-icon {
+      width: 24px;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+
+    .slots-container {
+      display: flex;
+      flex-grow: 1;
+      justify-content: space-between;
+      gap: 2px;
+    }
+
+    /* トランプカードデザイン */
+    .card-slot {
+      flex: 1;
+      aspect-ratio: 2/3;
+      max-height: 70px;
+      border: 1px dashed rgba(255,255,255,0.2);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2px 4px;
+      font-weight: bold;
+      box-shadow: 1px 2px 5px rgba(0,0,0,0.3);
+      cursor: pointer;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .card.red {
+      color: var(--card-text-red);
+    }
+
+    .card.black {
+      color: var(--card-text-black);
+    }
+
+    .card-corner {
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .card-center {
+      font-size: 0.9rem;
+      align-self: center;
+    }
+
+    /* 自分の手札エリア */
+    .my-hand-container {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hand-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hand-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    .hand-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      min-height: 75px;
+      align-items: center;
+    }
+
+    .hand-cards .card {
+      position: relative;
+      width: 48px;
+      height: 68px;
+      flex-shrink: 0;
+    }
+
+    .hand-cards .card.playable {
+      border: 2px solid #2ecc71;
+      box-shadow: 0 0 10px #2ecc71;
+      transform: translateY(-4px);
+    }
+
+    .hand-cards .card.playable:hover {
+      transform: translateY(-8px);
+    }
+
+    .hand-cards .card.unplayable {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* パスボタン */
+    .btn-pass {
+      background: #e74c3c;
+      color: white;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+
+    .btn-pass:hover:not(:disabled) {
+      background: #c0392b;
+    }
+
+    /* メッセージ・ログ */
+    .message-banner {
+      background: rgba(0, 0, 0, 0.7);
+      text-align: center;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: #f1c40f;
+      min-height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 結果モーダル */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #1e272e;
+      border-radius: 12px;
+      padding: 20px 25px;
+      width: 90%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      color: #f1c40f;
+      margin-bottom: 15px;
+    }
+
+    .ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .ranking-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.08);
+      padding: 10px 15px;
+      border-radius: 8px;
+    }
+
+    .ranking-rank {
+      font-weight: bold;
+      font-size: 1.1rem;
+      width: 60px;
+      text-align: left;
+    }
+
+    .ranking-name {
+      font-weight: bold;
+      flex-grow: 1;
+      text-align: left;
+    }
+
+    .ranking-status {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    /* レスポンシブ対応 */
+    @media (max-width: 600px) {
+      .card-slot {
+        max-height: 50px;
+      }
+      .hand-cards .card {
+        width: 40px;
+        height: 58px;
+      }
+      .card-corner {
+        font-size: 0.65rem;
+      }
+      .card-center {
+        font-size: 0.75rem;
+      }
+      .suit-icon {
+        font-size: 0.9rem;
+        width: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー / 設定バー -->
+  <header>
+    <h1>トランプ 7並べ</h1>
+    <div class="controls">
+      <div class="control-group">
+        <label>モード:</label>
+        <select id="modeSelect">
+          <option value="vsCPU">1P vs CPU</option>
+          <option value="vs2P">1P vs 2P (ローカル)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>順番:</label>
+        <select id="turnSelect">
+          <option value="first">先攻 (1番手)</option>
+          <option value="second">後攻 (2番手)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>CPU強さ:</label>
+        <select id="aiSelect">
+          <option value="easy">初級</option>
+          <option value="medium" selected>中級</option>
+          <option value="hard">上級</option>
+        </select>
+      </div>
+
+      <button id="startBtn" class="btn-primary">NEW GAME</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- メッセージバー -->
+    <div class="message-banner" id="messageBanner">ゲームを開始してください</div>
+
+    <!-- プレイヤー一覧ステータス -->
+    <div class="players-bar" id="playersBar">
+      <!-- JSで動的生成 -->
+    </div>
+
+    <!-- 7並べ 場札（ボード） -->
+    <div class="board" id="board">
+      <!-- JSで4スート分を動的生成 -->
+    </div>
+
+    <!-- 自分の手札エリア -->
+    <div class="my-hand-container">
+      <div class="hand-header">
+        <span class="hand-title" id="handTitle">あなたの手札</span>
+        <button id="passBtn" class="btn-pass" disabled>パスする (残り3回)</button>
+      </div>
+      <div class="hand-cards" id="handCards">
+        <!-- JSで手札カードを動的生成 -->
+      </div>
+    </div>
+  </main>
+
+  <!-- 結果発表モーダル -->
+  <div class="modal-overlay" id="resultModal">
+    <div class="modal-content">
+      <div class="modal-title">🏆 最終結果 🏆</div>
+      <div class="ranking-list" id="rankingList">
+        <!-- JSで順位を生成 -->
+      </div>
+      <button id="modalRestartBtn" class="btn-primary" style="width: 100%; padding: 10px;">もう一度遊ぶ</button>
+    </div>
+  </div>
+
+  <script>
+    // --- 定数・変数定義 ---
+    const SUITS = [
+      { name: 'spade', symbol: '♠', color: 'black' },
+      { name: 'heart', symbol: '♥', color: 'red' },
+      { name: 'diamond', symbol: '♦', color: 'red' },
+      { name: 'club', symbol: '♣', color: 'black' }
+    ];
+
+    const NUM_DISPLAY = {
+      1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
+      8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K'
+    };
+
+    const MAX_PASSES = 3;
+
+    // ゲーム状態変数
+    let players = [];
+    let boardState = {}; // { spade: { 1: bool, ..., 13: bool }, ... }
+    let currentTurnIndex = 0;
+    let isProcessing = false;
+    let rankHistory = []; // 上がり順のプレイヤーインデックス
+
+    // DOM要素
+    const modeSelect = document.getElementById('modeSelect');
+    const turnSelect = document.getElementById('turnSelect');
+    const aiSelect = document.getElementById('aiSelect');
+    const startBtn = document.getElementById('startBtn');
+    const boardEl = document.getElementById('board');
+    const playersBarEl = document.getElementById('playersBar');
+    const handCardsEl = document.getElementById('handCards');
+    const handTitleEl = document.getElementById('handTitle');
+    const passBtn = document.getElementById('passBtn');
+    const messageBanner = document.getElementById('messageBanner');
+    const resultModal = document.getElementById('resultModal');
+    const rankingListEl = document.getElementById('rankingList');
+    const modalRestartBtn = document.getElementById('modalRestartBtn');
+
+    // --- 初期化 & イベントリスナー ---
+    startBtn.addEventListener('click', startNewGame);
+    modalRestartBtn.addEventListener('click', () => {
+      resultModal.classList.remove('show');
+      startNewGame();
+    });
+    passBtn.addEventListener('click', handleHumanPass);
+
+    // 起動時に初期描画
+    initBoardLayout();
+    startNewGame();
+
+    function initBoardLayout() {
+      boardEl.innerHTML = '';
+      SUITS.forEach(suit => {
+        const row = document.createElement('div');
+        row.className = 'suit-row';
+
+        const icon = document.createElement('div');
+        icon.className = `suit-icon ${suit.color}`;
+        icon.textContent = suit.symbol;
+        row.appendChild(icon);
+
+        const container = document.createElement('div');
+        container.className = 'slots-container';
+
+        for (let num = 1; num <= 13; num++) {
+          const slot = document.createElement('div');
+          slot.className = 'card-slot';
+          slot.id = `slot-${suit.name}-${num}`;
+          container.appendChild(slot);
+        }
+
+        row.appendChild(container);
+        boardEl.appendChild(row);
+      });
+    }
+
+    // --- ゲーム開始処理 ---
+    function startNewGame() {
+      isProcessing = false;
+      rankHistory = [];
+      resultModal.classList.remove('show');
+
+      // ボード状態リセット (7は最初から出ている状態)
+      boardState = {};
+      SUITS.forEach(s => {
+        boardState[s.name] = {};
+        for (let n = 1; n <= 13; n++) {
+          boardState[s.name][n] = (n === 7);
+        }
+      });
+
+      // プレイヤー設定
+      const mode = modeSelect.value;
+      const turnOrder = turnSelect.value;
+
+      players = [
+        { id: 0, name: '1P (あなた)', isCPU: false, hand: [], passes: 0, status: 'playing', rank: null },
+        { id: 1, name: mode === 'vs2P' ? '2P' : 'CPU 1', isCPU: mode !== 'vs2P', hand: [], passes: 0, status: 'playing', rank: null },
+        { id: 2, name: 'CPU 2', isCPU: true, hand: [], passes: 0, status: 'playing', rank: null },
+        { id: 3, name: 'CPU 3', isCPU: true, hand: [], passes: 0, status: 'playing', rank: null }
+      ];
+
+      // プレイヤーの並び替え（先攻/後攻の調整）
+      if (turnOrder === 'second') {
+        // 1Pを2番手に移動
+        const p1 = players.shift();
+        players.splice(1, 0, p1);
+      }
+
+      // デッキ作成 & シャッフル
+      let deck = [];
+      SUITS.forEach(suit => {
+        for (let num = 1; num <= 13; num++) {
+          if (num !== 7) { // 7は最初から場に配るため除く
+            deck.push({ suit: suit.name, num: num, color: suit.color, symbol: suit.symbol });
+          }
+        }
+      });
+      deck.sort(() => Math.random() - 0.5);
+
+      // 手札配分 (11枚ずつ)
+      players.forEach((p, index) => {
+        p.hand = deck.slice(index * 11, (index + 1) * 11);
+        sortHand(p.hand);
+      });
+
+      // ターン設定（7のダイヤを持ってる人、あるいはランダム指定なしで1番手からスタート）
+      currentTurnIndex = 0;
+
+      // 描画更新
+      renderBoard();
+      renderPlayersBar();
+      renderHand();
+
+      setMessage(`${players[currentTurnIndex].name} の番です`);
+      processTurn();
+    }
+
+    function sortHand(hand) {
+      const suitOrder = { spade: 0, heart: 1, diamond: 2, club: 3 };
+      hand.sort((a, b) => {
+        if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+          return suitOrder[a.suit] - suitOrder[b.suit];
+        }
+        return a.num - b.num;
+      });
+    }
+
+    // --- カード出せる判定 ---
+    function isPlayable(card) {
+      const suitCards = boardState[card.suit];
+      if (card.num > 1 && suitCards[card.num - 1]) return true;
+      if (card.num < 13 && suitCards[card.num + 1]) return true;
+      return false;
+    }
+
+    function getPlayableCards(hand) {
+      return hand.filter(card => isPlayable(card));
+    }
+
+    // --- ターン進行ロジック ---
+    function processTurn() {
+      renderBoard();
+      renderPlayersBar();
+      renderHand();
+
+      // ゲーム終了チェック
+      const activePlayers = players.filter(p => p.status === 'playing');
+      if (activePlayers.length <= 1) {
+        if (activePlayers.length === 1) {
+          // 残りの1人も順位確定
+          const lastPlayer = activePlayers[0];
+          lastPlayer.status = 'finished';
+          rankHistory.push(lastPlayer.id);
+          lastPlayer.rank = rankHistory.length;
+        }
+        endGame();
+        return;
+      }
+
+      const cp = players[currentTurnIndex];
+
+      // スキップ対象（上がり済み、失格者）
+      if (cp.status !== 'playing') {
+        nextTurn();
+        return;
+      }
+
+      setMessage(`${cp.name} の手番です`);
+
+      if (cp.isCPU) {
+        passBtn.disabled = true;
+        isProcessing = true;
+        setTimeout(() => handleCPUTurn(cp), 800);
+      } else {
+        isProcessing = false;
+        const playable = getPlayableCards(cp.hand);
+        passBtn.disabled = false;
+        if (playable.length === 0) {
+          setMessage(`出せるカードがありません。「パス」を押してください`);
+        }
+      }
+    }
+
+    function nextTurn() {
+      currentTurnIndex = (currentTurnIndex + 1) % players.length;
+      processTurn();
+    }
+
+    // --- 人間のアクション ---
+    function handleHumanCardClick(card) {
+      if (isProcessing) return;
+      const cp = players[currentTurnIndex];
+      if (cp.isCPU) return;
+
+      if (!isPlayable(card)) {
+        setMessage(`そのカードはまだ出せません！`);
+        return;
+      }
+
+      playCard(cp, card);
+    }
+
+    function handleHumanPass() {
+      if (isProcessing) return;
+      const cp = players[currentTurnIndex];
+      if (cp.isCPU) return;
+
+      const playable = getPlayableCards(cp.hand);
+      if (playable.length > 0) {
+        setMessage(`出せるカードがあるためパスできません！`);
+        return;
+      }
+
+      executePass(cp);
+    }
+
+    // --- 共通アクション処理 ---
+    function playCard(player, card) {
+      // 手札から削除
+      player.hand = player.hand.filter(c => !(c.suit === card.suit && c.num === card.num));
+      // 場に出す
+      boardState[card.suit][card.num] = true;
+
+      setMessage(`${player.name} が ${getSuitSymbol(card.suit)}${NUM_DISPLAY[card.num]} を出しました`);
+
+      // 上がり判定
+      if (player.hand.length === 0) {
+        player.status = 'finished';
+        rankHistory.push(player.id);
+        player.rank = rankHistory.length;
+        setMessage(`🎉 ${player.name} があがりました！（${player.rank}位）`);
+      }
+
+      setTimeout(nextTurn, 600);
+    }
+
+    function executePass(player) {
+      player.passes++;
+      setMessage(`${player.name} がパスしました (${player.passes}/${MAX_PASSES})`);
+
+      if (player.passes > MAX_PASSES) {
+        // 失格処理：持っていた手札をすべて場に出す
+        player.status = 'retired';
+        setMessage(`${player.name} はパスカウントオーバーで失格！全カードが開示されました`);
+
+        player.hand.forEach(c => {
+          boardState[c.suit][c.num] = true;
+        });
+        player.hand = [];
+      }
+
+      setTimeout(nextTurn, 800);
+    }
+
+    // --- CPU思考ロジック ---
+    function handleCPUTurn(cpu) {
+      const playable = getPlayableCards(cpu.hand);
+      const difficulty = aiSelect.value;
+
+      if (playable.length === 0) {
+        executePass(cpu);
+        return;
+      }
+
+      // パスする余地があり戦略的にパスを選択する場合 (初級以外)
+      const canPass = cpu.passes < MAX_PASSES;
+      if (canPass && difficulty !== 'easy' && Math.random() < 0.25) {
+        // 出せるカードがあっても温存してパスする戦略
+        executePass(cpu);
+        return;
+      }
+
+      let chosenCard = null;
+
+      if (difficulty === 'easy') {
+        // ランダム
+        chosenCard = playable[Math.floor(Math.random() * playable.length)];
+      } else if (difficulty === 'medium') {
+        // 端（1や13）に近いカードを優先して出す
+        playable.sort((a, b) => Math.abs(6 - a.num) - Math.abs(6 - b.num));
+        chosenCard = playable[playable.length - 1];
+      } else {
+        // 上級: 自分の手札の進行に有利なカード、または端のカードを優先
+        playable.sort((a, b) => {
+          const scoreA = getCardValue(a, cpu.hand);
+          const scoreB = getCardValue(b, cpu.hand);
+          return scoreB - scoreA;
+        });
+        chosenCard = playable[0];
+      }
+
+      playCard(cpu, chosenCard);
+    }
+
+    // AI用評価関数
+    function getCardValue(card, hand) {
+      let score = Math.abs(7 - card.num); // 7から遠いほど優先度アップ
+      // 自分の他の手札につながるなら評価を加算
+      const nextNum = card.num < 7 ? card.num - 1 : card.num + 1;
+      if (hand.some(c => c.suit === card.suit && c.num === nextNum)) {
+        score += 3;
+      }
+      return score;
+    }
+
+    // --- レンダリング処理 ---
+    function renderBoard() {
+      SUITS.forEach(suit => {
+        for (let num = 1; num <= 13; num++) {
+          const slot = document.getElementById(`slot-${suit.name}-${num}`);
+          slot.innerHTML = '';
+
+          if (boardState[suit.name][num]) {
+            const cardEl = createCardElement({ suit: suit.name, num: num, color: suit.color, symbol: suit.symbol });
+            slot.appendChild(cardEl);
+          }
+        }
+      });
+    }
+
+    function renderPlayersBar() {
+      playersBarEl.innerHTML = '';
+      players.forEach((p, idx) => {
+        const pCard = document.createElement('div');
+        let stateClass = '';
+        if (p.status === 'finished') stateClass = 'finished';
+        else if (p.status === 'retired') stateClass = 'retired';
+        else if (idx === currentTurnIndex) stateClass = 'active';
+
+        pCard.className = `player-card ${stateClass}`;
+
+        let statusText = `手札: ${p.hand.length}枚 / パス: ${p.passes}`;
+        if (p.status === 'finished') statusText = `🥇 ${p.rank}位で上がり`;
+        if (p.status === 'retired') statusText = `❌ 失格`;
+
+        pCard.innerHTML = `
+          <div class="player-name">${p.name}</div>
+          <div class="player-status">${statusText}</div>
+        `;
+        playersBarEl.appendChild(pCard);
+      });
+    }
+
+    function renderHand() {
+      handCardsEl.innerHTML = '';
+      const cp = players[currentTurnIndex];
+      const isMyTurn = !cp.isCPU;
+
+      // 1Pまたはローカル対戦相手の手札を表示
+      handTitleEl.textContent = `${cp.name} の手札`;
+
+      cp.hand.forEach(card => {
+        const playable = isMyTurn && isPlayable(card);
+        const cardEl = createCardElement(card);
+
+        if (isMyTurn) {
+          if (playable) {
+            cardEl.classList.add('playable');
+            cardEl.addEventListener('click', () => handleHumanCardClick(card));
+          } else {
+            cardEl.classList.add('unplayable');
+          }
+        }
+
+        handCardsEl.appendChild(cardEl);
+      });
+
+      // パスボタン状態制御
+      if (!isMyTurn) {
+        passBtn.disabled = true;
+        passBtn.textContent = `パスする (残り${MAX_PASSES - cp.passes}回)`;
+      } else {
+        const playableCards = getPlayableCards(cp.hand);
+        passBtn.disabled = playableCards.length > 0;
+        passBtn.textContent = `パスする (残り${MAX_PASSES - cp.passes}回)`;
+      }
+    }
+
+    function createCardElement(card) {
+      const cardEl = document.createElement('div');
+      cardEl.className = `card ${card.color}`;
+      cardEl.innerHTML = `
+        <div class="card-corner">${NUM_DISPLAY[card.num]}<br>${card.symbol}</div>
+        <div class="card-center">${card.symbol}</div>
+      `;
+      return cardEl;
+    }
+
+    function getSuitSymbol(suitName) {
+      const s = SUITS.find(item => item.name === suitName);
+      return s ? s.symbol : '';
+    }
+
+    function setMessage(text) {
+      messageBanner.textContent = text;
+    }
+
+    // --- ゲーム終了＆リザルト表示 ---
+    function endGame() {
+      setMessage(`ゲーム終了！お疲れ様でした。`);
+
+      // 脱落者をランク履歴の末尾に追加（失格者グループ）
+      const retiredPlayers = players.filter(p => p.status === 'retired');
+      retiredPlayers.forEach(p => {
+        if (!rankHistory.includes(p.id)) {
+          rankHistory.push(p.id);
+        }
+      });
+
+      // モーダルに順位表を描画
+      rankingListEl.innerHTML = '';
+      rankHistory.forEach((playerId, index) => {
+        const p = players.find(item => item.id === playerId);
+        const rankNum = index + 1;
+
+        let rankBadge = `${rankNum}位`;
+        if (rankNum === 1) rankBadge = '🥇 1位';
+        else if (rankNum === 2) rankBadge = '🥈 2位';
+        else if (rankNum === 3) rankBadge = '🥉 3位';
+
+        const item = document.createElement('div');
+        item.className = 'ranking-item';
+        item.innerHTML = `
+          <div class="ranking-rank">${rankBadge}</div>
+          <div class="ranking-name">${p.name}</div>
+          <div class="ranking-status">${p.status === 'retired' ? '失格' : '上がり'}</div>
+        `;
+        rankingListEl.appendChild(item);
+      });
+
+      setTimeout(() => {
+        resultModal.classList.add('show');
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
