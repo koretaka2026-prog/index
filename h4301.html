@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🍎🍊 フルーツリバーシ</title>
+
+<style>
+body{
+    margin:0;
+    padding:20px;
+    font-family:sans-serif;
+    text-align:center;
+    min-height:100vh;
+    background:#fff8e1;
+}
+
+body::before{
+    content:
+    "🍎 🍊 🍓 🍇 🍍 🥝 🍉 🍎 🍊 🍓 🍇 🍍 🥝 🍉 🍎 🍊 🍓 🍇 🍍 🥝 🍉 "
+    "🍎 🍊 🍓 🍇 🍍 🥝 🍉 🍎 🍊 🍓 🍇 🍍 🥝 🍉 🍎 🍊 🍓 🍇 🍍 🥝 🍉 ";
+    position:fixed;
+    inset:0;
+    font-size:42px;
+    line-height:1.8;
+    opacity:.18;
+    pointer-events:none;
+    z-index:-1;
+    word-break:break-all;
+}
+
+h1{
+    color:#e53935;
+}
+
+#settings{
+    margin-bottom:15px;
+}
+
+select,button{
+    padding:8px 12px;
+    margin:5px;
+    font-size:16px;
+    border-radius:10px;
+    border:none;
+}
+
+button{
+    background:#ff7043;
+    color:white;
+    cursor:pointer;
+}
+
+#info{
+    background:rgba(255,255,255,.9);
+    color:#333;
+    display:inline-block;
+    padding:10px 20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    font-weight:bold;
+}
+
+#board{
+    width:min(90vw,560px);
+    height:min(90vw,560px);
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    grid-template-rows:repeat(8,1fr);
+    background:linear-gradient(135deg,#8bc34a,#43a047);
+    border:8px solid #795548;
+    border-radius:18px;
+    overflow:hidden;
+    touch-action:manipulation;
+}
+
+.cell{
+    border:1px solid rgba(0,0,0,.15);
+    position:relative;
+    cursor:pointer;
+}
+
+.valid::after{
+    content:"🍓";
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    opacity:.8;
+}
+
+.fruit{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    font-size:clamp(24px,4vw,42px);
+    user-select:none;
+    pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<h1>🍎🍊 フルーツリバーシ 🍓🍇</h1>
+
+<div id="settings">
+
+<select id="mode">
+<option value="pvp">人対人</option>
+<option value="cpu">人対コンピュータ</option>
+</select>
+
+<select id="playerColor">
+<option value="apple">先攻（🍎）</option>
+<option value="orange">後攻（🍊）</option>
+</select>
+
+<select id="difficulty">
+<option value="easy">CPU：弱い</option>
+<option value="normal">CPU：普通</option>
+<option value="hard">CPU：強い</option>
+</select>
+
+<button onclick="initGame()">ゲーム開始</button>
+
+</div>
+
+<div id="info"></div>
+<div id="board"></div>
+
+<script>
+
+const EMPTY=0;
+const APPLE=1;
+const ORANGE=-1;
+
+let board=[];
+let currentPlayer=APPLE;
+
+let gameMode="pvp";
+let humanPlayer=APPLE;
+let cpuPlayer=ORANGE;
+let difficulty="easy";
+
+const boardEl=document.getElementById("board");
+const infoEl=document.getElementById("info");
+
+const DIRS=[
+[-1,-1],[-1,0],[-1,1],
+[0,-1],[0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function initGame(){
+
+    gameMode=document.getElementById("mode").value;
+    difficulty=document.getElementById("difficulty").value;
+
+    humanPlayer=
+        document.getElementById("playerColor").value==="apple"
+        ? APPLE
+        : ORANGE;
+
+    cpuPlayer=-humanPlayer;
+
+    board=Array.from(
+        {length:8},
+        ()=>Array(8).fill(EMPTY)
+    );
+
+    board[3][3]=ORANGE;
+    board[3][4]=APPLE;
+    board[4][3]=APPLE;
+    board[4][4]=ORANGE;
+
+    currentPlayer=APPLE;
+
+    drawBoard();
+
+    if(gameMode==="cpu" && currentPlayer===cpuPlayer){
+        setTimeout(cpuMove,400);
+    }
+}
+
+function inBounds(r,c){
+    return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function getFlips(row,col,player){
+
+    if(board[row][col]!==EMPTY) return [];
+
+    let flips=[];
+
+    for(const [dr,dc] of DIRS){
+
+        let r=row+dr;
+        let c=col+dc;
+        let temp=[];
+
+        while(
+            inBounds(r,c) &&
+            board[r][c]===-player
+        ){
+            temp.push([r,c]);
+            r+=dr;
+            c+=dc;
+        }
+
+        if(
+            temp.length>0 &&
+            inBounds(r,c) &&
+            board[r][c]===player
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(player){
+
+    let moves=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(
+                getFlips(r,c,player).length>0
+            ){
+                moves.push([r,c]);
+            }
+        }
+    }
+
+    return moves;
+}
+
+function playMove(row,col){
+
+    const flips=
+        getFlips(row,col,currentPlayer);
+
+    if(flips.length===0) return;
+
+    board[row][col]=currentPlayer;
+
+    flips.forEach(([r,c])=>{
+        board[r][c]=currentPlayer;
+    });
+
+    currentPlayer*=-1;
+
+    while(validMoves(currentPlayer).length===0){
+
+        if(validMoves(-currentPlayer).length===0){
+            finishGame();
+            return;
+        }
+
+        alert(
+            (currentPlayer===APPLE
+            ? "🍎 りんご"
+            : "🍊 みかん")
+            +" はパスです"
+        );
+
+        currentPlayer*=-1;
+    }
+
+    drawBoard();
+
+    if(
+        gameMode==="cpu" &&
+        currentPlayer===cpuPlayer
+    ){
+        setTimeout(cpuMove,400);
+    }
+}
+
+function cpuMove(){
+
+    if(
+        gameMode!=="cpu" ||
+        currentPlayer!==cpuPlayer
+    ){
+        return;
+    }
+
+    const moves=validMoves(cpuPlayer);
+
+    if(moves.length===0){
+        currentPlayer*=-1;
+        drawBoard();
+        return;
+    }
+
+    let move;
+
+    if(difficulty==="easy"){
+
+        move=
+        moves[
+            Math.floor(
+                Math.random()*moves.length
+            )
+        ];
+
+    }else if(difficulty==="normal"){
+
+        let best=-1;
+
+        for(const [r,c] of moves){
+
+            let score=
+                getFlips(r,c,cpuPlayer).length;
+
+            if(score>best){
+                best=score;
+                move=[r,c];
+            }
+        }
+
+    }else{
+
+        const corners=[
+            [0,0],[0,7],
+            [7,0],[7,7]
+        ];
+
+        move=corners.find(corner =>
+            moves.some(m =>
+                m[0]===corner[0] &&
+                m[1]===corner[1]
+            )
+        );
+
+        if(!move){
+
+            let best=-999;
+
+            for(const [r,c] of moves){
+
+                let score=
+                getFlips(r,c,cpuPlayer).length;
+
+                if(
+                    r===0||r===7||
+                    c===0||c===7
+                ){
+                    score+=5;
+                }
+
+                if(score>best){
+                    best=score;
+                    move=[r,c];
+                }
+            }
+        }
+    }
+
+    playMove(move[0],move[1]);
+}
+
+function finishGame(){
+
+    let apples=0;
+    let oranges=0;
+
+    board.flat().forEach(v=>{
+        if(v===APPLE) apples++;
+        if(v===ORANGE) oranges++;
+    });
+
+    let result;
+
+    if(apples>oranges){
+        result="🎉 🍎りんごの勝ち！";
+    }else if(oranges>apples){
+        result="🎉 🍊みかんの勝ち！";
+    }else{
+        result="🤝 引き分け！";
+    }
+
+    drawBoard();
+
+    setTimeout(()=>{
+        alert(
+            result +
+            "\n\n🍎 "+apples+
+            "\n🍊 "+oranges
+        );
+    },100);
+}
+
+function drawBoard(){
+
+    boardEl.innerHTML="";
+
+    const moves=
+        validMoves(currentPlayer);
+
+    for(let r=0;r<8;r++){
+
+        for(let c=0;c<8;c++){
+
+            const cell=
+                document.createElement("div");
+
+            cell.className="cell";
+
+            if(
+                moves.some(m =>
+                    m[0]===r &&
+                    m[1]===c
+                )
+            ){
+                cell.classList.add("valid");
+            }
+
+            cell.onclick=()=>{
+
+                if(
+                    gameMode==="cpu" &&
+                    currentPlayer!==humanPlayer
+                ){
+                    return;
+                }
+
+                playMove(r,c);
+            };
+
+            if(board[r][c]!==EMPTY){
+
+                const fruit=
+                    document.createElement("div");
+
+                fruit.className="fruit";
+
+                fruit.textContent=
+                    board[r][c]===APPLE
+                    ? "🍎"
+                    : "🍊";
+
+                cell.appendChild(fruit);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    let apples=0;
+    let oranges=0;
+
+    board.flat().forEach(v=>{
+        if(v===APPLE) apples++;
+        if(v===ORANGE) oranges++;
+    });
+
+    infoEl.innerHTML=
+        "手番：" +
+        (currentPlayer===APPLE
+        ? "🍎 りんご"
+        : "🍊 みかん") +
+        "<br>🍎 " +
+        apples +
+        " - " +
+        oranges +
+        " 🍊";
+}
+
+initGame();
+
+</script>
+
+</body>
+</html>
