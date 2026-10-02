@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>リバーシ</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#f0f0f0;
+    margin:10px;
+}
+
+h1{
+    margin:5px;
+}
+
+#menu{
+    margin:10px;
+}
+
+select,button{
+    padding:8px;
+    margin:3px;
+    font-size:16px;
+}
+
+#board{
+    width:min(90vw,560px);
+    height:min(90vw,560px);
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    border:4px solid #222;
+    background:#0b7a0b;
+    touch-action:manipulation;
+}
+
+.cell{
+    border:1px solid rgba(0,0,0,0.3);
+    position:relative;
+    cursor:pointer;
+}
+
+.cell.valid::after{
+    content:"";
+    width:20%;
+    height:20%;
+    border-radius:50%;
+    background:rgba(255,255,0,0.7);
+    position:absolute;
+    left:40%;
+    top:40%;
+}
+
+.disk{
+    position:absolute;
+    width:82%;
+    height:82%;
+    left:9%;
+    top:9%;
+    border-radius:50%;
+}
+
+.black{
+    background:#111;
+}
+
+.white{
+    background:white;
+}
+
+#status{
+    margin-top:10px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+#score{
+    margin-top:6px;
+    font-size:18px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>リバーシ</h1>
+
+<div id="menu">
+
+    <select id="mode">
+        <option value="human">人対人</option>
+        <option value="cpu">人対コンピュータ</option>
+    </select>
+
+    <select id="playerColor">
+        <option value="1">先攻（黒）</option>
+        <option value="-1">後攻（白）</option>
+    </select>
+
+    <select id="level">
+        <option value="1">初級</option>
+        <option value="2">中級</option>
+        <option value="3">上級</option>
+    </select>
+
+    <button onclick="startGame()">新しいゲーム</button>
+
+</div>
+
+<div id="board"></div>
+
+<div id="status"></div>
+<div id="score"></div>
+
+<script>
+
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = -1;
+
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const scoreEl = document.getElementById("score");
+
+let board;
+let currentPlayer;
+let gameOver;
+
+let mode = "human";
+let humanColor = BLACK;
+let cpuLevel = 1;
+
+const DIRS = [
+[-1,-1],[-1,0],[-1,1],
+[0,-1],       [0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function startGame(){
+
+    mode = document.getElementById("mode").value;
+    humanColor = Number(document.getElementById("playerColor").value);
+    cpuLevel = Number(document.getElementById("level").value);
+
+    board = Array(8).fill().map(()=>Array(8).fill(EMPTY));
+
+    board[3][3]=WHITE;
+    board[4][4]=WHITE;
+    board[3][4]=BLACK;
+    board[4][3]=BLACK;
+
+    currentPlayer = BLACK;
+    gameOver=false;
+
+    draw();
+
+    if(mode==="cpu" && currentPlayer!==humanColor){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function inside(r,c){
+    return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function getFlips(r,c,player){
+
+    if(board[r][c]!==EMPTY) return [];
+
+    let flips=[];
+
+    for(const [dr,dc] of DIRS){
+
+        let rr=r+dr;
+        let cc=c+dc;
+
+        let tmp=[];
+
+        while(inside(rr,cc) && board[rr][cc]===-player){
+            tmp.push([rr,cc]);
+            rr+=dr;
+            cc+=dc;
+        }
+
+        if(tmp.length>0 &&
+           inside(rr,cc) &&
+           board[rr][cc]===player){
+            flips.push(...tmp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(player){
+
+    let moves=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            let flips=getFlips(r,c,player);
+
+            if(flips.length>0){
+                moves.push({
+                    r,c,
+                    flips
+                });
+            }
+        }
+    }
+
+    return moves;
+}
+
+function placeDisk(r,c){
+
+    if(gameOver) return;
+
+    let legal = validMoves(currentPlayer);
+    let move = legal.find(m=>m.r===r && m.c===c);
+
+    if(!move) return;
+
+    board[r][c]=currentPlayer;
+
+    for(let p of move.flips){
+        board[p[0]][p[1]]=currentPlayer;
+    }
+
+    currentPlayer = -currentPlayer;
+
+    advanceTurn();
+}
+
+function advanceTurn(){
+
+    let legal = validMoves(currentPlayer);
+
+    if(legal.length===0){
+
+        let other = validMoves(-currentPlayer);
+
+        if(other.length===0){
+            finishGame();
+            return;
+        }
+
+        alert(
+            (currentPlayer===BLACK?"黒":"白")
+            +"は置ける場所がないためパスします"
+        );
+
+        currentPlayer=-currentPlayer;
+    }
+
+    draw();
+
+    if(
+        mode==="cpu" &&
+        !gameOver &&
+        currentPlayer!==humanColor
+    ){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function finishGame(){
+
+    gameOver=true;
+
+    let black=0;
+    let white=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(board[r][c]===BLACK) black++;
+            if(board[r][c]===WHITE) white++;
+        }
+    }
+
+    let msg="ゲーム終了 ";
+
+    if(black>white) msg+="黒の勝ち";
+    else if(white>black) msg+="白の勝ち";
+    else msg+="引き分け";
+
+    draw();
+
+    statusEl.textContent=msg;
+}
+
+function cpuMove(){
+
+    let moves=validMoves(currentPlayer);
+
+    if(moves.length===0){
+        advanceTurn();
+        return;
+    }
+
+    let move;
+
+    if(cpuLevel===1){
+        move=
+            moves[
+                Math.floor(Math.random()*moves.length)
+            ];
+    }
+    else if(cpuLevel===2){
+        move=bestHeuristicMove(moves);
+    }
+    else{
+        move=minimaxRoot(moves,4);
+    }
+
+    placeDisk(move.r,move.c);
+}
+
+function bestHeuristicMove(moves){
+
+    let corners=[
+        [0,0],[0,7],[7,0],[7,7]
+    ];
+
+    for(let m of moves){
+        for(let c of corners){
+            if(m.r===c[0] && m.c===c[1]){
+                return m;
+            }
+        }
+    }
+
+    return moves.reduce((best,m)=>
+        m.flips.length>best.flips.length ? m : best
+    );
+}
+
+function copyBoard(src){
+    return src.map(row=>row.slice());
+}
+
+function applyMoveToBoard(b,move,player){
+
+    b[move.r][move.c]=player;
+
+    for(let f of move.flips){
+        b[f[0]][f[1]]=player;
+    }
+}
+
+function getMovesBoard(b,player){
+
+    const moves=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(b[r][c]!==EMPTY) continue;
+
+            let flips=[];
+
+            for(let [dr,dc] of DIRS){
+
+                let rr=r+dr;
+                let cc=c+dc;
+                let tmp=[];
+
+                while(
+                    inside(rr,cc) &&
+                    b[rr][cc]===-player
+                ){
+                    tmp.push([rr,cc]);
+                    rr+=dr;
+                    cc+=dc;
+                }
+
+                if(
+                    tmp.length &&
+                    inside(rr,cc) &&
+                    b[rr][cc]===player
+                ){
+                    flips.push(...tmp);
+                }
+            }
+
+            if(flips.length){
+                moves.push({r,c,flips});
+            }
+        }
+    }
+
+    return moves;
+}
+
+const WEIGHT=[
+[120,-20,20,5,5,20,-20,120],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[20,-5,15,3,3,15,-5,20],
+[5,-5,3,3,3,3,-5,5],
+[5,-5,3,3,3,3,-5,5],
+[20,-5,15,3,3,15,-5,20],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[120,-20,20,5,5,20,-20,120]
+];
+
+function evaluate(b,player){
+
+    let score=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            if(b[r][c]===player)
+                score+=WEIGHT[r][c];
+
+            else if(b[r][c]===-player)
+                score-=WEIGHT[r][c];
+        }
+    }
+
+    return score;
+}
+
+function minimax(
+    b, depth,
+    player,
+    maximizing,
+    rootPlayer
+){
+
+    if(depth===0){
+        return evaluate(b,rootPlayer);
+    }
+
+    let moves=getMovesBoard(b,player);
+
+    if(moves.length===0){
+        return evaluate(b,rootPlayer);
+    }
+
+    if(maximizing){
+
+        let best=-999999;
+
+        for(let m of moves){
+
+            let nb=copyBoard(b);
+
+            applyMoveToBoard(
+                nb,m,player
+            );
+
+            best=Math.max(
+                best,
+                minimax(
+                    nb,
+                    depth-1,
+                    -player,
+                    false,
+                    rootPlayer
+                )
+            );
+        }
+
+        return best;
+    }
+    else{
+
+        let best=999999;
+
+        for(let m of moves){
+
+            let nb=copyBoard(b);
+
+            applyMoveToBoard(
+                nb,m,player
+            );
+
+            best=Math.min(
+                best,
+                minimax(
+                    nb,
+                    depth-1,
+                    -player,
+                    true,
+                    rootPlayer
+                )
+            );
+        }
+
+        return best;
+    }
+}
+
+function minimaxRoot(moves,depth){
+
+    let best=moves[0];
+    let bestValue=-999999;
+
+    for(let m of moves){
+
+        let nb=copyBoard(board);
+
+        applyMoveToBoard(
+            nb,
+            m,
+            currentPlayer
+        );
+
+        let value=minimax(
+            nb,
+            depth-1,
+            -currentPlayer,
+            false,
+            currentPlayer
+        );
+
+        if(value>bestValue){
+            bestValue=value;
+            best=m;
+        }
+    }
+
+    return best;
+}
+
+function draw(){
+
+    boardEl.innerHTML="";
+
+    let legal = validMoves(currentPlayer);
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            const cell=document.createElement("div");
+            cell.className="cell";
+
+            if(
+                legal.some(
+                    m=>m.r===r && m.c===c
+                )
+            ){
+                cell.classList.add("valid");
+            }
+
+            cell.addEventListener(
+                "click",
+                ()=>{
+                    if(
+                        mode==="cpu" &&
+                        currentPlayer!==humanColor
+                    ) return;
+
+                    placeDisk(r,c);
+                }
+            );
+
+            let v=board[r][c];
+
+            if(v!==EMPTY){
+
+                const disk=
+                    document.createElement("div");
+
+                disk.className=
+                    "disk "+
+                    (v===BLACK
+                    ?"black"
+                    :"white");
+
+                cell.appendChild(disk);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    let black=0;
+    let white=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(board[r][c]===BLACK) black++;
+            if(board[r][c]===WHITE) white++;
+        }
+    }
+
+    scoreEl.textContent=
+        `黒 ${black} : ${white} 白`;
+
+    if(!gameOver){
+
+        statusEl.textContent=
+            "手番: "+
+            (currentPlayer===BLACK
+            ?"黒"
+            :"白");
+    }
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
