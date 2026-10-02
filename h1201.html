@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>かわいいおみくじ占い</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:"Yu Gothic",sans-serif;
+    background:linear-gradient(#ffe4f2,#fff4c8);
+    text-align:center;
+    overflow-x:hidden;
+}
+
+h1{
+    color:#ff4fa1;
+    margin-top:20px;
+}
+
+.subtitle{
+    color:#666;
+    margin-bottom:20px;
+}
+
+.shrine{
+    font-size:80px;
+    margin-top:10px;
+}
+
+.omikuji-select{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:15px;
+    padding:10px;
+}
+
+.card{
+    width:120px;
+    height:150px;
+    background:white;
+    border-radius:20px;
+    border:4px solid #ffb2d9;
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+    transition:.3s;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    user-select:none;
+}
+
+.card:hover{
+    transform:translateY(-5px) scale(1.05);
+}
+
+.game{
+    display:none;
+    margin-top:20px;
+}
+
+.box{
+    font-size:120px;
+    animation:float 2s infinite ease-in-out;
+}
+
+@keyframes float{
+    0%{transform:translateY(0px);}
+    50%{transform:translateY(-10px);}
+    100%{transform:translateY(0px);}
+}
+
+.btn{
+    background:#ff6eb4;
+    color:white;
+    border:none;
+    border-radius:999px;
+    padding:15px 35px;
+    font-size:20px;
+    cursor:pointer;
+    margin-top:15px;
+}
+
+.btn:hover{
+    background:#ff519f;
+}
+
+.paper-wrap{
+    perspective:1200px;
+    display:none;
+    justify-content:center;
+    margin-top:30px;
+}
+
+.paper{
+    width:320px;
+    min-height:450px;
+    background:#fffef7;
+    border:3px solid #ddd;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 10px 20px rgba(0,0,0,.25);
+
+    transform:rotateX(-90deg);
+    transform-origin:top;
+    transition:1s;
+}
+
+.paper.open{
+    transform:rotateX(0deg);
+}
+
+.result{
+    display:none;
+}
+
+.fortune{
+    font-size:48px;
+    margin:10px;
+}
+
+.status{
+    text-align:left;
+    margin-top:15px;
+    line-height:1.8;
+    font-size:18px;
+}
+
+.advice{
+    color:#ff2f5a;
+    margin-top:15px;
+    font-weight:bold;
+    background:#ffe6ec;
+    padding:12px;
+    border-radius:10px;
+}
+
+.reset{
+    margin-top:20px;
+}
+
+.sparkle{
+    font-size:30px;
+}
+
+.footer{
+    margin:30px;
+    color:#777;
+}
+</style>
+</head>
+
+<body>
+
+<div class="shrine">⛩️</div>
+
+<h1>🌸 かわいいおみくじ占い 🌸</h1>
+
+<div class="subtitle">
+好きなおみくじを選んで引いてみよう♪
+</div>
+
+<div id="selectArea" class="omikuji-select">
+
+<div class="card" onclick="selectOmikuji(0)">
+🌸<br>さくら
+</div>
+
+<div class="card" onclick="selectOmikuji(1)">
+🐰<br>うさぎ
+</div>
+
+<div class="card" onclick="selectOmikuji(2)">
+⭐<br>ほし
+</div>
+
+<div class="card" onclick="selectOmikuji(3)">
+🐱<br>ねこ
+</div>
+
+<div class="card" onclick="selectOmikuji(4)">
+💖<br>ハート
+</div>
+
+</div>
+
+<div class="game" id="game">
+
+<div class="box">🎴</div>
+
+<h2 id="selectedTitle"></h2>
+
+<p>おみくじを引こう！</p>
+
+<button class="btn" onclick="drawOmikuji()">
+✨ おみくじを引く ✨
+</button>
+
+</div>
+
+<div class="paper-wrap" id="paperWrap">
+
+<div class="paper" id="paper">
+
+<div class="result" id="result">
+
+<div class="sparkle">✨✨✨</div>
+
+<div class="fortune" id="fortune"></div>
+
+<div id="message"></div>
+
+<div class="status" id="status"></div>
+
+<div class="advice" id="advice"></div>
+
+<button class="btn reset" onclick="restart()">
+もう一度遊ぶ
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="footer">
+🌸 今日も素敵な一日になりますように 🌸
+</div>
+
+<script>
+
+let currentSet=0;
+
+const omikujiNames=[
+"🌸 さくらみくじ",
+"🐰 うさぎみくじ",
+"⭐ ほしみくじ",
+"🐱 ねこみくじ",
+"💖 ハートみくじ"
+];
+
+function selectOmikuji(n){
+    currentSet=n;
+
+    document.getElementById("selectedTitle").textContent=
+    omikujiNames[n];
+
+    document.getElementById("game").style.display="block";
+
+    window.scrollTo({
+        top:document.body.scrollHeight,
+        behavior:"smooth"
+    });
+}
+
+const fortunes=[
+
+{
+name:"🌟超大吉🌟",
+msg:"願いごとが叶いやすい最高の日！",
+love:"★★★★★",
+money:"★★★★★",
+study:"★★★★★",
+health:"★★★★★"
+},
+
+{
+name:"🎉大吉🎉",
+msg:"幸運がたくさん訪れそう！",
+love:"★★★★★",
+money:"★★★★☆",
+study:"★★★★★",
+health:"★★★★☆"
+},
+
+{
+name:"🌸中吉🌸",
+msg:"努力が実る楽しい一日です。",
+love:"★★★★☆",
+money:"★★★★☆",
+study:"★★★★☆",
+health:"★★★★☆"
+},
+
+{
+name:"🍀小吉🍀",
+msg:"小さな幸せが見つかりそう。",
+love:"★★★☆☆",
+money:"★★★☆☆",
+study:"★★★★☆",
+health:"★★★★☆"
+},
+
+{
+name:"😊吉😊",
+msg:"穏やかな一日になりそう。",
+love:"★★★☆☆",
+money:"★★★☆☆",
+study:"★★★☆☆",
+health:"★★★☆☆"
+},
+
+{
+name:"☁️凶☁️",
+msg:"今日は少し慎重に行動しよう。",
+love:"★★☆☆☆",
+money:"★★☆☆☆",
+study:"★★★☆☆",
+health:"★★☆☆☆",
+advice:"好きな音楽を聴いたり、ゆっくり休むと運気アップ♪"
+},
+
+{
+name:"⚡大凶⚡",
+msg:"無理をせず落ち着いて過ごそう。",
+love:"★☆☆☆☆",
+money:"★☆☆☆☆",
+study:"★★☆☆☆",
+health:"★☆☆☆☆",
+advice:"失敗しても気にしないこと。明日はきっと良い日になるよ！"
+}
+
+];
+
+function drawOmikuji(){
+
+let r=fortunes[
+Math.floor(Math.random()*fortunes.length)
+];
+
+document.getElementById("paperWrap").style.display="flex";
+
+setTimeout(()=>{
+document.getElementById("paper").classList.add("open");
+},100);
+
+setTimeout(()=>{
+
+document.getElementById("result").style.display="block";
+
+document.getElementById("fortune").textContent=r.name;
+
+document.getElementById("message").innerHTML=
+"<h3>"+r.msg+"</h3>";
+
+document.getElementById("status").innerHTML=`
+💕 恋愛運：${r.love}<br>
+💰 金運：${r.money}<br>
+📚 勉強運：${r.study}<br>
+🌿 健康運：${r.health}
+`;
+
+if(r.advice){
+document.getElementById("advice").innerHTML=
+"🌷アドバイス<br>"+r.advice;
+}else{
+document.getElementById("advice").innerHTML=
+"✨今日は自信を持って行動してみよう！";
+}
+
+},800);
+}
+
+function restart(){
+
+document.getElementById("paper").classList.remove("open");
+
+document.getElementById("result").style.display="none";
+
+setTimeout(()=>{
+document.getElementById("paperWrap").style.display="none";
+},500);
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+}
+
+</script>
+
+</body>
+</html>
