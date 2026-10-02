@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>忍者ゲーム</title>
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  background:#111;
+}
+canvas{
+  display:block;
+  background:#223;
+}
+#score{
+  position:fixed;
+  left:10px;
+  top:10px;
+  color:white;
+  font-size:24px;
+}
+</style>
+</head>
+<body>
+
+<div id="score">0</div>
+<canvas id="c"></canvas>
+
+<script>
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+}
+resize();
+window.onresize=resize;
+
+let score=0;
+
+const ninja={
+  x:100,
+  y:300,
+  w:50,
+  h:50,
+  vy:0
+};
+
+const enemies=[];
+
+function jump(){
+  if(ninja.y>=300){
+    ninja.vy=-15;
+  }
+}
+
+function shoot(){
+  score++;
+  document.getElementById("score").textContent=score;
+}
+
+document.addEventListener("pointerdown",e=>{
+  if(e.clientX<window.innerWidth/2){
+    jump();
+  }else{
+    shoot();
+  }
+});
+
+setInterval(()=>{
+  enemies.push({
+    x:canvas.width,
+    y:300,
+    w:40,
+    h:40
+  });
+},1000);
+
+function loop(){
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ninja.vy+=0.8;
+  ninja.y+=ninja.vy;
+
+  if(ninja.y>300){
+    ninja.y=300;
+    ninja.vy=0;
+  }
+
+  ctx.fillStyle="green";
+  ctx.fillRect(0,350,canvas.width,100);
+
+  ctx.fillStyle="black";
+  ctx.fillRect(ninja.x,ninja.y,ninja.w,ninja.h);
+
+  ctx.fillStyle="red";
+
+  enemies.forEach(enemy=>{
+    enemy.x-=5;
+    ctx.fillRect(enemy.x,enemy.y,enemy.w,enemy.h);
+
+    if(
+      ninja.x<enemy.x+enemy.w &&
+      ninja.x+ninja.w>enemy.x &&
+      ninja.y<enemy.y+enemy.h &&
+      ninja.y+ninja.h>enemy.y
+    ){
+      alert("ゲームオーバー\n得点:"+score);
+      location.reload();
+    }
+  });
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
