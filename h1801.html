@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ジャンプゲーム</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #182238;
+  color: white;
+  font-family: sans-serif;
+  text-align: center;
+}
+
+h1 {
+  margin: 15px 0 8px;
+}
+
+#info {
+  margin-bottom: 10px;
+  color: #dce5ff;
+}
+
+#game {
+  position: relative;
+  width: min(94vw, 800px);
+  height: 420px;
+  margin: auto;
+  overflow: hidden;
+  border: 4px solid #101728;
+  border-radius: 12px;
+  background: linear-gradient(
+    #65c9ff 0%,
+    #bdeeff 70%,
+    #78c850 70%
+  );
+  touch-action: manipulation;
+}
+
+/* 地面 */
+#ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 105px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #62b83d,
+      #62b83d 18px,
+      #56a936 18px,
+      #56a936 36px
+    );
+}
+
+/* プレイヤー */
+#player {
+  position: absolute;
+  left: 80px;
+  bottom: 105px;
+  width: 38px;
+  height: 48px;
+  background: #ff4b4b;
+  border-radius: 10px 10px 6px 6px;
+  box-shadow: inset 0 5px #ff8585;
+}
+
+/* 目 */
+#player::before {
+  content: "● ●";
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  color: white;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+/* 障害物 */
+.obstacle {
+  position: absolute;
+  bottom: 105px;
+  width: 35px;
+  height: 50px;
+  background: #7b3f20;
+  border-radius: 6px;
+}
+
+/* ゴール */
+#goal {
+  position: absolute;
+  right: 25px;
+  bottom: 105px;
+  width: 50px;
+  height: 110px;
+  border-left: 6px solid #333;
+}
+
+#goal::after {
+  content: "GOAL";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  padding: 6px 10px;
+  background: #ffd43b;
+  color: #222;
+  font-weight: bold;
+}
+
+/* メッセージ */
+#message {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  padding: 20px;
+  border-radius: 15px;
+  background: rgba(0, 0, 0, 0.72);
+  font-size: 30px;
+  font-weight: bold;
+  display: none;
+  z-index: 10;
+}
+
+button {
+  margin-top: 14px;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 10px;
+  background: #ffd43b;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏃 ジャンプゲーム</h1>
+
+<div id="info">
+  画面をタップ、またはクリックしてジャンプ！
+</div>
+
+<div id="game">
+
+  <div id="ground"></div>
+
+  <div id="player"></div>
+
+  <div class="obstacle" style="left: 320px;"></div>
+
+  <div
+    class="obstacle"
+    style="left: 500px; height: 70px;">
+  </div>
+
+  <div
+    class="obstacle"
+    style="left: 650px; height: 45px;">
+  </div>
+
+  <div id="goal"></div>
+
+  <div id="message"></div>
+
+</div>
+
+<button id="restart">
+  ゲーム開始 / リスタート
+</button>
+
+<script>
+const game =
+  document.getElementById("game");
+
+const player =
+  document.getElementById("player");
+
+const message =
+  document.getElementById("message");
+
+const restart =
+  document.getElementById("restart");
+
+const obstacles =
+  document.querySelectorAll(".obstacle");
+
+let playerX;
+let playerY;
+let velocityY;
+
+let running = false;
+let cleared = false;
+
+const gravity = 0.7;
+const jumpPower = 13;
+const groundHeight = 105;
+
+let animationId;
+
+function startGame() {
+
+  cancelAnimationFrame(animationId);
+
+  playerX = 80;
+  playerY = 0;
+  velocityY = 0;
+
+  running = true;
+  cleared = false;
+
+  message.style.display = "none";
+
+  updatePlayer();
+
+  gameLoop();
+}
+
+function jump() {
+
+  if (!running) {
+    return;
+  }
+
+  if (playerY <= 0) {
+    velocityY = jumpPower;
+  }
+}
+
+function updatePlayer() {
+
+  player.style.left =
+    playerX + "px";
+
+  player.style.bottom =
+    (groundHeight + playerY) + "px";
+}
+
+function gameLoop() {
+
+  if (!running) {
+    return;
+  }
+
+  velocityY -= gravity;
+
+  playerY += velocityY;
+
+  // 地面に着いたら停止
+  if (playerY < 0) {
+
+    playerY = 0;
+    velocityY = 0;
+  }
+
+  // 自動的に右へ進む
+  playerX += 2.5;
+
+  updatePlayer();
+
+  checkCollision();
+
+  // ゴール
+  if (playerX >= 690) {
+
+    clearGame();
+    return;
+  }
+
+  animationId =
+    requestAnimationFrame(gameLoop);
+}
+
+function checkCollision() {
+
+  const playerRect = {
+    left: playerX,
+    right: playerX + 38,
+    bottom: playerY,
+    top: playerY + 48
+  };
+
+  for (const obstacle of obstacles) {
+
+    const x =
+      obstacle.offsetLeft;
+
+    const width =
+      obstacle.offsetWidth;
+
+    const height =
+      obstacle.offsetHeight;
+
+    const obstacleRect = {
+      left: x,
+      right: x + width,
+      bottom: 0,
+      top: height
+    };
+
+    const hit =
+      playerRect.right >
+        obstacleRect.left &&
+      playerRect.left <
+        obstacleRect.right &&
+      playerRect.bottom <
+        obstacleRect.top &&
+      playerRect.top >
+        obstacleRect.bottom;
+
+    if (hit) {
+
+      gameOver();
+      return;
+    }
+  }
+}
+
+function gameOver() {
+
+  running = false;
+
+  message.textContent =
+    "💥 GAME OVER";
+
+  message.style.display =
+    "block";
+}
+
+function clearGame() {
+
+  running = false;
+  cleared = true;
+
+  message.innerHTML =
+    "🎉 GAME CLEAR!<br>" +
+    "<span style='font-size:18px'>" +
+    "ゴールに到着しました！" +
+    "</span>";
+
+  message.style.display =
+    "block";
+}
+
+/*
+  タップ・クリックでジャンプ
+*/
+game.addEventListener(
+  "pointerdown",
+  function(event) {
+
+    event.preventDefault();
+
+    if (cleared) {
+
+      startGame();
+      return;
+    }
+
+    if (!running) {
+
+      startGame();
+      return;
+    }
+
+    jump();
+  }
+);
+
+/*
+  リスタートボタン
+*/
+restart.addEventListener(
+  "click",
+  startGame
+);
+
+/*
+  PCではスペースキーでもジャンプ可能
+*/
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (event.code === "Space") {
+
+      event.preventDefault();
+
+      if (!running) {
+
+        startGame();
+
+      } else {
+
+        jump();
+      }
+    }
+  }
+);
+
+// 最初から開始
+startGame();
+</script>
+
+</body>
+</html>
