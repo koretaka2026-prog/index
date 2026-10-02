@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>フルーツ農園リバーシ</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:linear-gradient(#87ceeb,#d9f7ff);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+h1{
+    margin:10px;
+}
+
+#menu{
+    background:white;
+    padding:15px;
+    border-radius:12px;
+    margin:10px;
+    box-shadow:0 0 10px rgba(0,0,0,.2);
+}
+
+select,button{
+    font-size:16px;
+    padding:6px;
+    margin:3px;
+}
+
+#info{
+    font-size:20px;
+    text-align:center;
+    margin:10px;
+    font-weight:bold;
+}
+
+#board{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    width:min(90vw,560px);
+    height:min(90vw,560px);
+    border:6px solid #694226;
+    background:#8b5a2b;
+}
+
+.cell{
+    border:1px solid #6d4524;
+    background:#99d94c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:min(6vw,42px);
+    cursor:pointer;
+    user-select:none;
+}
+
+.cell:hover{
+    background:#b2e964;
+}
+
+#message{
+    margin:15px;
+    font-size:24px;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<h1>🍎🍐 フルーツ農園リバーシ 🍎🍐</h1>
+
+<div id="menu">
+
+対戦:
+<select id="mode">
+<option value="cpu">人 vs コンピュータ</option>
+<option value="pvp">人 vs 人</option>
+</select>
+
+<br>
+
+あなたの果物:
+<select id="playerColor">
+<option value="black">🍎リンゴ（先攻）</option>
+<option value="white">🍐ナシ（後攻）</option>
+</select>
+
+<br>
+
+強さ:
+<select id="difficulty">
+<option value="0">よわい</option>
+<option value="1">ふつう</option>
+<option value="2">つよい</option>
+</select>
+
+<br>
+
+<button onclick="startGame()">ゲーム開始</button>
+
+</div>
+
+<div id="info">
+🍎リンゴ: <span id="appleCount">2</span>
+　
+🍐ナシ: <span id="pearCount">2</span>
+<br>
+<span id="turnInfo"></span>
+</div>
+
+<div id="board"></div>
+
+<div id="message"></div>
+
+<script>
+
+const EMPTY=0;
+const APPLE=1;
+const PEAR=2;
+
+let board=[];
+let currentPlayer=APPLE;
+let playerSide=APPLE;
+let mode="cpu";
+let difficulty=1;
+
+const boardEl=document.getElementById("board");
+const turnInfo=document.getElementById("turnInfo");
+const appleCount=document.getElementById("appleCount");
+const pearCount=document.getElementById("pearCount");
+const message=document.getElementById("message");
+
+function initBoard(){
+
+    board=[];
+
+    for(let y=0;y<8;y++){
+        board[y]=[];
+        for(let x=0;x<8;x++){
+            board[y][x]=EMPTY;
+        }
+    }
+
+    board[3][3]=PEAR;
+    board[4][4]=PEAR;
+    board[3][4]=APPLE;
+    board[4][3]=APPLE;
+
+    currentPlayer=APPLE;
+}
+
+function inside(x,y){
+    return x>=0 && y>=0 && x<8 && y<8;
+}
+
+function canPlace(x,y,color){
+
+    if(board[y][x]!==EMPTY) return false;
+
+    const enemy=color===APPLE?PEAR:APPLE;
+
+    const dirs=[
+        [-1,-1],[0,-1],[1,-1],
+        [-1,0],[1,0],
+        [-1,1],[0,1],[1,1]
+    ];
+
+    for(const [dx,dy] of dirs){
+
+        let nx=x+dx;
+        let ny=y+dy;
+        let found=false;
+
+        while(
+            inside(nx,ny) &&
+            board[ny][nx]===enemy
+        ){
+            found=true;
+            nx+=dx;
+            ny+=dy;
+        }
+
+        if(
+            found &&
+            inside(nx,ny) &&
+            board[ny][nx]===color
+        ){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function placeStone(x,y,color){
+
+    if(!canPlace(x,y,color)) return false;
+
+    const enemy=color===APPLE?PEAR:APPLE;
+
+    board[y][x]=color;
+
+    const dirs=[
+        [-1,-1],[0,-1],[1,-1],
+        [-1,0],[1,0],
+        [-1,1],[0,1],[1,1]
+    ];
+
+    for(const [dx,dy] of dirs){
+
+        let nx=x+dx;
+        let ny=y+dy;
+
+        let list=[];
+
+        while(
+            inside(nx,ny) &&
+            board[ny][nx]===enemy
+        ){
+            list.push([nx,ny]);
+            nx+=dx;
+            ny+=dy;
+        }
+
+        if(
+            list.length &&
+            inside(nx,ny) &&
+            board[ny][nx]===color
+        ){
+            for(const p of list){
+                board[p[1]][p[0]]=color;
+            }
+        }
+    }
+
+    return true;
+}
+
+function drawBoard(){
+
+    boardEl.innerHTML="";
+
+    let apples=0;
+    let pears=0;
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+
+            const cell=document.createElement("div");
+            cell.className="cell";
+
+            if(board[y][x]===APPLE){
+                cell.textContent="🍎";
+                apples++;
+            }
+            else if(board[y][x]===PEAR){
+                cell.textContent="🍐";
+                pears++;
+            }
+
+            cell.addEventListener("pointerdown",()=>{
+                playerMove(x,y);
+            });
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    appleCount.textContent=apples;
+    pearCount.textContent=pears;
+}
+
+function validMoves(color){
+
+    let moves=[];
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+            if(canPlace(x,y,color)){
+                moves.push({x,y});
+            }
+        }
+    }
+
+    return moves;
+}
+
+function switchTurn(){
+
+    currentPlayer=
+    currentPlayer===APPLE?PEAR:APPLE;
+
+    if(validMoves(currentPlayer).length===0){
+
+        currentPlayer=
+        currentPlayer===APPLE?PEAR:APPLE;
+
+        if(validMoves(currentPlayer).length===0){
+            endGame();
+            return;
+        }
+
+        alert("パスです");
+    }
+
+    updateTurn();
+
+    if(
+        mode==="cpu" &&
+        currentPlayer!==playerSide
+    ){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function updateTurn(){
+
+    let fruit=
+    currentPlayer===APPLE
+    ?"🍎リンゴ"
+    :"🍐ナシ";
+
+    turnInfo.textContent=
+    fruit+" の番";
+}
+
+function playerMove(x,y){
+
+    if(mode==="cpu"){
+
+        if(currentPlayer!==playerSide){
+            return;
+        }
+    }
+
+    if(!placeStone(x,y,currentPlayer)){
+        return;
+    }
+
+    drawBoard();
+    switchTurn();
+}
+
+function cpuMove(){
+
+    let moves=validMoves(currentPlayer);
+
+    if(moves.length===0) return;
+
+    let move;
+
+    if(difficulty===0){
+
+        move=
+        moves[Math.floor(
+            Math.random()*moves.length
+        )];
+
+    }else if(difficulty===1){
+
+        move=moves[0];
+
+        const corners=
+        moves.filter(m=>
+            (m.x===0&&m.y===0)||
+            (m.x===7&&m.y===0)||
+            (m.x===0&&m.y===7)||
+            (m.x===7&&m.y===7)
+        );
+
+        if(corners.length){
+            move=corners[0];
+        }
+
+    }else{
+
+        let best=-1;
+
+        for(const m of moves){
+
+            let score=0;
+
+            if(
+                (m.x===0&&m.y===0)||
+                (m.x===7&&m.y===0)||
+                (m.x===0&&m.y===7)||
+                (m.x===7&&m.y===7)
+            ){
+                score+=100;
+            }
+
+            if(
+                m.x===0||m.x===7||
+                m.y===0||m.y===7
+            ){
+                score+=20;
+            }
+
+            if(score>best){
+                best=score;
+                move=m;
+            }
+        }
+    }
+
+    placeStone(
+        move.x,
+        move.y,
+        currentPlayer
+    );
+
+    drawBoard();
+    switchTurn();
+}
+
+function endGame(){
+
+    let apples=0;
+    let pears=0;
+
+    for(let row of board){
+        for(let c of row){
+
+            if(c===APPLE) apples++;
+            if(c===PEAR) pears++;
+        }
+    }
+
+    if(apples>pears){
+        message.textContent=
+        "🍎リンゴの勝ち！";
+    }
+    else if(pears>apples){
+        message.textContent=
+        "🍐ナシの勝ち！";
+    }
+    else{
+        message.textContent=
+        "引き分け！";
+    }
+}
+
+function startGame(){
+
+    mode=
+    document.getElementById("mode").value;
+
+    difficulty=
+    Number(
+        document.getElementById("difficulty").value
+    );
+
+    playerSide=
+    document.getElementById("playerColor").value
+    ==="black"
+    ?APPLE
+    :PEAR;
+
+    message.textContent="";
+
+    initBoard();
+    drawBoard();
+    updateTurn();
+
+    if(
+        mode==="cpu" &&
+        playerSide===PEAR
+    ){
+        setTimeout(cpuMove,500);
+    }
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
