@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大富豪</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#0f5132;
+    color:white;
+    text-align:center;
+}
+
+#top{
+    padding:10px;
+    background:#063;
+}
+
+button{
+    padding:10px 15px;
+    margin:5px;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
+.card{
+    width:55px;
+    height:80px;
+    background:white;
+    color:black;
+    border-radius:8px;
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    margin:3px;
+    cursor:pointer;
+    user-select:none;
+    font-weight:bold;
+}
+
+.card.selected{
+    transform:translateY(-12px);
+    background:gold;
+}
+
+#playerHand{
+    min-height:120px;
+    padding:10px;
+}
+
+#field{
+    min-height:120px;
+    padding:10px;
+    border-top:2px solid rgba(255,255,255,.2);
+    border-bottom:2px solid rgba(255,255,255,.2);
+}
+
+.info{
+    margin:5px;
+}
+
+h3{
+    margin:5px;
+}
+</style>
+</head>
+<body>
+
+<div id="top">
+
+<h2>大富豪</h2>
+
+<div>
+先攻:
+<select id="turnSelect">
+<option value="player">プレイヤー</option>
+<option value="cpu">CPU</option>
+</select>
+
+CPU強さ:
+<select id="cpuLevel">
+<option value="weak">弱い</option>
+<option value="normal" selected>普通</option>
+<option value="strong">強い</option>
+</select>
+
+<button onclick="startGame()">ゲーム開始</button>
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<div class="info">
+CPU手札: <span id="cpuCount">0</span>枚
+</div>
+
+<div id="field">
+<h3>場</h3>
+<div id="fieldCards"></div>
+<div id="fieldInfo">なし</div>
+</div>
+
+<div>
+<button onclick="playSelected()">出す</button>
+<button onclick="passTurn()">パス</button>
+</div>
+
+<h3>あなたの手札</h3>
+<div id="playerHand"></div>
+
+<script>
+
+const suits=["♠","♥","♦","♣"];
+
+let player=[];
+let cpu=[];
+
+let selected=[];
+
+let currentTurn="player";
+
+let field=null;
+
+let passCount=0;
+
+let cpuLevel="normal";
+
+function rankValue(rank){
+    if(rank===1) return 14;
+    if(rank===2) return 15;
+    return rank;
+}
+
+function rankLabel(rank){
+    if(rank===1) return "A";
+    if(rank===11) return "J";
+    if(rank===12) return "Q";
+    if(rank===13) return "K";
+    return rank;
+}
+
+function createDeck(){
+    const deck=[];
+
+    for(let s of suits){
+        for(let r=1;r<=13;r++){
+            deck.push({
+                suit:s,
+                rank:r
+            });
+        }
+    }
+
+    return shuffle(deck);
+}
+
+function shuffle(arr){
+    let a=[...arr];
+
+    for(let i=a.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+    }
+
+    return a;
+}
+
+function sortHand(hand){
+    hand.sort(
+        (a,b)=>
+        rankValue(a.rank)-rankValue(b.rank)
+    );
+}
+
+function startGame(){
+
+    cpuLevel=
+        document.getElementById("cpuLevel").value;
+
+    let deck=createDeck();
+
+    player=deck.slice(0,26);
+    cpu=deck.slice(26);
+
+    sortHand(player);
+    sortHand(cpu);
+
+    selected=[];
+    field=null;
+    passCount=0;
+
+    currentTurn=
+        document.getElementById("turnSelect").value;
+
+    render();
+
+    setMessage(
+        currentTurn==="player"
+        ?"あなたのターン"
+        :"CPUのターン"
+    );
+
+    if(currentTurn==="cpu"){
+        setTimeout(cpuTurn,1000);
+    }
+}
+
+function render(){
+
+    const hand=document.getElementById("playerHand");
+
+    hand.innerHTML="";
+
+    player.forEach((c,index)=>{
+
+        const div=document.createElement("div");
+        div.className="card";
+
+        if(selected.includes(index)){
+            div.classList.add("selected");
+        }
+
+        div.innerHTML=
+            c.suit+"<br>"+rankLabel(c.rank);
+
+        div.onclick=()=>{
+            toggleSelect(index);
+        };
+
+        hand.appendChild(div);
+    });
+
+    document.getElementById("cpuCount").textContent=
+        cpu.length;
+
+    renderField();
+}
+
+function toggleSelect(i){
+
+    if(selected.includes(i)){
+        selected=
+            selected.filter(x=>x!==i);
+    }else{
+        selected.push(i);
+    }
+
+    render();
+}
+
+function renderField(){
+
+    let cardsDiv=
+        document.getElementById("fieldCards");
+
+    let info=
+        document.getElementById("fieldInfo");
+
+    cardsDiv.innerHTML="";
+
+    if(!field){
+        info.textContent="なし";
+        return;
+    }
+
+    field.cards.forEach(c=>{
+        let div=document.createElement("div");
+
+        div.className="card";
+
+        div.innerHTML=
+            c.suit+"<br>"+rankLabel(c.rank);
+
+        cardsDiv.appendChild(div);
+    });
+
+    info.textContent=
+        field.count+"枚 / "+
+        rankLabel(field.rank);
+}
+
+function getPlayInfo(cards){
+
+    if(cards.length===0) return null;
+
+    let r=cards[0].rank;
+
+    if(cards.some(x=>x.rank!==r)){
+        return null;
+    }
+
+    return{
+        count:cards.length,
+        rank:rankValue(r),
+        rawRank:r
+    };
+}
+
+function canPlay(info){
+
+    if(!info) return false;
+
+    if(!field) return true;
+
+    if(info.count!==field.count){
+        return false;
+    }
+
+    return info.rank>field.rank;
+}
+
+function playSelected(){
+
+    if(currentTurn!=="player")
+        return;
+
+    let cards=
+        selected.map(i=>player[i]);
+
+    let info=getPlayInfo(cards);
+
+    if(!canPlay(info)){
+        alert("出せません");
+        return;
+    }
+
+    selected.sort((a,b)=>b-a);
+
+    selected.forEach(i=>{
+        player.splice(i,1);
+    });
+
+    field={
+        cards,
+        count:info.count,
+        rank:info.rank
+    };
+
+    selected=[];
+
+    passCount=0;
+
+    render();
+
+    if(info.rawRank===8){
+        field=null;
+        setMessage("8切り！");
+    }
+
+    if(player.length===0){
+        alert("あなたの勝ち！");
+        return;
+    }
+
+    currentTurn="cpu";
+
+    render();
+
+    setTimeout(cpuTurn,800);
+}
+
+function passTurn(){
+
+    if(currentTurn!=="player")
+        return;
+
+    passCount++;
+
+    if(passCount>=2){
+        field=null;
+        passCount=0;
+    }
+
+    currentTurn="cpu";
+
+    render();
+
+    setTimeout(cpuTurn,800);
+}
+
+function cpuTurn(){
+
+    if(cpu.length===0){
+        alert("CPUの勝ち！");
+        return;
+    }
+
+    let move=findCpuMove();
+
+    if(!move){
+
+        passCount++;
+
+        if(passCount>=2){
+            field=null;
+            passCount=0;
+            setMessage("場が流れました");
+        }else{
+            setMessage("CPUパス");
+        }
+
+        currentTurn="player";
+        render();
+        return;
+    }
+
+    move.indices.sort((a,b)=>b-a);
+
+    move.indices.forEach(i=>{
+        cpu.splice(i,1);
+    });
+
+    field={
+        cards:move.cards,
+        count:move.info.count,
+        rank:move.info.rank
+    };
+
+    passCount=0;
+
+    render();
+
+    if(move.info.rawRank===8){
+        field=null;
+        setMessage("CPUの8切り");
+    }else{
+        setMessage("CPUが出しました");
+    }
+
+    if(cpu.length===0){
+        alert("CPUの勝ち！");
+        return;
+    }
+
+    currentTurn="player";
+}
+
+function findCpuMove(){
+
+    let groups={};
+
+    cpu.forEach((c,i)=>{
+        let r=c.rank;
+
+        if(!groups[r])
+            groups[r]=[];
+
+        groups[r].push(i);
+    });
+
+    let candidates=[];
+
+    Object.keys(groups).forEach(r=>{
+
+        let arr=groups[r];
+
+        for(let cnt=1;
+            cnt<=arr.length;
+            cnt++){
+
+            let cards=
+                arr.slice(0,cnt)
+                .map(i=>cpu[i]);
+
+            let info=
+                getPlayInfo(cards);
+
+            if(canPlay(info)){
+
+                candidates.push({
+                    indices:arr.slice(0,cnt),
+                    cards,
+                    info
+                });
+            }
+        }
+    });
+
+    if(candidates.length===0)
+        return null;
+
+    candidates.sort(
+        (a,b)=>
+        a.info.rank-b.info.rank
+    );
+
+    if(cpuLevel==="weak"){
+        return candidates[
+            Math.floor(
+            Math.random()*
+            candidates.length
+            )
+        ];
+    }
+
+    if(cpuLevel==="normal"){
+        return candidates[0];
+    }
+
+    return candidates[
+        candidates.length-1
+    ];
+}
+
+function setMessage(text){
+    document.getElementById("message")
+        .textContent=text;
+}
+
+startGame();
+
+</script>
+
+</body>
+</html>
