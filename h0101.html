@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>羊を数える</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#08142c;
+}
+
+#count{
+    color:white;
+    font-size:40px;
+    text-align:center;
+    margin-top:20px;
+}
+
+#moon{
+    position:absolute;
+    right:40px;
+    top:30px;
+    color:#fff8c0;
+    font-size:60px;
+}
+
+.star{
+    position:absolute;
+    color:white;
+}
+
+#fence{
+    position:absolute;
+    left:50%;
+    bottom:80px;
+    width:20px;
+    height:100px;
+    background:brown;
+}
+
+#sheep{
+    position:absolute;
+    left:0;
+    bottom:80px;
+    font-size:60px;
+}
+
+#ground{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:80px;
+    background:#2f6b2f;
+}
+</style>
+</head>
+<body>
+
+<div id="moon">🌙</div>
+
+<div class="star" style="left:10%;top:50px">★</div>
+<div class="star" style="left:30%;top:100px">★</div>
+<div class="star" style="left:70%;top:80px">★</div>
+<div class="star" style="left:85%;top:40px">★</div>
+
+<div id="count">羊 0 匹</div>
+
+<div id="fence"></div>
+
+<div id="sheep">🐑</div>
+
+<div id="ground"></div>
+
+<script>
+var sheep = document.getElementById("sheep");
+var count = document.getElementById("count");
+
+var x = -80;
+var sheepCount = 0;
+
+setInterval(function(){
+
+    x += 3;
+
+    var fence = window.innerWidth / 2;
+
+    var y = 80;
+
+    if(x > fence - 120 && x < fence + 120){
+        var p = (x - (fence - 120)) / 240;
+        y = 80 + Math.sin(p * Math.PI) * 120;
+    }
+
+    sheep.style.left = x + "px";
+    sheep.style.bottom = y + "px";
+
+    if(x > window.innerWidth){
+        x = -80;
+        sheepCount++;
+        count.textContent = "羊 " + sheepCount + " 匹";
+    }
+
+},20);
+</script>
+
+</body>
+</html>
