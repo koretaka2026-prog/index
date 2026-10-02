@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🫧 Koala & Chick Reversi 🫧</title>
+
+<style>
+
+:root{
+ --pink:#ffb9dc;
+ --pink2:#ffdff0;
+ --purple:#efe4ff;
+ --mint:#dffcff;
+ --yellow:#fff2a8;
+ --text:#6f6273;
+}
+
+*{
+ box-sizing:border-box;
+}
+
+body{
+ margin:0;
+ padding:20px;
+ min-height:100vh;
+ text-align:center;
+
+ font-family:
+ "M PLUS Rounded 1c",
+ "Yu Gothic",
+ sans-serif;
+
+ color:var(--text);
+
+ background:
+ radial-gradient(
+   circle at 10% 15%,
+   rgba(255,255,255,.95),
+   transparent 14%
+ ),
+ radial-gradient(
+   circle at 85% 20%,
+   rgba(255,255,255,.8),
+   transparent 18%
+ ),
+ radial-gradient(
+   circle at 80% 80%,
+   rgba(255,255,255,.7),
+   transparent 15%
+ ),
+ linear-gradient(
+   135deg,
+   #ffd8eb,
+   #f3e5ff,
+   #dfffff
+ );
+}
+
+h1{
+ margin:0 0 18px;
+
+ color:#ff76b5;
+
+ text-shadow:
+   0 3px 0 #fff,
+   0 6px 10px rgba(0,0,0,.06);
+
+ font-size:
+   clamp(2rem,5vw,3rem);
+}
+
+#settings{
+ margin-bottom:15px;
+}
+
+select,
+button{
+
+ appearance:none;
+ border:none;
+
+ border-radius:999px;
+
+ padding:12px 18px;
+ margin:4px;
+
+ font-size:14px;
+
+ background:
+ rgba(255,255,255,.65);
+
+ backdrop-filter:
+ blur(10px);
+
+ box-shadow:
+ 0 8px 20px rgba(0,0,0,.08);
+
+ color:#6c6170;
+}
+
+button{
+
+ background:
+ linear-gradient(
+ 180deg,
+ #ffbae1,
+ #ff93c8
+ );
+
+ color:white;
+ font-weight:bold;
+
+ cursor:pointer;
+
+ transition:.2s;
+}
+
+button:hover{
+ transform:
+ translateY(-2px)
+ scale(1.03);
+}
+
+#info{
+
+ display:inline-block;
+
+ padding:14px 24px;
+
+ margin-bottom:18px;
+
+ border-radius:28px;
+
+ background:
+ rgba(255,255,255,.55);
+
+ backdrop-filter:
+ blur(15px);
+
+ box-shadow:
+ 0 12px 30px rgba(0,0,0,.08);
+
+ line-height:1.8;
+}
+
+#board{
+
+ display:grid;
+
+ grid-template-columns:
+ repeat(8,min(10vw,74px));
+
+ grid-template-rows:
+ repeat(8,min(10vw,74px));
+
+ gap:6px;
+
+ justify-content:center;
+
+ margin:auto;
+
+ padding:18px;
+
+ border-radius:36px;
+
+ background:
+ rgba(255,255,255,.35);
+
+ backdrop-filter:
+ blur(20px);
+
+ border:
+ 1px solid rgba(255,255,255,.55);
+
+ box-shadow:
+ 0 20px 50px rgba(0,0,0,.08);
+}
+
+.cell{
+
+ position:relative;
+
+ display:flex;
+ align-items:center;
+ justify-content:center;
+
+ border-radius:24px;
+
+ overflow:hidden;
+
+ cursor:pointer;
+
+ touch-action:manipulation;
+
+ transition:.15s;
+
+ background:
+ linear-gradient(
+ 180deg,
+ #e0fff8,
+ #cbfbff
+ );
+
+ box-shadow:
+ inset 0 4px 0 rgba(255,255,255,.9),
+ inset 0 -4px 0 rgba(255,255,255,.2),
+ 0 6px 12px rgba(0,0,0,.08);
+}
+
+.cell:hover{
+ transform:
+ translateY(-2px)
+ scale(1.04);
+}
+
+.cell.valid::after{
+
+ content:"";
+
+ width:18px;
+ height:18px;
+
+ position:absolute;
+
+ border-radius:50%;
+
+ background:
+ radial-gradient(
+  circle,
+  white,
+  #ffb5dc
+ );
+
+ box-shadow:
+ 0 0 15px #ffb5dc,
+ 0 0 25px #ffb5dc;
+
+ animation:
+ sparkle 1.3s infinite;
+}
+
+@keyframes sparkle{
+
+ 50%{
+  transform:
+   scale(1.3);
+  opacity:.6;
+ }
+}
+
+.stone{
+
+ width:88%;
+ height:88%;
+
+ border-radius:50%;
+
+ position:relative;
+
+ display:flex;
+ align-items:center;
+ justify-content:center;
+
+ animation:pop .25s ease;
+
+ box-shadow:
+ inset 0 12px 18px rgba(255,255,255,.9),
+ 0 8px 18px rgba(0,0,0,.12);
+}
+
+@keyframes pop{
+
+ 0%{
+  transform:scale(0);
+ }
+
+ 70%{
+  transform:scale(1.15);
+ }
+
+ 100%{
+  transform:scale(1);
+ }
+}
+
+.koala{
+ background:
+ radial-gradient(
+  circle at 30% 25%,
+  #fff,
+  #ffe2f1
+ );
+
+ border:3px solid #ffbdd8;
+}
+
+.chick{
+ background:
+ radial-gradient(
+  circle at 30% 25%,
+  #fffef2,
+  #fff0ad
+ );
+
+ border:3px solid #ffd96f;
+}
+
+.animal{
+ font-size:2rem;
+}
+
+#message{
+
+ margin-top:16px;
+
+ color:#ff6fae;
+
+ font-weight:bold;
+}
+
+.footer{
+ margin-top:12px;
+ opacity:.7;
+ font-size:12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🫧 Koala & Chick Reversi 🫧</h1>
+
+<div id="settings">
+
+<select id="gameMode">
+ <option value="pvp">👧 人 vs 人</option>
+ <option value="cpu">🤖 人 vs CPU</option>
+</select>
+
+<select id="playerColor">
+ <option value="1">🐨 先攻（コアラ）</option>
+ <option value="-1">🐥 後攻（ひよこ）</option>
+</select>
+
+<select id="cpuLevel">
+ <option value="easy">🌱 やさしい</option>
+ <option value="normal">🌼 ふつう</option>
+ <option value="hard">⭐ つよい</option>
+</select>
+
+<button onclick="initGame()">
+🎀 ゲーム開始
+</button>
+
+</div>
+
+<div id="info"></div>
+
+<div id="board"></div>
+
+<div id="message"></div>
+
+<div class="footer">
+💖 置ける場所はキラキラしているよ
+</div>
+
+<script>
+
+const SIZE=8;
+
+let board=[];
+let currentPlayer=1;
+
+let gameMode="pvp";
+let humanColor=1;
+let cpuLevel="easy";
+
+const boardDiv=document.getElementById("board");
+const infoDiv=document.getElementById("info");
+const messageDiv=document.getElementById("message");
+
+const WEIGHTS=[
+[120,-20,20,5,5,20,-20,120],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[20,-5,15,3,3,15,-5,20],
+[5,-5,3,3,3,3,-5,5],
+[5,-5,3,3,3,3,-5,5],
+[20,-5,15,3,3,15,-5,20],
+[-20,-40,-5,-5,-5,-5,-40,-20],
+[120,-20,20,5,5,20,-20,120]
+];
+
+function initGame(){
+
+ gameMode=
+ document.getElementById(
+ "gameMode"
+ ).value;
+
+ humanColor=
+ Number(
+ document.getElementById(
+ "playerColor"
+ ).value
+ );
+
+ cpuLevel=
+ document.getElementById(
+ "cpuLevel"
+ ).value;
+
+ board=
+ Array(SIZE)
+ .fill()
+ .map(()=>Array(SIZE).fill(0));
+
+ board[3][3]=-1;
+ board[4][4]=-1;
+ board[3][4]=1;
+ board[4][3]=1;
+
+ currentPlayer=1;
+
+ messageDiv.textContent="";
+
+ render();
+
+ if(
+ gameMode==="cpu" &&
+ currentPlayer!==humanColor
+ ){
+  setTimeout(cpuMove,500);
+ }
+}
+
+function inside(r,c){
+
+ return r>=0 &&
+ r<SIZE &&
+ c>=0 &&
+ c<SIZE;
+}
+
+function getFlips(r,c,player){
+
+ if(board[r][c]!==0){
+  return [];
+ }
+
+ const dirs=[
+ [-1,-1],[-1,0],[-1,1],
+ [0,-1],[0,1],
+ [1,-1],[1,0],[1,1]
+ ];
+
+ let flips=[];
+
+ for(const [dr,dc] of dirs){
+
+  let rr=r+dr;
+  let cc=c+dc;
+
+  let temp=[];
+
+  while(
+   inside(rr,cc) &&
+   board[rr][cc]===-player
+  ){
+   temp.push([rr,cc]);
+
+   rr+=dr;
+   cc+=dc;
+  }
+
+  if(
+   temp.length &&
+   inside(rr,cc) &&
+   board[rr][cc]===player
+  ){
+   flips.push(...temp);
+  }
+ }
+
+ return flips;
+}
+
+function getValidMoves(player){
+
+ let arr=[];
+
+ for(let r=0;r<SIZE;r++){
+
+  for(let c=0;c<SIZE;c++){
+
+   if(
+   getFlips(r,c,player)
+   .length>0
+   ){
+    arr.push([r,c]);
+   }
+
+  }
+ }
+
+ return arr;
+}
+
+function placeStone(r,c){
+
+ const flips=
+ getFlips(
+ r,
+ c,
+ currentPlayer
+ );
+
+ if(!flips.length){
+  return;
+ }
+
+ board[r][c]=
+ currentPlayer;
+
+ flips.forEach(([fr,fc])=>{
+  board[fr][fc]=
+  currentPlayer;
+ });
+
+ currentPlayer*=-1;
+
+ let moves=
+ getValidMoves(
+ currentPlayer
+ );
+
+ if(moves.length===0){
+
+  currentPlayer*=-1;
+
+  if(
+  getValidMoves(
+  currentPlayer
+  ).length===0
+  ){
+   finishGame();
+   return;
+  }
+
+  messageDiv.textContent=
+  "💤 パスだよ♪";
+ }
+ else{
+  messageDiv.textContent="";
+ }
+
+ render();
+
+ if(
+ gameMode==="cpu" &&
+ currentPlayer!==humanColor
+ ){
+  setTimeout(cpuMove,500);
+ }
+}
+
+function cpuMove(){
+
+ const moves=
+ getValidMoves(
+ currentPlayer
+ );
+
+ if(!moves.length){
+  return;
+ }
+
+ let move;
+
+ if(cpuLevel==="easy"){
+
+  move=
+  moves[
+  Math.floor(
+  Math.random()*moves.length
+  )
+  ];
+
+ }
+ else if(cpuLevel==="normal"){
+
+  let best=-1;
+
+  for(const m of moves){
+
+   const score=
+   getFlips(
+   m[0],
+   m[1],
+   currentPlayer
+   ).length;
+
+   if(score>best){
+    best=score;
+    move=m;
+   }
+  }
+
+ }else{
+
+  let best=-99999;
+
+  for(const m of moves){
+
+   let score=
+   WEIGHTS[m[0]][m[1]];
+
+   score+=
+   getFlips(
+   m[0],
+   m[1],
+   currentPlayer
+   ).length*3;
+
+   if(score>best){
+    best=score;
+    move=m;
+   }
+  }
+ }
+
+ placeStone(
+ move[0],
+ move[1]
+ );
+}
+
+function count(){
+
+ let koala=0;
+ let chick=0;
+
+ for(let r=0;r<SIZE;r++){
+  for(let c=0;c<SIZE;c++){
+
+   if(board[r][c]===1){
+    koala++;
+   }
+
+   if(board[r][c]===-1){
+    chick++;
+   }
+  }
+ }
+
+ return {koala,chick};
+}
+
+function finishGame(){
+
+ const {
+  koala,
+  chick
+ }=count();
+
+ let msg=
+ `🐨 ${koala}個\n🐥 ${chick}個\n\n`;
+
+ if(koala>chick){
+  msg+="🎉 コアラの勝ち！";
+ }
+ else if(chick>koala){
+  msg+="🎉 ひよこの勝ち！";
+ }
+ else{
+  msg+="🤝 引き分け！";
+ }
+
+ render();
+
+ setTimeout(()=>{
+  alert(msg);
+ },100);
+}
+
+function render(){
+
+ boardDiv.innerHTML="";
+
+ const valid=
+ getValidMoves(
+ currentPlayer
+ );
+
+ const set=
+ new Set(
+ valid.map(
+ v=>`${v[0]},${v[1]}`
+ )
+ );
+
+ for(let r=0;r<SIZE;r++){
+
+  for(let c=0;c<SIZE;c++){
+
+   const cell=
+   document.createElement(
+   "div"
+   );
+
+   cell.className="cell";
+
+   if(
+   set.has(`${r},${c}`)
+   ){
+    cell.classList.add(
+    "valid"
+    );
+   }
+
+   if(board[r][c]===1){
+
+    cell.innerHTML=
+    `<div class="stone koala">
+      <div class="animal">🐨</div>
+    </div>`;
+   }
+
+   if(board[r][c]===-1){
+
+    cell.innerHTML=
+    `<div class="stone chick">
+      <div class="animal">🐥</div>
+    </div>`;
+   }
+
+   cell.onclick=()=>{
+
+    if(
+    gameMode==="cpu" &&
+    currentPlayer!==humanColor
+    ){
+     return;
+    }
+
+    placeStone(r,c);
+   };
+
+   boardDiv.appendChild(
+   cell
+   );
+  }
+ }
+
+ const {
+  koala,
+  chick
+ }=count();
+
+ infoDiv.innerHTML=
+ `🐨 コアラ ${koala}個　💛　🐥 ひよこ ${chick}個
+ <br>
+ 現在の手番：
+ ${currentPlayer===1
+ ? "🐨 コアラ"
+ : "🐥 ひよこ"}`;
+}
+
+initGame();
+
+</script>
+
+</body>
+</html>
