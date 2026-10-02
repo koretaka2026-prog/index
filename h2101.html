@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ちょうどいっぱい！</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family:
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+        background: linear-gradient(#9edcff, #eaf8ff);
+        color: #17324d;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #game {
+        position: relative;
+        width: min(100vw, 600px);
+        height: 100vh;
+        max-height: 900px;
+        overflow: hidden;
+    }
+
+    /* 背景 */
+    .cloud {
+        position: absolute;
+        background: rgba(255,255,255,.75);
+        border-radius: 999px;
+        filter: blur(1px);
+    }
+
+    .cloud::before,
+    .cloud::after {
+        content: "";
+        position: absolute;
+        background: inherit;
+        border-radius: 50%;
+    }
+
+    .cloud::before {
+        width: 55%;
+        height: 130%;
+        left: 15%;
+        bottom: 15%;
+    }
+
+    .cloud::after {
+        width: 45%;
+        height: 110%;
+        right: 12%;
+        bottom: 10%;
+    }
+
+    .cloud1 {
+        width: 130px;
+        height: 35px;
+        top: 12%;
+        left: -30px;
+    }
+
+    .cloud2 {
+        width: 170px;
+        height: 42px;
+        top: 24%;
+        right: -50px;
+    }
+
+    /* UI */
+    #topUI {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #title {
+        font-size: clamp(20px, 5vw, 30px);
+        font-weight: 800;
+        text-shadow: 0 2px 0 white;
+    }
+
+    #scoreBox {
+        background: rgba(255,255,255,.75);
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0,0,0,.08);
+    }
+
+    #message {
+        position: absolute;
+        top: 82px;
+        left: 20px;
+        right: 20px;
+        text-align: center;
+        font-size: 17px;
+        font-weight: 700;
+        z-index: 10;
+    }
+
+    /* コップ */
+    #cupArea {
+        position: absolute;
+        left: 50%;
+        bottom: 145px;
+        transform: translateX(-50%);
+        width: 230px;
+        height: 360px;
+    }
+
+    #cup {
+        position: absolute;
+        left: 20px;
+        right: 20px;
+        bottom: 0;
+        height: 310px;
+
+        border: 7px solid rgba(255,255,255,.9);
+        border-top: 5px solid rgba(255,255,255,.95);
+        border-radius: 8px 8px 35px 35px;
+
+        background:
+            linear-gradient(
+                90deg,
+                rgba(255,255,255,.28),
+                rgba(255,255,255,.08) 20%,
+                rgba(255,255,255,.03) 70%,
+                rgba(255,255,255,.25)
+            );
+
+        box-shadow:
+            inset 10px 0 rgba(255,255,255,.16),
+            inset -10px 0 rgba(255,255,255,.12),
+            0 12px 30px rgba(40,100,140,.18);
+
+        overflow: hidden;
+    }
+
+    /* コップの水 */
+    #water {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 0%;
+
+        background:
+            linear-gradient(
+                to bottom,
+                #63d8ff,
+                #2196e5
+            );
+
+        transition: height .08s linear;
+    }
+
+    #water::before {
+        content: "";
+        position: absolute;
+        left: -20%;
+        top: -8px;
+        width: 140%;
+        height: 18px;
+        background: rgba(255,255,255,.3);
+        border-radius: 50%;
+        animation: wave 1.2s infinite ease-in-out;
+    }
+
+    @keyframes wave {
+        0%, 100% {
+            transform: translateX(-3%) rotate(1deg);
+        }
+        50% {
+            transform: translateX(3%) rotate(-1deg);
+        }
+    }
+
+    /* 目標ライン */
+    #targetLine {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        height: 5px;
+        border-radius: 10px;
+        background: #ff4f70;
+        box-shadow: 0 0 8px rgba(255,79,112,.7);
+        z-index: 5;
+    }
+
+    #targetLabel {
+        position: absolute;
+        right: -2px;
+        transform: translateX(100%);
+        color: #ff3157;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    /* 水道 */
+    #faucet {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 100px;
+        height: 90px;
+        transform: translateX(-50%);
+        z-index: 8;
+    }
+
+    #faucetTop {
+        position: absolute;
+        width: 55px;
+        height: 30px;
+        right: 0;
+        top: 0;
+        background: #7b8b98;
+        border-radius: 10px 18px 0 0;
+    }
+
+    #faucetPipe {
+        position: absolute;
+        width: 65px;
+        height: 55px;
+        right: 20px;
+        top: 22px;
+        border: 14px solid #8797a4;
+        border-bottom: 0;
+        border-radius: 0 35px 0 0;
+    }
+
+    #stream {
+        position: absolute;
+        top: 70px;
+        left: 47px;
+        width: 10px;
+        height: 0;
+        background: linear-gradient(#b9f1ff, #28a9ed);
+        border-radius: 10px;
+        opacity: .85;
+        z-index: 7;
+    }
+
+    #stream.active {
+        height: 245px;
+        animation: stream .12s infinite alternate;
+    }
+
+    @keyframes stream {
+        from {
+            transform: scaleX(.85);
+        }
+        to {
+            transform: scaleX(1.1);
+        }
+    }
+
+    /* ボタン */
+    #pourButton {
+        position: absolute;
+        bottom: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        width: min(280px, 75vw);
+        height: 70px;
+
+        border: none;
+        border-radius: 999px;
+
+        background: linear-gradient(#28b9ff, #0788d8);
+        color: white;
+
+        font-size: 23px;
+        font-weight: 900;
+
+        box-shadow:
+            0 8px 0 #066da9,
+            0 15px 30px rgba(0,100,180,.25);
+
+        cursor: pointer;
+        user-select: none;
+        touch-action: manipulation;
+    }
+
+    #pourButton:active {
+        transform: translateX(-50%) translateY(6px);
+        box-shadow:
+            0 2px 0 #066da9,
+            0 8px 15px rgba(0,100,180,.2);
+    }
+
+    #pourButton.pouring {
+        background: linear-gradient(#ff8b42, #ef4c25);
+        box-shadow:
+            0 8px 0 #bd3219,
+            0 15px 30px rgba(180,60,0,.25);
+    }
+
+    /* 結果画面 */
+    #result {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+
+        display: none;
+        align-items: center;
+        justify-content: center;
+
+        background: rgba(255,255,255,.78);
+        backdrop-filter: blur(8px);
+    }
+
+    #result.show {
+        display: flex;
+    }
+
+    #resultCard {
+        width: min(90%, 400px);
+        padding: 35px 25px;
+        text-align: center;
+
+        background: white;
+        border-radius: 28px;
+
+        box-shadow: 0 20px 60px rgba(30,100,140,.2);
+    }
+
+    #resultTitle {
+        font-size: 38px;
+        font-weight: 900;
+        margin-bottom: 10px;
+    }
+
+    #resultText {
+        font-size: 18px;
+        line-height: 1.7;
+        margin-bottom: 25px;
+    }
+
+    #nextButton {
+        width: 100%;
+        height: 58px;
+        border: 0;
+        border-radius: 999px;
+        background: #20b978;
+        color: white;
+        font-size: 20px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    /* スコア演出 */
+    .perfect {
+        animation: perfect .5s ease-out;
+    }
+
+    @keyframes perfect {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+
+    .drop {
+        position: absolute;
+        width: 8px;
+        height: 14px;
+        background: #53cfff;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        pointer-events: none;
+        z-index: 30;
+        animation: dropFall .7s linear forwards;
+    }
+
+    @keyframes dropFall {
+        to {
+            transform: translateY(250px) rotate(-45deg);
+            opacity: 0;
+        }
+    }
+
+    @media (max-height: 700px) {
+        #cupArea {
+            bottom: 125px;
+            transform: translateX(-50%) scale(.82);
+            transform-origin: bottom center;
+        }
+
+        #pourButton {
+            bottom: 25px;
+            height: 58px;
+        }
+
+        #message {
+            top: 70px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+
+    <div id="topUI">
+        <div id="title">💧 ちょうどいっぱい！</div>
+        <div id="scoreBox">スコア：<span id="score">0</span></div>
+    </div>
+
+    <div id="message">
+        赤いラインまで水を入れよう！
+    </div>
+
+    <div id="cupArea">
+
+        <!-- 水道 -->
+        <div id="faucet">
+            <div id="faucetTop"></div>
+            <div id="faucetPipe"></div>
+        </div>
+
+        <div id="stream"></div>
+
+        <!-- コップ -->
+        <div id="cup">
+            <div id="water"></div>
+            <div id="targetLine">
+                <span id="targetLabel">ここが目標！</span>
+            </div>
+        </div>
+
+    </div>
+
+    <button id="pourButton">
+        💧 押して注ぐ
+    </button>
+
+    <div id="result">
+        <div id="resultCard">
+            <div id="resultTitle">🎉 ぴったり！</div>
+            <div id="resultText"></div>
+            <button id="nextButton">次のステージへ</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(() => {
+    "use strict";
+
+    const water = document.getElementById("water");
+    const targetLine = document.getElementById("targetLine");
+    const pourButton = document.getElementById("pourButton");
+    const stream = document.getElementById("stream");
+    const scoreElement = document.getElementById("score");
+    const message = document.getElementById("message");
+
+    const result = document.getElementById("result");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultText = document.getElementById("resultText");
+    const nextButton = document.getElementById("nextButton");
+    const cup = document.getElementById("cup");
+
+    let waterLevel = 0;
+    let target = 75;
+    let score = 0;
+    let stage = 1;
+
+    let pouring = false;
+    let gameOver = false;
+    let lastTime = 0;
+
+    // ステージごとの注水速度
+    function getPourSpeed() {
+        return 24 + stage * 2.5;
+    }
+
+    // ランダムな目標水位
+    function generateTarget() {
+        // 65～90%
+        return Math.round(65 + Math.random() * 25);
+    }
+
+    // 目標ラインを配置
+    function updateTargetLine() {
+        targetLine.style.bottom = target + "%";
+    }
+
+    // 水を表示
+    function updateWater() {
+        water.style.height = Math.min(waterLevel, 100) + "%";
+    }
+
+    function startPouring(e) {
+        if (e) e.preventDefault();
+
+        if (gameOver) return;
+
+        pouring = true;
+        pourButton.classList.add("pouring");
+        pourButton.textContent = "💦 注水中…";
+        stream.classList.add("active");
+
+        createDrop();
+    }
+
+    function stopPouring(e) {
+        if (e) e.preventDefault();
+
+        pouring = false;
+        pourButton.classList.remove("pouring");
+        pourButton.textContent = "💧 押して注ぐ";
+        stream.classList.remove("active");
+
+        // 離した瞬間に判定
+        checkResult();
+    }
+
+    // 水滴演出
+    function createDrop() {
+        if (!pouring || gameOver) return;
+
+        const drop = document.createElement("div");
+        drop.className = "drop";
+
+        const cupRect = cup.getBoundingClientRect();
+
+        drop.style.left =
+            (cupRect.left + cupRect.width / 2 + (Math.random() * 16 - 8))
+            + "px";
+
+        drop.style.top =
+            (cupRect.top + 60)
+            + "px";
+
+        document.getElementById("game").appendChild(drop);
+
+        setTimeout(() => drop.remove(), 700);
+
+        setTimeout(createDrop, 90);
+    }
+
+    function checkResult() {
+        if (waterLevel >= 100) {
+            gameOver = true;
+
+            resultTitle.textContent = "💦 入れすぎ！";
+
+            resultText.innerHTML =
+                "コップからあふれてしまいました。<br>" +
+                "もう一度チャレンジしよう！";
+
+            nextButton.textContent = "もう一度";
+
+            result.classList.add("show");
+            return;
+        }
+
+        const difference = Math.abs(waterLevel - target);
+
+        if (difference <= 1.2) {
+            // ほぼ完全に一致
+            const gained = Math.max(
+                100,
+                Math.round(1000 - difference * 300 + stage * 50)
+            );
+
+            score += gained;
+            scoreElement.textContent = score;
+
+            cup.classList.add("perfect");
+            setTimeout(() => cup.classList.remove("perfect"), 500);
+
+            resultTitle.textContent = "🎯 ぴったり！";
+
+            resultText.innerHTML =
+                `目標との差：${difference.toFixed(1)}%<br>` +
+                `+${gained} 点！<br><br>` +
+                `現在のスコア：${score}`;
+
+            nextButton.textContent = "次のステージへ";
+
+            result.classList.add("show");
+
+        } else if (waterLevel < target) {
+            message.textContent =
+                `もう少し！ あと ${(target - waterLevel).toFixed(1)}%`;
+        } else {
+            message.textContent =
+                `少し入れすぎです。 ${difference.toFixed(1)}% オーバー`;
+        }
+    }
+
+    function nextStage() {
+        result.classList.remove("show");
+
+        if (waterLevel >= 100) {
+            stage = 1;
+            score = 0;
+            scoreElement.textContent = "0";
+        } else {
+            stage++;
+        }
+
+        waterLevel = 0;
+        target = generateTarget();
+
+        updateWater();
+        updateTargetLine();
+
+        message.textContent =
+            `ステージ ${stage}：赤いラインまで水を入れよう！`;
+
+        gameOver = false;
+        pouring = false;
+    }
+
+    // 注水アニメーション
+    function gameLoop(timestamp) {
+        if (!lastTime) {
+            lastTime = timestamp;
+        }
+
+        const delta = Math.min(
+            (timestamp - lastTime) / 1000,
+            0.05
+        );
+
+        lastTime = timestamp;
+
+        if (pouring && !gameOver) {
+            waterLevel += getPourSpeed() * delta;
+
+            if (waterLevel > 100) {
+                waterLevel = 100;
+            }
+
+            updateWater();
+
+            if (waterLevel >= 100) {
+                pouring = false;
+
+                pourButton.classList.remove("pouring");
+                pourButton.textContent = "💧 押して注ぐ";
+                stream.classList.remove("active");
+
+                checkResult();
+            }
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // マウス
+    pourButton.addEventListener("mousedown", startPouring);
+    window.addEventListener("mouseup", stopPouring);
+
+    // タッチ
+    pourButton.addEventListener("touchstart", startPouring, {
+        passive: false
+    });
+
+    window.addEventListener("touchend", stopPouring, {
+        passive: false
+    });
+
+    window.addEventListener("touchcancel", stopPouring, {
+        passive: false
+    });
+
+    // ボタンを離したときの保険
+    pourButton.addEventListener("mouseleave", () => {
+        if (pouring) {
+            stopPouring();
+        }
+    });
+
+    nextButton.addEventListener("click", nextStage);
+    nextButton.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        nextStage();
+    }, { passive: false });
+
+    // 初期化
+    target = generateTarget();
+    updateTargetLine();
+    updateWater();
+
+    requestAnimationFrame(gameLoop);
+
+})();
+</script>
+
+</body>
+</html>
