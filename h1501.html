@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>どうぶつぽんぽん</title>
+
+<style>
+/* =====================================================
+   基本設定
+===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+
+  background:
+    linear-gradient(
+      #dff6ff,
+      #f3ffd9
+    );
+
+  font-family:
+    Arial,
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    Meiryo,
+    sans-serif;
+
+  color: #4b3b2a;
+
+  text-align: center;
+
+  user-select: none;
+}
+
+
+/* =====================================================
+   タイトル
+===================================================== */
+
+h1 {
+  margin: 12px 0 4px;
+
+  font-size: 28px;
+
+  line-height: 1.2;
+}
+
+
+/* =====================================================
+   説明
+===================================================== */
+
+#instruction {
+  margin: 6px 10px 8px;
+
+  font-size: 14px;
+
+  color: #637050;
+}
+
+
+/* =====================================================
+   スコア
+===================================================== */
+
+#scoreArea {
+  margin: 5px 0 8px;
+
+  font-size: 18px;
+
+  font-weight: bold;
+}
+
+
+/* =====================================================
+   ボタン
+===================================================== */
+
+button {
+  border: 0;
+
+  border-radius: 12px;
+
+  padding: 10px 18px;
+
+  background: #69ad4d;
+
+  color: white;
+
+  font-size: 16px;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 3px 6px #456b3422;
+}
+
+button:hover {
+  background: #5c9e43;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+
+/* =====================================================
+   メッセージ
+===================================================== */
+
+#message {
+  min-height: 24px;
+
+  margin: 8px;
+
+  font-size: 14px;
+
+  font-weight: bold;
+
+  color: #607842;
+}
+
+
+/* =====================================================
+   ゲーム画面
+===================================================== */
+
+#game {
+  position: relative;
+
+  width: 94vw;
+
+  max-width: 500px;
+
+  height: 600px;
+
+  margin: 0 auto;
+
+  overflow: hidden;
+
+  border:
+    6px solid #6c9b4d;
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      to bottom,
+
+      #bceaff 0%,
+
+      #e8f8d5 63%,
+
+      #b9df86 63%,
+
+      #9bc66c 100%
+    );
+
+  cursor: crosshair;
+
+  /*
+   * スマホで操作したときに
+   * ページ自体がスクロールしないようにする
+   */
+  touch-action: none;
+}
+
+
+/* =====================================================
+   危険ライン
+===================================================== */
+
+#dangerLine {
+  position: absolute;
+
+  top: 80px;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 2px;
+
+  background: #e56e5e55;
+
+  pointer-events: none;
+
+  z-index: 2;
+}
+
+
+/* =====================================================
+   現在操作する動物
+===================================================== */
+
+#currentAnimal {
+  position: absolute;
+
+  /*
+   * JavaScriptで中央に設定する
+   */
+
+  left: 50%;
+
+  top: 35px;
+
+  width: 64px;
+
+  height: 64px;
+
+  transform:
+    translateX(-50%);
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: white;
+
+  border:
+    3px solid #7773;
+
+  box-shadow:
+    0 4px 9px #5554,
+    inset 0 2px 5px white;
+
+  font-size: 40px;
+
+  z-index: 20;
+
+  pointer-events: none;
+}
+
+
+/* =====================================================
+   落ちた動物
+===================================================== */
+
+.animal {
+  position: absolute;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: white;
+
+  border:
+    3px solid #7773;
+
+  box-shadow:
+    0 4px 9px #5554,
+    inset 0 2px 5px white;
+
+  transform:
+    translate(-50%, -50%);
+
+  pointer-events: none;
+
+  z-index: 5;
+}
+
+
+/* =====================================================
+   合体アニメーション
+===================================================== */
+
+.animal.mergeAnimation {
+  animation:
+    mergePop
+    0.25s
+    ease-out;
+}
+
+@keyframes mergePop {
+
+  0% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.5);
+  }
+
+  60% {
+    transform:
+      translate(-50%, -50%)
+      scale(1.25);
+  }
+
+  100% {
+    transform:
+      translate(-50%, -50%)
+      scale(1);
+  }
+
+}
+
+
+/* =====================================================
+   次の動物
+===================================================== */
+
+#nextArea {
+  width: 94vw;
+
+  max-width: 500px;
+
+  margin: 9px auto;
+
+  padding: 8px;
+
+  background:
+    #ffffffdd;
+
+  border-radius: 12px;
+
+  font-size: 14px;
+
+  box-shadow:
+    0 2px 8px #5552;
+}
+
+#nextAnimal {
+  display: inline-block;
+
+  margin-left: 5px;
+
+  font-size: 30px;
+
+  vertical-align: middle;
+}
+
+
+/* =====================================================
+   ゲームオーバー
+===================================================== */
+
+#gameOver {
+  position: absolute;
+
+  inset: 0;
+
+  display: none;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background:
+    #20351caa;
+
+  z-index: 100;
+}
+
+
+#gameOverBox {
+  width: 82%;
+
+  max-width: 350px;
+
+  padding: 25px 20px;
+
+  background: white;
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 10px 30px #0005;
+}
+
+
+#gameOverBox h2 {
+  margin-top: 0;
+
+  font-size: 24px;
+}
+
+
+#finalScore {
+  margin: 8px 0 15px;
+
+  font-size: 24px;
+
+  font-weight: bold;
+}
+
+
+#gameOverBox button {
+  width: 100%;
+}
+
+
+/* =====================================================
+   スマホ用
+===================================================== */
+
+@media (max-width: 600px) {
+
+  h1 {
+    font-size: 25px;
+  }
+
+  #game {
+    height: 75vh;
+
+    min-height: 450px;
+
+    max-height: 650px;
+  }
+
+}
+
+
+/* =====================================================
+   小さい画面
+===================================================== */
+
+@media (max-height: 600px) {
+
+  #game {
+    height: 470px;
+  }
+
+}
+</style>
+</head>
+
+
+<body>
+
+
+<!-- ===================================================
+     タイトル
+=================================================== -->
+
+<h1>
+  🐾 どうぶつぽんぽん
+</h1>
+
+
+<!-- ===================================================
+     操作説明
+=================================================== -->
+
+<div id="instruction">
+  マウスを左右に動かして、クリックすると落ちるよ！
+</div>
+
+
+<!-- ===================================================
+     スコア
+=================================================== -->
+
+<div id="scoreArea">
+
+  スコア：
+  <span id="score">0</span>
+
+</div>
+
+
+<!-- ===================================================
+     新しいゲーム
+=================================================== -->
+
+<button id="newGame">
+  新しいゲーム
+</button>
+
+
+<!-- ===================================================
+     メッセージ
+=================================================== -->
+
+<div id="message">
+  🐭を好きな場所へ動かしてクリック！
+</div>
+
+
+<!-- ===================================================
+     ゲーム本体
+=================================================== -->
+
+<div id="game">
+
+
+  <!-- 危険ライン -->
+
+  <div id="dangerLine"></div>
+
+
+  <!-- =================================================
+       現在操作する動物
+
+       最初から画面中央に表示される
+  ================================================== -->
+
+  <div id="currentAnimal">
+    🐭
+  </div>
+
+
+  <!-- =================================================
+       ゲームオーバー画面
+  ================================================== -->
+
+  <div id="gameOver">
+
+    <div id="gameOverBox">
+
+      <h2>
+        🐾 ゲームオーバー！
+      </h2>
+
+      <div>
+        スコア
+      </div>
+
+      <div id="finalScore">
+        0
+      </div>
+
+      <button id="restart">
+        もう一度あそぶ
+      </button>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+
+<!-- ===================================================
+     次の動物
+=================================================== -->
+
+<div id="nextArea">
+
+  次の動物：
+
+  <span id="nextAnimal">
+    🐹
+  </span>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   動物データ
+
+   小さい動物から大きな動物へ進化していく
+===================================================== */
+
+const animals = [
+
+  {
+    emoji: "🐭",
+    size: 64,
+    score: 2
+  },
+
+  {
+    emoji: "🐹",
+    size: 72,
+    score: 4
+  },
+
+  {
+    emoji: "🐰",
+    size: 80,
+    score: 8
+  },
+
+  {
+    emoji: "🐱",
+    size: 88,
+    score: 16
+  },
+
+  {
+    emoji: "🐶",
+    size: 96,
+    score: 32
+  },
+
+  {
+    emoji: "🦊",
+    size: 104,
+    score: 64
+  },
+
+  {
+    emoji: "🐻",
+    size: 112,
+    score: 128
+  },
+
+  {
+    emoji: "🐼",
+    size: 120,
+    score: 256
+  },
+
+  {
+    emoji: "🐨",
+    size: 128,
+    score: 512
+  },
+
+  {
+    emoji: "🐯",
+    size: 136,
+    score: 1024
+  },
+
+  {
+    emoji: "🦁",
+    size: 144,
+    score: 2048
+  },
+
+  {
+    emoji: "🐘",
+    size: 152,
+    score: 4096
+  }
+
+];
+
+
+/* =====================================================
+   HTML要素
+===================================================== */
+
+const game =
+  document.getElementById(
+    "game"
+  );
+
+
+const currentAnimal =
+  document.getElementById(
+    "currentAnimal"
+  );
+
+
+const nextAnimal =
+  document.getElementById(
+    "nextAnimal"
+  );
+
+
+const scoreElement =
+  document.getElementById(
+    "score"
+  );
+
+
+const message =
+  document.getElementById(
+    "message"
+  );
+
+
+const newGameButton =
+  document.getElementById(
+    "newGame"
+  );
+
+
+const gameOver =
+  document.getElementById(
+    "gameOver"
+  );
+
+
+const finalScore =
+  document.getElementById(
+    "finalScore"
+  );
+
+
+const restartButton =
+  document.getElementById(
+    "restart"
+  );
+
+
+/* =====================================================
+   ゲーム状態
+===================================================== */
+
+
+/*
+ * 今落とす動物
+ */
+
+let currentType = 0;
+
+
+/*
+ * 次に出す動物
+ */
+
+let nextType = 1;
+
+
+/*
+ * スコア
+ */
+
+let score = 0;
+
+
+/*
+ * 落ちた動物の一覧
+ */
+
+let balls = [];
+
+
+/*
+ * 現在落下中か
+ */
+
+let falling = false;
+
+
+/*
+ * ゲーム中か
+ */
+
+let gameRunning = true;
+
+
+/*
+ * 現在のX座標
+
+ * ゲーム画面の左端からの距離
+ */
+
+let currentX = 0;
+
+
+/*
+ * 最後にタッチした位置
+ */
+
+let lastTouchX = null;
+
+
+/* =====================================================
+   現在の動物を中央に表示
+===================================================== */
+
+function centerCurrentAnimal() {
+
+  /*
+   * ゲーム画面の横幅
+   */
+
+  const width =
+    game.clientWidth;
+
+
+  /*
+   * ★ゲーム画面のど真ん中
+   */
+
+  currentX =
+    width / 2;
+
+
+  /*
+   * 動物を表示
+   */
+
+  currentAnimal.style.left =
+    currentX + "px";
+
+
+  currentAnimal.style.top =
+    "35px";
+
+
+  currentAnimal.style.display =
+    "flex";
+
+
+  /*
+   * 動物の絵
+   */
+
+  currentAnimal.textContent =
+    animals[
+      currentType
+    ].emoji;
+
+}
+
+
+/* =====================================================
+   次の動物を表示
+===================================================== */
+
+function updateNext() {
+
+  nextAnimal.textContent =
+    animals[
+      nextType
+    ].emoji;
+
+}
+
+
+/* =====================================================
+   スコア更新
+===================================================== */
+
+function updateScore() {
+
+  scoreElement.textContent =
+    score.toLocaleString();
+
+}
+
+
+/* =====================================================
+   現在の動物を指定位置へ移動
+===================================================== */
+
+function moveCurrent(
+  clientX
+) {
+
+  /*
+   * ゲーム画面の位置
+   */
+
+  const rect =
+    game.getBoundingClientRect();
+
+
+  /*
+   * ゲーム画面左端からの距離
+   */
+
+  let x =
+    clientX -
+    rect.left;
+
+
+  /*
+   * 動物の大きさ
+   */
+
+  const size =
+    animals[
+      currentType
+    ].size;
+
+
+  /*
+   * 半径
+   */
+
+  const radius =
+    size / 2;
+
+
+  /*
+   * 左右からはみ出さない
+   */
+
+  x =
+    Math.max(
+      radius,
+      Math.min(
+        rect.width - radius,
+        x
+      )
+    );
+
+
+  /*
+   * 保存
+   */
+
+  currentX =
+    x;
+
+
+  /*
+   * 画面に反映
+   */
+
+  currentAnimal.style.left =
+    x + "px";
+
+}
+
+
+/* =====================================================
+   PC：マウス移動
+===================================================== */
+
+game.addEventListener(
+  "mousemove",
+  function(event) {
+
+    /*
+     * ゲーム中だけ
+     */
+
+    if (
+      !gameRunning ||
+      falling
+    ) {
+
+      return;
+
+    }
+
+
+    moveCurrent(
+      event.clientX
+    );
+
+  }
+);
+
+
+/* =====================================================
+   スマホ：指を動かす
+===================================================== */
+
+game.addEventListener(
+  "touchmove",
+  function(event) {
+
+    if (
+      !gameRunning ||
+      falling
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * ページのスクロールを防ぐ
+     */
+
+    event.preventDefault();
+
+
+    const touch =
+      event.touches[0];
+
+
+    lastTouchX =
+      touch.clientX;
+
+
+    moveCurrent(
+      touch.clientX
+    );
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* =====================================================
+   スマホ：タップで落とす
+===================================================== */
+
+game.addEventListener(
+  "touchend",
+  function(event) {
+
+    if (
+      !gameRunning ||
+      falling
+    ) {
+
+      return;
+
+    }
+
+
+    event.preventDefault();
+
+
+    /*
+     * 指を離した位置
+     */
+
+    const touch =
+      event.changedTouches[0];
+
+
+    /*
+     * 指を動かしていなかった場合も
+     * タップした場所から落とせる
+     */
+
+    moveCurrent(
+      touch.clientX
+    );
+
+
+    /*
+     * 落とす
+     */
+
+    dropAnimal();
+
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* =====================================================
+   PC：クリックで落とす
+===================================================== */
+
+game.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      !gameRunning ||
+      falling
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * クリックした位置へ移動
+     */
+
+    moveCurrent(
+      event.clientX
+    );
+
+
+    /*
+     * 落とす
+     */
+
+    dropAnimal();
+
+  }
+);
+
+
+/* =====================================================
+   動物を落とす
+===================================================== */
+
+function dropAnimal() {
+
+  /*
+   * すでに落下中なら何もしない
+   */
+
+  if (
+    falling
+  ) {
+
+    return;
+
+  }
+
+
+  falling = true;
+
+
+  /*
+   * 今の動物の種類
+   */
+
+  const type =
+    currentType;
+
+
+  const animal =
+    animals[type];
+
+
+  /*
+   * 落下する動物を作る
+   */
+
+  const ball =
+    document.createElement(
+      "div"
+    );
+
+
+  ball.className =
+    "animal";
+
+
+  ball.textContent =
+    animal.emoji;
+
+
+  /*
+   * サイズ
+   */
+
+  ball.style.width =
+    animal.size + "px";
+
+
+  ball.style.height =
+    animal.size + "px";
+
+
+  ball.style.fontSize =
+    (
+      animal.size * 0.62
+    ) + "px";
+
+
+  /*
+   * 開始位置
+   *
+   * 現在の動物と同じ位置
+   */
+
+  let x =
+    currentX;
+
+
+  let y =
+    35;
+
+
+  ball.style.left =
+    x + "px";
+
+
+  ball.style.top =
+    y + "px";
+
+
+  /*
+   * ゲーム画面に追加
+   */
+
+  game.appendChild(
+    ball
+  );
+
+
+  /*
+   * 操作用の動物を隠す
+   */
+
+  currentAnimal.style.display =
+    "none";
+
+
+  /*
+   * 重力による速度
+   */
+
+  let velocity =
+    2;
+
+
+  /*
+   * 床の高さ
+   */
+
+  const floor =
+    game.clientHeight -
+    animal.size / 2;
+
+
+  /*
+   * 落下処理
+   */
+
+  function fall() {
+
+    /*
+     * 重力
+     */
+
+    velocity +=
+      0.55;
+
+
+    /*
+     * 下へ移動
+     */
+
+    y +=
+      velocity;
+
+
+    /*
+     * 床に到達したか
+     */
+
+    if (
+      y >= floor
+    ) {
+
+      y =
+        floor;
+
+
+      ball.style.top =
+        y + "px";
+
+
+      /*
+       * 落下完了
+       */
+
+      const newBall = {
+
+        element:
+          ball,
+
+        x:
+          x,
+
+        y:
+          y,
+
+        type:
+          type,
+
+        size:
+          animal.size
+
+      };
+
+
+      balls.push(
+        newBall
+      );
+
+
+      /*
+       * スコア追加
+       */
+
+      score +=
+        animal.score;
+
+
+      updateScore();
+
+
+      /*
+       * 次の動物へ
+       */
+
+      currentType =
+        nextType;
+
+
+      /*
+       * 次の次の動物
+       *
+       * 最初の4種類からランダム
+       */
+
+      nextType =
+        Math.floor(
+          Math.random() * 4
+        );
+
+
+      /*
+       * 新しい動物を中央に表示
+       */
+
+      centerCurrentAnimal();
+
+
+      updateNext();
+
+
+      /*
+       * 落下終了
+       */
+
+      falling = false;
+
+
+      message.textContent =
+        "マウスを左右に動かして、クリック！";
+
+
+      /*
+       * 合体を確認
+       */
+
+      checkMerges();
+
+
+      /*
+       * ゲームオーバーを確認
+       */
+
+      checkGameOver();
+
+
+      return;
+
+    }
+
+
+    /*
+     * 動物の位置を更新
+     */
+
+    ball.style.top =
+      y + "px";
+
+
+    /*
+     * 次のフレーム
+     */
+
+    requestAnimationFrame(
+      fall
+    );
+
+  }
+
+
+  /*
+   * 落下開始
+   */
+
+  requestAnimationFrame(
+    fall
+  );
+
+}
+
+
+/* =====================================================
+   合体チェック
+===================================================== */
+
+function checkMerges() {
+
+  /*
+   * すべての組み合わせを調べる
+   */
+
+  for (
+    let i = 0;
+    i < balls.length;
+    i++
+  ) {
+
+    for (
+      let j = i + 1;
+      j < balls.length;
+      j++
+    ) {
+
+      const a =
+        balls[i];
+
+      const b =
+        balls[j];
+
+
+      /*
+       * 種類が違うなら合体しない
+       */
+
+      if (
+        a.type !== b.type
+      ) {
+
+        continue;
+
+      }
+
+
+      /*
+       * 中心間の距離
+       */
+
+      const dx =
+        a.x - b.x;
+
+
+      const dy =
+        a.y - b.y;
+
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+
+      /*
+       * ぶつかっているか
+       */
+
+      if (
+        distance <
+        (
+          a.size +
+          b.size
+        ) / 2
+      ) {
+
+        mergeAnimals(
+          i,
+          j
+        );
+
+        return;
+
+      }
+
+    }
+
+  }
+
+}
+
+
+/* =====================================================
+   動物を合体させる
+===================================================== */
+
+function mergeAnimals(
+  indexA,
+  indexB
+) {
+
+  const a =
+    balls[indexA];
+
+
+  const b =
+    balls[indexB];
+
+
+  /*
+   * これ以上進化できない場合
+   */
+
+  if (
+    a.type >=
+    animals.length - 1
+  ) {
+
+    message.textContent =
+      "👑 最高どうぶつ！";
+
+
+    return;
+
+  }
+
+
+  /*
+   * 次の動物
+   */
+
+  const newType =
+    a.type + 1;
+
+
+  const animal =
+    animals[newType];
+
+
+  /*
+   * 合体位置
+   */
+
+  const x =
+    (
+      a.x +
+      b.x
+    ) / 2;
+
+
+  const y =
+    Math.min(
+      a.y,
+      b.y
+    );
+
+
+  /*
+   * 古い動物を消す
+   */
+
+  a.element.remove();
+
+  b.element.remove();
+
+
+  /*
+   * 配列から削除
+
+   * 後ろから消す
+   */
+
+  balls.splice(
+    indexB,
+    1
+  );
+
+
+  balls.splice(
+    indexA,
+    1
+  );
+
+
+  /*
+   * 新しい動物
+   */
+
+  const newElement =
+    document.createElement(
+      "div"
+    );
+
+
+  newElement.className =
+    "animal mergeAnimation";
+
+
+  newElement.textContent =
+    animal.emoji;
+
+
+  /*
+   * サイズ
+   */
+
+  newElement.style.width =
+    animal.size + "px";
+
+
+  newElement.style.height =
+    animal.size + "px";
+
+
+  newElement.style.fontSize =
+    (
+      animal.size * 0.62
+    ) + "px";
+
+
+  /*
+   * 位置
+   */
+
+  newElement.style.left =
+    x + "px";
+
+
+  newElement.style.top =
+    y + "px";
+
+
+  /*
+   * 画面に追加
+   */
+
+  game.appendChild(
+    newElement
+  );
+
+
+  /*
+   * 配列に追加
+   */
+
+  balls.push({
+
+    element:
+      newElement,
+
+    x:
+      x,
+
+    y:
+      y,
+
+    type:
+      newType,
+
+    size:
+      animal.size
+
+  });
+
+
+  /*
+   * スコア
+   */
+
+  score +=
+    animal.score;
+
+
+  updateScore();
+
+
+  /*
+   * メッセージ
+   */
+
+  message.textContent =
+    animal.emoji +
+    " に合体！";
+
+
+  /*
+   * もう一度合体を確認
+   */
+
+  setTimeout(
+    function() {
+
+      checkMerges();
+
+    },
+    50
+  );
+
+}
+
+
+/* =====================================================
+   ゲームオーバー判定
+===================================================== */
+
+function checkGameOver() {
+
+  /*
+   * 上の危険ラインより上に
+   * 動物が残っていたらゲームオーバー
+   */
+
+  const dangerY =
+    80;
+
+
+  for (
+    const ball of balls
+  ) {
+
+    /*
+     * 動物の上端
+     */
+
+    const top =
+      ball.y -
+      ball.size / 2;
+
+
+    if (
+      top < dangerY
+    ) {
+
+      endGame();
+
+      return;
+
+    }
+
+  }
+
+}
+
+
+/* =====================================================
+   ゲームオーバー
+===================================================== */
+
+function endGame() {
+
+  gameRunning = false;
+
+  falling = false;
+
+
+  /*
+   * 最終スコア
+   */
+
+  finalScore.textContent =
+    score.toLocaleString();
+
+
+  /*
+   * ゲームオーバー画面
+   */
+
+  gameOver.style.display =
+    "flex";
+
+
+  message.textContent =
+    "ゲームオーバー！";
+
+}
+
+
+/* =====================================================
+   新しいゲーム
+===================================================== */
+
+function newGame() {
+
+  /*
+   * 落ちた動物を全部削除
+   */
+
+  for (
+    const ball of balls
+  ) {
+
+    if (
+      ball.element
+    ) {
+
+      ball.element.remove();
+
+    }
+
+  }
+
+
+  /*
+   * 初期化
+   */
+
+  balls = [];
+
+  score = 0;
+
+  currentType = 0;
+
+  nextType = 1;
+
+  falling = false;
+
+  gameRunning = true;
+
+
+  /*
+   * スコア
+   */
+
+  updateScore();
+
+
+  /*
+   * ゲームオーバーを隠す
+   */
+
+  gameOver.style.display =
+    "none";
+
+
+  /*
+   * ★最初の動物を中央に表示
+   */
+
+  centerCurrentAnimal();
+
+
+  /*
+   * 次の動物
+   */
+
+  updateNext();
+
+
+  /*
+   * メッセージ
+   */
+
+  message.textContent =
+    "マウスを左右に動かして、クリック！";
+
+}
+
+
+/* =====================================================
+   新しいゲームボタン
+===================================================== */
+
+newGameButton.addEventListener(
+  "click",
+  function(event) {
+
+    /*
+     * ゲーム画面へのクリック伝播を防ぐ
+     */
+
+    event.stopPropagation();
+
+
+    newGame();
+
+  }
+);
+
+
+/* =====================================================
+   もう一度ボタン
+===================================================== */
+
+restartButton.addEventListener(
+  "click",
+  function(event) {
+
+    event.stopPropagation();
+
+
+    newGame();
+
+  }
+);
+
+
+/* =====================================================
+   画面サイズ変更
+===================================================== */
+
+window.addEventListener(
+  "resize",
+  function() {
+
+    /*
+     * 落下中でなければ
+     * 現在の動物を中央に戻す
+     */
+
+    if (
+      !falling
+    ) {
+
+      centerCurrentAnimal();
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   ★★★ ゲーム開始 ★★★
+===================================================== */
+
+newGame();
+
+</script>
+
+</body>
+</html>
