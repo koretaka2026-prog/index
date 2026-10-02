@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>プラネット・パニック！</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020617;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:none;user-select:none}#wrap{position:relative;width:100%;height:100%}canvas{display:block;width:100%;height:100%;cursor:crosshair}.hud{position:absolute;top:16px;padding:10px 14px;border-radius:16px;background:#0008;backdrop-filter:blur(6px);font-weight:800}.score{left:16px}.life{right:16px;color:#fda4af}.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#02061766}.panel{text-align:center;background:#111827ee;border:1px solid #ffffff22;border-radius:28px;padding:28px;box-shadow:0 20px 60px #0008;min-width:280px}.panel h1{margin:0 0 12px;font-size:28px}.panel p{line-height:1.8;color:#cbd5e1}.panel button{border:0;border-radius:18px;background:#6366f1;color:#fff;font-weight:900;font-size:16px;padding:14px 22px;cursor:pointer}.panel button:hover{background:#818cf8}.hidden{display:none}.big{font-size:42px}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div class="hud score">🚀 <span id="score">0</span>　<span style="color:#94a3b8">BEST <span id="best">0</span></span></div>
+<div class="hud life" id="life">❤️❤️❤️</div>
+<div class="overlay" id="start"><div class="panel"><div class="big">🌎🚀</div><h1>プラネット・パニック！</h1><p>隕石がゆっくりになったよ！<br>❤️ 3回までミスOK<br>タップした方向へ宇宙船が移動します。</p><button id="startBtn">スタート！</button></div></div>
+<div class="overlay hidden" id="over"><div class="panel"><div class="big">🌎💫</div><h1>おつかれさま！</h1><p>スコア <strong id="final">0</strong></p><button id="retry">もう一回！</button></div></div>
+</div>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const $=id=>document.getElementById(id),scoreEl=$('score'),bestEl=$('best'),lifeEl=$('life');
+let W,H,DPR,state,best=Number(localStorage.getItem('planetPanicBest')||0);bestEl.textContent=best;
+const rnd=(a,b)=>a+Math.random()*(b-a),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+const colors=['#fb7185','#f59e0b','#a78bfa','#38bdf8'];
+function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*DPR;c.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+function reset(){state={playing:false,alive:true,score:0,lives:3,angle:-Math.PI/2,target:-Math.PI/2,meteors:[],sparks:[],lastSpawn:performance.now(),flash:0};scoreEl.textContent=0;lifeEl.textContent='❤️❤️❤️'}reset();
+function spawn(){state.meteors.push({a:rnd(0,Math.PI*2),d:Math.max(W,H)*.62,s:rnd(34,54)+state.score*.2,size:rnd(11,19),spin:rnd(-2,2),rot:0,color:colors[Math.random()*colors.length|0]})}
+function burst(x,y,color,n=18){for(let i=0;i<n;i++)state.sparks.push({x,y,vx:rnd(-110,110),vy:rnd(-110,110),life:1,color})}
+function meteor(m,cx,cy){let x=cx+Math.cos(m.a)*m.d,y=cy+Math.sin(m.a)*m.d;ctx.save();ctx.translate(x,y);ctx.rotate(m.rot);ctx.fillStyle=m.color;ctx.beginPath();for(let i=0;i<10;i++){let a=i/10*Math.PI*2,r=m.size*(i%2?.72:1),px=Math.cos(a)*r,py=Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.fill();ctx.fillStyle='#11182777';ctx.beginPath();ctx.arc(-m.size*.2,-m.size*.15,m.size*.22,0,7);ctx.fill();ctx.restore();return[x,y]}
+function gameOver(){state.alive=false;state.playing=false;best=Math.max(best,state.score);localStorage.setItem('planetPanicBest',best);bestEl.textContent=best;$('final').textContent=state.score;$('over').classList.remove('hidden')}
+let last=performance.now();
+function loop(now){let dt=Math.min(.033,(now-last)/1000);last=now;let cx=W/2,cy=H/2,R=Math.min(W,H)*.24;ctx.clearRect(0,0,W,H);let g=ctx.createRadialGradient(cx,cy,10,cx,cy,Math.max(W,H)*.65);g.addColorStop(0,'#172554');g.addColorStop(1,'#020617');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<60;i++){ctx.fillStyle=`rgba(255,255,255,${.15+(i%5)*.08})`;ctx.fillRect((i*137.2)%W,(i*71.7)%H,1.4,1.4)}
+ctx.save();ctx.translate(cx,cy);ctx.fillStyle=state.flash>0?'#60a5fa':'#2563eb';ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.fillStyle='#22c55e';ctx.beginPath();ctx.ellipse(-R*.25,-R*.12,R*.32,R*.16,.3,0,7);ctx.ellipse(R*.28,R*.18,R*.25,R*.12,-.6,0,7);ctx.fill();ctx.restore();state.flash=Math.max(0,state.flash-dt);
+if(state.playing&&state.alive){state.angle+=wrap(state.target-state.angle)*Math.min(1,dt*14);if(now-state.lastSpawn>Math.max(600,1250-state.score*5)){spawn();state.lastSpawn=now}for(let i=state.meteors.length-1;i>=0;i--){let m=state.meteors[i];m.d-=m.s*dt;m.rot+=m.spin*dt;let [x,y]=meteor(m,cx,cy),da=Math.abs(wrap(m.a-state.angle));if(m.d<R+34&&m.d>R-8&&da<.3){burst(x,y,m.color);state.meteors.splice(i,1);scoreEl.textContent=++state.score;continue}if(m.d<R-8){burst(x,y,'#fff',24);state.meteors.splice(i,1);state.lives--;lifeEl.textContent='❤️'.repeat(state.lives);state.flash=.25;if(state.lives<=0)gameOver()}}}else state.meteors.forEach(m=>meteor(m,cx,cy));
+let px=cx+Math.cos(state.angle)*(R+22),py=cy+Math.sin(state.angle)*(R+22);ctx.save();ctx.translate(px,py);ctx.rotate(state.angle+Math.PI/2);ctx.fillStyle='#f8fafc';ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(14,14);ctx.lineTo(0,8);ctx.lineTo(-14,14);ctx.closePath();ctx.fill();ctx.fillStyle='#f97316';ctx.beginPath();ctx.moveTo(-5,12);ctx.lineTo(0,25+Math.random()*7);ctx.lineTo(5,12);ctx.fill();ctx.restore();
+for(let i=state.sparks.length-1;i>=0;i--){let p=state.sparks[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*2;ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);ctx.globalAlpha=1;if(p.life<=0)state.sparks.splice(i,1)}requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function aim(e){if(!state.playing)return;let r=c.getBoundingClientRect();state.target=Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)}
+c.addEventListener('pointerdown',aim);c.addEventListener('pointermove',e=>{if(e.buttons)aim(e)});
+$('startBtn').onclick=()=>{$('start').classList.add('hidden');state.playing=true;state.lastSpawn=performance.now()};
+$('retry').onclick=()=>{$('over').classList.add('hidden');reset();state.playing=true;state.lastSpawn=performance.now()};
+</script>
+</body>
+</html>
