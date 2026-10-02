@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>スロットゲーム</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(180deg,#0f172a,#020617);
+    font-family:sans-serif;
+    color:white;
+}
+
+#game{
+    width:380px;
+    max-width:95vw;
+    background:#111827;
+    padding:25px;
+    border-radius:20px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(0,0,0,.6);
+}
+
+h1{
+    color:gold;
+    margin-bottom:15px;
+}
+
+#coins{
+    font-size:24px;
+    margin-bottom:15px;
+}
+
+.reels{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin:20px 0;
+}
+
+.reel{
+    width:100px;
+    height:100px;
+    background:white;
+    color:black;
+    border-radius:15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:58px;
+    font-weight:bold;
+    box-shadow:inset 0 0 10px rgba(0,0,0,.3);
+}
+
+button{
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:bold;
+    transition:.15s;
+}
+
+button:active{
+    transform:scale(.96);
+}
+
+#start{
+    width:220px;
+    height:60px;
+    font-size:24px;
+    background:gold;
+    margin-bottom:15px;
+}
+
+.stopArea{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    margin-bottom:15px;
+}
+
+.stopBtn{
+    width:100px;
+    height:50px;
+    font-size:18px;
+    background:#3b82f6;
+    color:white;
+}
+
+.stopBtn:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+}
+
+#message{
+    min-height:40px;
+    font-size:26px;
+    font-weight:bold;
+}
+
+.win{
+    color:#22c55e;
+    animation:flash .5s infinite alternate;
+}
+
+.lose{
+    color:#ef4444;
+}
+
+@keyframes flash{
+    from{
+        text-shadow:0 0 5px white;
+    }
+    to{
+        text-shadow:0 0 25px gold;
+    }
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+    <h1>🎰 SLOT</h1>
+
+    <div id="coins">💰 コイン: 100</div>
+
+    <div class="reels">
+        <div class="reel" id="r1">7️⃣</div>
+        <div class="reel" id="r2">7️⃣</div>
+        <div class="reel" id="r3">7️⃣</div>
+    </div>
+
+    <button id="start">回転開始 (10枚)</button>
+
+    <div class="stopArea">
+        <button class="stopBtn" id="stop1" disabled>左停止</button>
+        <button class="stopBtn" id="stop2" disabled>中停止</button>
+        <button class="stopBtn" id="stop3" disabled>右停止</button>
+    </div>
+
+    <div id="message"></div>
+
+</div>
+
+<script>
+
+const symbols=[
+    "7️⃣",
+    "🍒",
+    "🔔",
+    "🍋",
+    "⭐",
+    "🍇",
+    "💎",
+    "🍉"
+];
+
+const r1=document.getElementById("r1");
+const r2=document.getElementById("r2");
+const r3=document.getElementById("r3");
+
+const start=document.getElementById("start");
+
+const stop1=document.getElementById("stop1");
+const stop2=document.getElementById("stop2");
+const stop3=document.getElementById("stop3");
+
+const coinsText=document.getElementById("coins");
+const message=document.getElementById("message");
+
+let coins=100;
+
+let timer1;
+let timer2;
+let timer3;
+
+let running=false;
+let stopped=0;
+
+function rand(){
+    return symbols[Math.floor(Math.random()*symbols.length)];
+}
+
+function updateCoins(){
+    coinsText.textContent="💰 コイン: "+coins;
+}
+
+function enableStops(a,b,c){
+    stop1.disabled=!a;
+    stop2.disabled=!b;
+    stop3.disabled=!c;
+}
+
+start.addEventListener("click",()=>{
+
+    if(running) return;
+
+    if(coins<10){
+        message.className="lose";
+        message.textContent="コイン不足！";
+        return;
+    }
+
+    coins-=10;
+    updateCoins();
+
+    message.textContent="";
+    message.className="";
+
+    running=true;
+    stopped=0;
+
+    enableStops(true,true,true);
+
+    timer1=setInterval(()=>{
+        r1.textContent=rand();
+    },80);
+
+    timer2=setInterval(()=>{
+        r2.textContent=rand();
+    },80);
+
+    timer3=setInterval(()=>{
+        r3.textContent=rand();
+    },80);
+
+});
+
+stop1.addEventListener("click",()=>{
+
+    if(stop1.disabled) return;
+
+    clearInterval(timer1);
+    stop1.disabled=true;
+    stopped++;
+
+});
+
+stop2.addEventListener("click",()=>{
+
+    if(stop2.disabled) return;
+
+    clearInterval(timer2);
+    stop2.disabled=true;
+    stopped++;
+
+});
+
+stop3.addEventListener("click",()=>{
+
+    if(stop3.disabled) return;
+
+    clearInterval(timer3);
+    stop3.disabled=true;
+    stopped++;
+
+    if(stopped===3){
+        judge();
+    }
+
+});
+
+function judge(){
+
+    const a=r1.textContent;
+    const b=r2.textContent;
+    const c=r3.textContent;
+
+    if(a===b && b===c){
+
+        let reward=100;
+
+        if(a==="7️⃣"){
+            reward=300;
+        }
+
+        coins+=reward;
+
+        message.className="win";
+        message.textContent="🎉 JACKPOT +"+reward;
+
+    }
+    else if(a===b || a===c || b===c){
+
+        coins+=25;
+
+        message.className="win";
+        message.textContent="✨ 当たり +25";
+
+    }
+    else{
+
+        message.className="lose";
+        message.textContent="😢 はずれ";
+
+    }
+
+    updateCoins();
+
+    running=false;
+}
+
+updateCoins();
+
+</script>
+
+</body>
+</html>
