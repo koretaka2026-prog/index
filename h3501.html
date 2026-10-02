@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブドウ🍇 vs リンゴ🍎 リバーシ</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background:
+      radial-gradient(circle at top, #fff8e7 0%, #f5e4c3 45%, #dfc18d 100%);
+    color: #3d2918;
+    display: flex;
+    justify-content: center;
+    padding: 20px 12px 40px;
+  }
+
+  .container {
+    width: min(100%, 760px);
+  }
+
+  h1 {
+    text-align: center;
+    margin: 8px 0 18px;
+    font-size: clamp(25px, 6vw, 42px);
+    text-shadow: 0 2px 3px rgba(0,0,0,.15);
+  }
+
+  .panel {
+    background: rgba(255,255,255,.9);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 25px rgba(70,40,10,.15);
+  }
+
+  .settings {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .setting {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .setting label {
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  select,
+  button {
+    font: inherit;
+  }
+
+  select {
+    border: 2px solid #d6b77a;
+    border-radius: 10px;
+    padding: 9px 10px;
+    background: #fffdf7;
+    color: #3d2918;
+    cursor: pointer;
+  }
+
+  .start-button {
+    width: 100%;
+    margin-top: 13px;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    background: #7b4b25;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .15s;
+  }
+
+  .start-button:hover {
+    background: #63391b;
+    transform: translateY(-1px);
+  }
+
+  .score {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    flex-wrap: wrap;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .score-item {
+    padding: 7px 14px;
+    border-radius: 12px;
+    background: #f8efd9;
+  }
+
+  .status {
+    text-align: center;
+    min-height: 30px;
+    font-weight: bold;
+    font-size: 17px;
+    padding: 5px;
+  }
+
+  .board-wrapper {
+    display: flex;
+    justify-content: center;
+  }
+
+  #board {
+    width: min(92vw, 640px);
+    aspect-ratio: 1;
+    padding: 7px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+    background: #3e7a3c;
+    border: 7px solid #6a401e;
+    border-radius: 10px;
+    box-shadow:
+      0 10px 25px rgba(50,30,10,.25),
+      inset 0 0 0 2px #a36a35;
+    touch-action: manipulation;
+  }
+
+  .cell {
+    position: relative;
+    border: none;
+    border-radius: 5px;
+    background: #4f984a;
+    padding: 0;
+    cursor: pointer;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .cell:hover {
+    background: #5eaa58;
+  }
+
+  .cell.valid::after {
+    content: "";
+    position: absolute;
+    width: 22%;
+    height: 22%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.5);
+    left: 39%;
+    top: 39%;
+    pointer-events: none;
+  }
+
+  .piece {
+    position: absolute;
+    inset: 8%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: clamp(18px, 6vw, 43px);
+    line-height: 1;
+    background: #fff;
+    box-shadow:
+      0 3px 4px rgba(0,0,0,.35),
+      inset 0 -2px 3px rgba(0,0,0,.12);
+    animation: putPiece .18s ease-out;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  @keyframes putPiece {
+    from {
+      transform: scale(.55);
+      opacity: .3;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .hint {
+    margin-top: 14px;
+    text-align: center;
+    color: #765d43;
+    font-size: 13px;
+  }
+
+  .new-game {
+    display: block;
+    margin: 15px auto 0;
+    border: 2px solid #b78b50;
+    background: #fffaf0;
+    color: #5b3b20;
+    border-radius: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .new-game:hover {
+    background: #f5e5c5;
+  }
+
+  @media (max-width: 550px) {
+    body {
+      padding: 10px 6px 25px;
+    }
+
+    .panel {
+      padding: 12px;
+    }
+
+    .settings {
+      grid-template-columns: 1fr;
+    }
+
+    #board {
+      width: 96vw;
+      border-width: 5px;
+      padding: 5px;
+    }
+
+    .score {
+      gap: 8px;
+      font-size: 15px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🍇 ブドウ vs リンゴ 🍎</h1>
+
+  <div class="panel">
+
+    <div class="settings">
+
+      <div class="setting">
+        <label for="gameMode">対戦方法</label>
+        <select id="gameMode">
+          <option value="cpu">人 vs コンピュータ</option>
+          <option value="human">人 vs 人</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="firstPlayer">先攻</label>
+        <select id="firstPlayer">
+          <option value="grape">🍇 ブドウ</option>
+          <option value="apple">🍎 リンゴ</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="humanSide">あなたの駒</label>
+        <select id="humanSide">
+          <option value="grape">🍇 ブドウ</option>
+          <option value="apple">🍎 リンゴ</option>
+        </select>
+      </div>
+
+      <div class="setting">
+        <label for="difficulty">コンピュータの強さ</label>
+        <select id="difficulty">
+          <option value="easy">かんたん</option>
+          <option value="normal" selected>ふつう</option>
+          <option value="hard">つよい</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button class="start-button" id="startButton">
+      ゲーム開始
+    </button>
+
+  </div>
+
+  <div class="panel">
+
+    <div class="score">
+      <div class="score-item">🍇 ブドウ：<span id="grapeScore">2</span></div>
+      <div class="score-item">🍎 リンゴ：<span id="appleScore">2</span></div>
+    </div>
+
+    <div class="status" id="status">
+      ゲームを開始してください
+    </div>
+
+    <div class="board-wrapper">
+      <div id="board"></div>
+    </div>
+
+    <div class="hint">
+      白い点が表示されているマスにタップ／クリックできます。
+    </div>
+
+    <button class="new-game" id="newGameButton">
+      最初からやり直す
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   ブドウ🍇 = 1
+   リンゴ🍎 = -1
+   空き = 0
+   ========================================================= */
+
+const SIZE = 8;
+
+const GRAPE = 1;
+const APPLE = -1;
+
+const GRAPE_EMOJI = "🍇";
+const APPLE_EMOJI = "🍎";
+
+let board = [];
+let currentPlayer = GRAPE;
+
+let gameMode = "cpu";
+let firstPlayer = GRAPE;
+let humanSide = GRAPE;
+let difficulty = "normal";
+
+let gameOver = false;
+let thinking = false;
+
+const directions = [
+  [-1, -1], [-1, 0], [-1, 1],
+  [ 0, -1],          [ 0, 1],
+  [ 1, -1], [ 1, 0], [ 1, 1]
+];
+
+const boardElement = document.getElementById("board");
+const statusElement = document.getElementById("status");
+const grapeScoreElement = document.getElementById("grapeScore");
+const appleScoreElement = document.getElementById("appleScore");
+
+const gameModeElement = document.getElementById("gameMode");
+const firstPlayerElement = document.getElementById("firstPlayer");
+const humanSideElement = document.getElementById("humanSide");
+const difficultyElement = document.getElementById("difficulty");
+
+const startButton = document.getElementById("startButton");
+const newGameButton = document.getElementById("newGameButton");
+
+
+/* =========================================================
+   ゲーム開始
+   ========================================================= */
+
+function startGame() {
+
+  gameMode = gameModeElement.value;
+
+  firstPlayer =
+    firstPlayerElement.value === "grape"
+      ? GRAPE
+      : APPLE;
+
+  humanSide =
+    humanSideElement.value === "grape"
+      ? GRAPE
+      : APPLE;
+
+  difficulty = difficultyElement.value;
+
+  gameOver = false;
+  thinking = false;
+
+  createInitialBoard();
+
+  currentPlayer = firstPlayer;
+
+  render();
+
+  if (gameMode === "cpu" && currentPlayer !== humanSide) {
+    computerTurn();
+  }
+}
+
+
+/* =========================================================
+   初期盤面
+   ========================================================= */
+
+function createInitialBoard() {
+
+  board = Array.from(
+    { length: SIZE },
+    () => Array(SIZE).fill(0)
+  );
+
+  /*
+       典型的なリバーシの初期配置
+
+       🍇 🍎
+       🍎 🍇
+  */
+
+  board[3][3] = GRAPE;
+  board[4][4] = GRAPE;
+
+  board[3][4] = APPLE;
+  board[4][3] = APPLE;
+}
+
+
+/* =========================================================
+   盤面描画
+   ========================================================= */
+
+function render() {
+
+  boardElement.innerHTML = "";
+
+  const validMoves =
+    gameOver || thinking
+      ? []
+      : getValidMoves(board, currentPlayer);
+
+  const validSet = new Set(
+    validMoves.map(move => `${move.r},${move.c}`)
+  );
+
+  for (let r = 0; r < SIZE; r++) {
+
+    for (let c = 0; c < SIZE; c++) {
+
+      const cell = document.createElement("button");
+
+      cell.className = "cell";
+
+      if (validSet.has(`${r},${c}`)) {
+        cell.classList.add("valid");
+      }
+
+      if (board[r][c] !== 0) {
+
+        const piece = document.createElement("div");
+
+        piece.className = "piece";
+
+        piece.textContent =
+          board[r][c] === GRAPE
+            ? GRAPE_EMOJI
+            : APPLE_EMOJI;
+
+        cell.appendChild(piece);
+      }
+
+      cell.addEventListener("click", () => {
+        handleCellClick(r, c);
+      });
+
+      boardElement.appendChild(cell);
+    }
+  }
+
+  updateScore();
+  updateStatus();
+}
+
+
+/* =========================================================
+   スコア
+   ========================================================= */
+
+function updateScore() {
+
+  let grape = 0;
+  let apple = 0;
+
+  for (const row of board) {
+    for (const cell of row) {
+
+      if (cell === GRAPE) grape++;
+      if (cell === APPLE) apple++;
+    }
+  }
+
+  grapeScoreElement.textContent = grape;
+  appleScoreElement.textContent = apple;
+}
+
+
+/* =========================================================
+   ステータス
+   ========================================================= */
+
+function updateStatus() {
+
+  if (gameOver) {
+    return;
+  }
+
+  const playerName =
+    currentPlayer === GRAPE
+      ? "🍇 ブドウ"
+      : "🍎 リンゴ";
+
+  if (thinking) {
+
+    statusElement.textContent =
+      "🤔 コンピュータが考えています…";
+
+    return;
+  }
+
+  if (gameMode === "cpu") {
+
+    if (currentPlayer === humanSide) {
+
+      statusElement.textContent =
+        `あなたの番です（${playerName}）`;
+
+    } else {
+
+      statusElement.textContent =
+        `コンピュータの番です（${playerName}）`;
+    }
+
+  } else {
+
+    statusElement.textContent =
+      `${playerName}の番です`;
+  }
+}
+
+
+/* =========================================================
+   マスをクリック
+   ========================================================= */
+
+function handleCellClick(r, c) {
+
+  if (gameOver || thinking) {
+    return;
+  }
+
+  if (
+    gameMode === "cpu" &&
+    currentPlayer !== humanSide
+  ) {
+    return;
+  }
+
+  const flips =
+    getFlips(board, r, c, currentPlayer);
+
+  if (flips.length === 0) {
+    return;
+  }
+
+  makeMove(r, c, currentPlayer, flips);
+
+  afterMove();
+}
+
+
+/* =========================================================
+   着手
+   ========================================================= */
+
+function makeMove(r, c, player, flips) {
+
+  board[r][c] = player;
+
+  for (const [fr, fc] of flips) {
+    board[fr][fc] = player;
+  }
+}
+
+
+/* =========================================================
+   着手後の処理
+   ========================================================= */
+
+function afterMove() {
+
+  const opponent = -currentPlayer;
+
+  currentPlayer = opponent;
+
+  /*
+     相手が打てない場合
+  */
+
+  const opponentMoves =
+    getValidMoves(board, currentPlayer);
+
+  if (opponentMoves.length === 0) {
+
+    const myMoves =
+      getValidMoves(board, -currentPlayer);
+
+    if (myMoves.length === 0) {
+
+      finishGame();
+      return;
+    }
+
+    const skippedPlayer =
+      currentPlayer === GRAPE
+        ? "🍇 ブドウ"
+        : "🍎 リンゴ";
+
+    statusElement.textContent =
+      `${skippedPlayer}は置ける場所がないためパスします。`;
+
+    currentPlayer = -currentPlayer;
+
+    render();
+
+    if (
+      gameMode === "cpu" &&
+      currentPlayer !== humanSide
+    ) {
+      computerTurn();
+    }
+
+    return;
+  }
+
+  render();
+
+  if (
+    gameMode === "cpu" &&
+    currentPlayer !== humanSide
+  ) {
+    computerTurn();
+  }
+}
+
+
+/* =========================================================
+   ゲーム終了
+   ========================================================= */
+
+function finishGame() {
+
+  gameOver = true;
+
+  let grape = 0;
+  let apple = 0;
+
+  for (const row of board) {
+    for (const cell of row) {
+
+      if (cell === GRAPE) grape++;
+      if (cell === APPLE) apple++;
+    }
+  }
+
+  let result;
+
+  if (grape > apple) {
+
+    result = "🍇 ブドウの勝ち！";
+
+  } else if (apple > grape) {
+
+    result = "🍎 リンゴの勝ち！";
+
+  } else {
+
+    result = "🤝 引き分け！";
+  }
+
+  statusElement.textContent =
+    `${result}　🍇 ${grape} - ${apple} 🍎`;
+
+  render();
+}
+
+
+/* =========================================================
+   指定位置に置いた場合、裏返せる石を取得
+   ========================================================= */
+
+function getFlips(state, r, c, player) {
+
+  if (!isInside(r, c)) {
+    return [];
+  }
+
+  if (state[r][c] !== 0) {
+    return [];
+  }
+
+  const opponent = -player;
+
+  const flips = [];
+
+  for (const [dr, dc] of directions) {
+
+    let nr = r + dr;
+    let nc = c + dc;
+
+    const line = [];
+
+    while (
+      isInside(nr, nc) &&
+      state[nr][nc] === opponent
+    ) {
+
+      line.push([nr, nc]);
+
+      nr += dr;
+      nc += dc;
+    }
+
+    if (
+      line.length > 0 &&
+      isInside(nr, nc) &&
+      state[nr][nc] === player
+    ) {
+
+      flips.push(...line);
+    }
+  }
+
+  return flips;
+}
+
+
+/* =========================================================
+   打てる場所一覧
+   ========================================================= */
+
+function getValidMoves(state, player) {
+
+  const moves = [];
+
+  for (let r = 0; r < SIZE; r++) {
+
+    for (let c = 0; c < SIZE; c++) {
+
+      const flips =
+        getFlips(state, r, c, player);
+
+      if (flips.length > 0) {
+
+        moves.push({
+          r,
+          c,
+          flips
+        });
+      }
+    }
+  }
+
+  return moves;
+}
+
+
+/* =========================================================
+   盤内判定
+   ========================================================= */
+
+function isInside(r, c) {
+
+  return (
+    r >= 0 &&
+    r < SIZE &&
+    c >= 0 &&
+    c < SIZE
+  );
+}
+
+
+/* =========================================================
+   コンピュータのターン
+   ========================================================= */
+
+function computerTurn() {
+
+  if (gameOver) {
+    return;
+  }
+
+  thinking = true;
+
+  render();
+
+  /*
+     少し待つことで「考えている」感じを出す
+  */
+
+  setTimeout(() => {
+
+    if (gameOver) {
+      thinking = false;
+      return;
+    }
+
+    const moves =
+      getValidMoves(board, currentPlayer);
+
+    if (moves.length === 0) {
+
+      thinking = false;
+
+      afterMove();
+
+      return;
+    }
+
+    const selected =
+      chooseComputerMove(
+        board,
+        currentPlayer,
+        difficulty
+      );
+
+    makeMove(
+      selected.r,
+      selected.c,
+      currentPlayer,
+      selected.flips
+    );
+
+    thinking = false;
+
+    afterMove();
+
+  }, 450);
+}
+
+
+/* =========================================================
+   コンピュータの手を選ぶ
+   ========================================================= */
+
+function chooseComputerMove(state, player, level) {
+
+  const moves = getValidMoves(state, player);
+
+  if (moves.length === 1) {
+    return moves[0];
+  }
+
+  /*
+     かんたん：
+     ランダム
+  */
+
+  if (level === "easy") {
+
+    return randomChoice(moves);
+  }
+
+
+  /*
+     ふつう：
+     角を優先しつつ、
+     裏返せる数もある程度考える
+  */
+
+  if (level === "normal") {
+
+    let bestScore = -Infinity;
+    let bestMoves = [];
+
+    for (const move of moves) {
+
+      let score =
+        move.flips.length * 2;
+
+      if (isCorner(move.r, move.c)) {
+        score += 100;
+      }
+
+      if (isEdge(move.r, move.c)) {
+        score += 8;
+      }
+
+      /*
+         相手に角を取らせる可能性を軽減
+      */
+
+      const nextState =
+        cloneBoard(state);
+
+      makeMove(
+        move.r,
+        move.c,
+        player,
+        move.flips
+      );
+
+      const opponentMoves =
+        getValidMoves(
+          nextState,
+          -player
+        );
+
+      for (const om of opponentMoves) {
+
+        if (isCorner(om.r, om.c)) {
+          score -= 50;
+        }
+      }
+
+      if (score > bestScore) {
+
+        bestScore = score;
+        bestMoves = [move];
+
+      } else if (score === bestScore) {
+
+        bestMoves.push(move);
+      }
+    }
+
+    return randomChoice(bestMoves);
+  }
+
+
+  /*
+     つよい：
+     ミニマックス探索
+  */
+
+  return findBestMove(state, player, 4);
+}
+
+
+/* =========================================================
+   ミニマックス
+   ========================================================= */
+
+function findBestMove(state, player, depth) {
+
+  const moves =
+    getValidMoves(state, player);
+
+  if (moves.length === 0) {
+    return null;
+  }
+
+  let bestScore = -Infinity;
+  let bestMoves = [];
+
+  for (const move of moves) {
+
+    const nextState =
+      cloneBoard(state);
+
+    makeMove(
+      move.r,
+      move.c,
+      player,
+      move.flips
+    );
+
+    const score =
+      minimax(
+        nextState,
+        -player,
+        depth - 1,
+        -Infinity,
+        Infinity,
+        player
+      );
+
+    if (score > bestScore) {
+
+      bestScore = score;
+      bestMoves = [move];
+
+    } else if (score === bestScore) {
+
+      bestMoves.push(move);
+    }
+  }
+
+  return randomChoice(bestMoves);
+}
+
+
+/* =========================================================
+   ミニマックス本体
+   ========================================================= */
+
+function minimax(
+  state,
+  player,
+  depth,
+  alpha,
+  beta,
+  maximizingPlayer
+) {
+
+  const moves =
+    getValidMoves(state, player);
+
+  const opponentMoves =
+    getValidMoves(state, -player);
+
+  /*
+     両方置けなければゲーム終了
+  */
+
+  if (
+    depth <= 0 ||
+    (moves.length === 0 && opponentMoves.length === 0)
+  ) {
+
+    return evaluateBoard(
+      state,
+      maximizingPlayer
+    );
+  }
+
+  /*
+     パス
+  */
+
+  if (moves.length === 0) {
+
+    return minimax(
+      state,
+      -player,
+      depth - 1,
+      alpha,
+      beta,
+      maximizingPlayer
+    );
+  }
+
+
+  const maximizing =
+    player === maximizingPlayer;
+
+  if (maximizing) {
+
+    let value = -Infinity;
+
+    for (const move of moves) {
+
+      const nextState =
+        cloneBoard(state);
+
+      makeMove(
+        move.r,
+        move.c,
+        player,
+        move.flips
+      );
+
+      value = Math.max(
+        value,
+        minimax(
+          nextState,
+          -player,
+          depth - 1,
+          alpha,
+          beta,
+          maximizingPlayer
+        )
+      );
+
+      alpha = Math.max(alpha, value);
+
+      if (alpha >= beta) {
+        break;
+      }
+    }
+
+    return value;
+
+  } else {
+
+    let value = Infinity;
+
+    for (const move of moves) {
+
+      const nextState =
+        cloneBoard(state);
+
+      makeMove(
+        move.r,
+        move.c,
+        player,
+        move.flips
+      );
+
+      value = Math.min(
+        value,
+        minimax(
+          nextState,
+          -player,
+          depth - 1,
+          alpha,
+          beta,
+          maximizingPlayer
+        )
+      );
+
+      beta = Math.min(beta, value);
+
+      if (alpha >= beta) {
+        break;
+      }
+    }
+
+    return value;
+  }
+}
+
+
+/* =========================================================
+   盤面評価
+   ========================================================= */
+
+function evaluateBoard(state, player) {
+
+  let score = 0;
+
+  /*
+     位置による評価
+  */
+
+  const weights = [
+    [120, -25,  20,  5,  5,  20, -25, 120],
+    [-25, -45,  -5, -5, -5,  -5, -45, -25],
+    [ 20,  -5,  15,  3,  3,  15,  -5,  20],
+    [  5,  -5,   3,  3,  3,   3,  -5,   5],
+    [  5,  -5,   3,  3,  3,   3,  -5,   5],
+    [ 20,  -5,  15,  3,  3,  15,  -5,  20],
+    [-25, -45,  -5, -5, -5,  -5, -45, -25],
+    [120, -25,  20,  5,  5,  20, -25, 120]
+  ];
+
+  for (let r = 0; r < SIZE; r++) {
+
+    for (let c = 0; c < SIZE; c++) {
+
+      if (state[r][c] === player) {
+
+        score += weights[r][c];
+
+      } else if (state[r][c] === -player) {
+
+        score -= weights[r][c];
+      }
+    }
+  }
+
+  /*
+     置ける場所の数も評価
+  */
+
+  const myMoves =
+    getValidMoves(state, player).length;
+
+  const opponentMoves =
+    getValidMoves(state, -player).length;
+
+  score +=
+    (myMoves - opponentMoves) * 5;
+
+  return score;
+}
+
+
+/* =========================================================
+   ユーティリティ
+   ========================================================= */
+
+function cloneBoard(state) {
+
+  return state.map(row => [...row]);
+}
+
+
+function randomChoice(array) {
+
+  return array[
+    Math.floor(
+      Math.random() * array.length
+    )
+  ];
+}
+
+
+function isCorner(r, c) {
+
+  return (
+    (r === 0 || r === SIZE - 1) &&
+    (c === 0 || c === SIZE - 1)
+  );
+}
+
+
+function isEdge(r, c) {
+
+  return (
+    r === 0 ||
+    r === SIZE - 1 ||
+    c === 0 ||
+    c === SIZE - 1
+  );
+}
+
+
+/* =========================================================
+   ボタン
+   ========================================================= */
+
+startButton.addEventListener(
+  "click",
+  startGame
+);
+
+newGameButton.addEventListener(
+  "click",
+  startGame
+);
+
+
+/* =========================================================
+   初期表示
+   ========================================================= */
+
+createInitialBoard();
+render();
+
+</script>
+
+</body>
+</html>
