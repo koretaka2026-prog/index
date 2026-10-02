@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リバーシ</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top, #124f3b 0%, #063326 50%, #031e17 100%);
+      color: white;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        Meiryo,
+        sans-serif;
+      user-select: none;
+    }
+
+    .game {
+      width: min(94vw, 620px);
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: clamp(28px, 6vw, 42px);
+      letter-spacing: 0.08em;
+    }
+
+    .subtitle {
+      margin: 6px 0 18px;
+      text-align: center;
+      color: #b8e8d4;
+      font-size: 14px;
+    }
+
+    /* スコア */
+    .score-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .score {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 58px;
+      padding: 10px;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.22);
+      transition: 0.2s;
+    }
+
+    .score.active {
+      border-color: #ffd54f;
+      background: rgba(255, 213, 79, 0.12);
+      box-shadow: 0 0 14px rgba(255, 213, 79, 0.22);
+    }
+
+    .mini-piece {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      border-radius: 50%;
+    }
+
+    .mini-piece.black {
+      background: radial-gradient(circle at 35% 30%, #555, #111 65%);
+      border: 1px solid #000;
+    }
+
+    .mini-piece.white {
+      background: radial-gradient(circle at 35% 30%, #fff, #ddd 65%);
+      border: 1px solid #aaa;
+    }
+
+    .score-text {
+      line-height: 1.1;
+    }
+
+    .score-name {
+      font-size: 13px;
+      color: #c8e6dc;
+    }
+
+    .score-number {
+      margin-top: 3px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    /* メッセージ */
+    #message {
+      min-height: 50px;
+      margin-bottom: 14px;
+      padding: 13px 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      font-weight: bold;
+    }
+
+    /* 盤 */
+    .board-frame {
+      padding: 8px;
+      border-radius: 15px;
+      background: #261910;
+      box-shadow:
+        0 16px 35px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 2px #59402d;
+    }
+
+    #board {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      overflow: hidden;
+      border: 2px solid #07281c;
+      background: #168853;
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      border: 1px solid rgba(0, 45, 27, 0.72);
+      background: #188c56;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    @media (hover: hover) {
+      .cell.can-put:hover {
+        background: #22a86a;
+      }
+    }
+
+    .piece {
+      width: 78%;
+      height: 78%;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: putPiece 0.18s ease-out;
+    }
+
+    .piece.black {
+      background:
+        radial-gradient(circle at 35% 28%, #555 0%, #181818 45%, #050505 80%);
+      border: 1px solid #000;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.25);
+    }
+
+    .piece.white {
+      background:
+        radial-gradient(circle at 35% 28%, #fff 0%, #f5f5f5 45%, #d0d0d0 100%);
+      border: 1px solid #aaa;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.35),
+        inset 0 1px 3px rgba(255, 255, 255, 0.9);
+    }
+
+    .hint {
+      width: 18%;
+      height: 18%;
+      border-radius: 50%;
+      background: rgba(255, 230, 100, 0.88);
+      box-shadow: 0 0 8px rgba(255, 220, 70, 0.8);
+      pointer-events: none;
+    }
+
+    @keyframes putPiece {
+      from {
+        transform: scale(0.3);
+        opacity: 0.2;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ボタン */
+    .buttons {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    #resetButton {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 28px;
+      background: #f6f8f7;
+      color: #073629;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      touch-action: manipulation;
+    }
+
+    #resetButton:hover {
+      background: #ffffff;
+    }
+
+    #resetButton:active {
+      transform: scale(0.97);
+    }
+
+    .help {
+      margin: 14px 8px 0;
+      text-align: center;
+      color: #b9ddd0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="game">
+    <h1>リバーシ</h1>
+    <p class="subtitle">黄色い印のマスをクリック / タップ</p>
+
+    <div class="score-area">
+      <div id="blackScoreBox" class="score active">
+        <div class="mini-piece black"></div>
+        <div class="score-text">
+          <div class="score-name">黒</div>
+          <div id="blackScore" class="score-number">2</div>
+        </div>
+      </div>
+
+      <div id="whiteScoreBox" class="score">
+        <div class="mini-piece white"></div>
+        <div class="score-text">
+          <div class="score-name">白</div>
+          <div id="whiteScore" class="score-number">2</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="message">黒の番です</div>
+
+    <div class="board-frame">
+      <div id="board" aria-label="リバーシ盤"></div>
+    </div>
+
+    <div class="buttons">
+      <button id="resetButton" type="button">
+        最初から
+      </button>
+    </div>
+
+    <p class="help">
+      黒が先手です。相手の石を挟める場所に石を置くと、
+      挟んだ石が自動的に裏返ります。<br>
+      置ける場所がない場合は自動的にパスします。
+    </p>
+  </main>
+
+
+  <script>
+    "use strict";
+
+    // =========================================================
+    // 定数
+    // =========================================================
+
+    const SIZE = 8;
+
+    const EMPTY = 0;
+    const BLACK = 1;
+    const WHITE = 2;
+
+    const DIRECTIONS = [
+      [-1, -1],
+      [ 0, -1],
+      [ 1, -1],
+      [-1,  0],
+      [ 1,  0],
+      [-1,  1],
+      [ 0,  1],
+      [ 1,  1]
+    ];
+
+
+    // =========================================================
+    // ゲーム状態
+    // =========================================================
+
+    let board = [];
+    let currentPlayer = BLACK;
+    let gameOver = false;
+    let statusMessage = "";
+
+
+    // =========================================================
+    // HTML要素
+    // =========================================================
+
+    const boardElement = document.getElementById("board");
+
+    const messageElement =
+      document.getElementById("message");
+
+    const blackScoreElement =
+      document.getElementById("blackScore");
+
+    const whiteScoreElement =
+      document.getElementById("whiteScore");
+
+    const blackScoreBox =
+      document.getElementById("blackScoreBox");
+
+    const whiteScoreBox =
+      document.getElementById("whiteScoreBox");
+
+    const resetButton =
+      document.getElementById("resetButton");
+
+
+    // =========================================================
+    // 初期化
+    // =========================================================
+
+    function initializeGame() {
+      board = Array.from(
+        { length: SIZE },
+        () => Array(SIZE).fill(EMPTY)
+      );
+
+      // 初期配置
+      board[3][3] = WHITE;
+      board[3][4] = BLACK;
+      board[4][3] = BLACK;
+      board[4][4] = WHITE;
+
+      currentPlayer = BLACK;
+      gameOver = false;
+      statusMessage = "黒の番です";
+
+      render();
+    }
+
+
+    // =========================================================
+    // 指定位置が盤面内か判定
+    // =========================================================
+
+    function isInside(x, y) {
+      return (
+        x >= 0 &&
+        x < SIZE &&
+        y >= 0 &&
+        y < SIZE
+      );
+    }
+
+
+    // =========================================================
+    // その場所に置いた場合に裏返せる石を取得
+    // =========================================================
+
+    function getFlippablePieces(x, y, player) {
+      if (board[y][x] !== EMPTY) {
+        return [];
+      }
+
+      const opponent =
+        player === BLACK ? WHITE : BLACK;
+
+      const allFlips = [];
+
+      for (const [dx, dy] of DIRECTIONS) {
+        const line = [];
+
+        let nx = x + dx;
+        let ny = y + dy;
+
+        // まず相手の石が連続している間進む
+        while (
+          isInside(nx, ny) &&
+          board[ny][nx] === opponent
+        ) {
+          line.push([nx, ny]);
+
+          nx += dx;
+          ny += dy;
+        }
+
+        // 相手の石の先に自分の石があれば
+        // その方向の石を全部裏返せる
+        if (
+          line.length > 0 &&
+          isInside(nx, ny) &&
+          board[ny][nx] === player
+        ) {
+          allFlips.push(...line);
+        }
+      }
+
+      return allFlips;
+    }
+
+
+    // =========================================================
+    // 置ける場所をすべて取得
+    // =========================================================
+
+    function getValidMoves(player) {
+      const moves = [];
+
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+
+          const flips =
+            getFlippablePieces(x, y, player);
+
+          if (flips.length > 0) {
+            moves.push({
+              x: x,
+              y: y,
+              flips: flips
+            });
+          }
+        }
+      }
+
+      return moves;
+    }
+
+
+    // =========================================================
+    // 石を置く
+    // =========================================================
+
+    function placePiece(x, y) {
+      if (gameOver) {
+        return;
+      }
+
+      const flips =
+        getFlippablePieces(x, y, currentPlayer);
+
+      // 置けない場所なら何もしない
+      if (flips.length === 0) {
+        return;
+      }
+
+      // 石を置く
+      board[y][x] = currentPlayer;
+
+      // 挟んだ石を裏返す
+      for (const [flipX, flipY] of flips) {
+        board[flipY][flipX] = currentPlayer;
+      }
+
+      // 相手の番へ
+      currentPlayer =
+        currentPlayer === BLACK ? WHITE : BLACK;
+
+      checkNextTurn();
+
+      render();
+    }
+
+
+    // =========================================================
+    // 次の手番をチェック
+    // =========================================================
+
+    function checkNextTurn() {
+      const validMoves =
+        getValidMoves(currentPlayer);
+
+      // 普通に次の人が置ける
+      if (validMoves.length > 0) {
+        statusMessage =
+          currentPlayer === BLACK
+            ? "黒の番です"
+            : "白の番です";
+
+        return;
+      }
+
+
+      // 次の人が置けないのでパス
+      const passedPlayer = currentPlayer;
+
+      currentPlayer =
+        currentPlayer === BLACK ? WHITE : BLACK;
+
+      const opponentMoves =
+        getValidMoves(currentPlayer);
+
+
+      // どちらも置けないならゲーム終了
+      if (opponentMoves.length === 0) {
+        endGame();
+        return;
+      }
+
+
+      const passedName =
+        passedPlayer === BLACK ? "黒" : "白";
+
+      const nextName =
+        currentPlayer === BLACK ? "黒" : "白";
+
+      statusMessage =
+        passedName +
+        "は置ける場所がないためパスです。" +
+        nextName +
+        "の番です";
+    }
+
+
+    // =========================================================
+    // ゲーム終了処理
+    // =========================================================
+
+    function endGame() {
+      gameOver = true;
+
+      const scores = countPieces();
+
+      if (scores.black > scores.white) {
+        statusMessage =
+          "ゲーム終了！ 黒の勝ちです！ " +
+          scores.black +
+          " 対 " +
+          scores.white;
+      }
+      else if (scores.white > scores.black) {
+        statusMessage =
+          "ゲーム終了！ 白の勝ちです！ " +
+          scores.white +
+          " 対 " +
+          scores.black;
+      }
+      else {
+        statusMessage =
+          "ゲーム終了！ 引き分けです！ " +
+          scores.black +
+          " 対 " +
+          scores.white;
+      }
+    }
+
+
+    // =========================================================
+    // 石を数える
+    // =========================================================
+
+    function countPieces() {
+      let black = 0;
+      let white = 0;
+
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+
+          if (board[y][x] === BLACK) {
+            black++;
+          }
+          else if (board[y][x] === WHITE) {
+            white++;
+          }
+        }
+      }
+
+      return {
+        black: black,
+        white: white
+      };
+    }
+
+
+    // =========================================================
+    // 盤面を描画
+    // =========================================================
+
+    function render() {
+      boardElement.innerHTML = "";
+
+      const validMoves =
+        gameOver
+          ? []
+          : getValidMoves(currentPlayer);
+
+      const validMoveSet = new Set(
+        validMoves.map(
+          move => move.x + "," + move.y
+        )
+      );
+
+
+      // 64マス生成
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+
+          const cell =
+            document.createElement("button");
+
+          cell.type = "button";
+          cell.className = "cell";
+
+          const key = x + "," + y;
+          const isValid =
+            validMoveSet.has(key);
+
+
+          if (isValid) {
+            cell.classList.add("can-put");
+          }
+
+
+          const value = board[y][x];
+
+
+          // 黒または白の石
+          if (
+            value === BLACK ||
+            value === WHITE
+          ) {
+            const piece =
+              document.createElement("div");
+
+            piece.className =
+              "piece " +
+              (value === BLACK
+                ? "black"
+                : "white");
+
+            cell.appendChild(piece);
+          }
+          // 置ける場所を黄色い点で表示
+          else if (isValid) {
+            const hint =
+              document.createElement("div");
+
+            hint.className = "hint";
+
+            cell.appendChild(hint);
+          }
+
+
+          // マウスクリックとタップの両方に対応
+          cell.addEventListener(
+            "click",
+            function () {
+              placePiece(x, y);
+            }
+          );
+
+
+          const columnName =
+            String.fromCharCode(65 + x);
+
+          cell.setAttribute(
+            "aria-label",
+            columnName +
+            (y + 1) +
+            (isValid
+              ? " 石を置けます"
+              : "")
+          );
+
+
+          boardElement.appendChild(cell);
+        }
+      }
+
+
+      // スコア更新
+      const scores = countPieces();
+
+      blackScoreElement.textContent =
+        scores.black;
+
+      whiteScoreElement.textContent =
+        scores.white;
+
+
+      // メッセージ更新
+      messageElement.textContent =
+        statusMessage;
+
+
+      // 現在の手番を強調
+      blackScoreBox.classList.remove("active");
+      whiteScoreBox.classList.remove("active");
+
+      if (!gameOver) {
+        if (currentPlayer === BLACK) {
+          blackScoreBox.classList.add("active");
+        }
+        else {
+          whiteScoreBox.classList.add("active");
+        }
+      }
+    }
+
+
+    // =========================================================
+    // リセット
+    // =========================================================
+
+    resetButton.addEventListener(
+      "click",
+      initializeGame
+    );
+
+
+    // =========================================================
+    // ゲーム開始
+    // =========================================================
+
+    initializeGame();
+  </script>
+
+</body>
+</html>
