@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卓球ゲーム</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    overflow:hidden;
+    touch-action:none;
+    font-family:sans-serif;
+}
+
+canvas{
+    display:block;
+    background:#0a5a2c;
+}
+
+#score{
+    position:absolute;
+    top:10px;
+    width:100%;
+    color:white;
+    text-align:center;
+    font-size:32px;
+    font-weight:bold;
+    pointer-events:none;
+}
+
+#message{
+    position:absolute;
+    top:55px;
+    width:100%;
+    text-align:center;
+    color:yellow;
+    font-size:22px;
+    pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<div id="score">0 : 0</div>
+<div id="message">マウスまたは指でラケットを動かしてください</div>
+<canvas id="game"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+}
+resize();
+window.addEventListener("resize",resize);
+
+const player={
+    x:0,
+    y:0,
+    w:120,
+    h:15
+};
+
+const cpu={
+    x:0,
+    y:40,
+    w:120,
+    h:15
+};
+
+const ball={
+    x:0,
+    y:0,
+    r:10,
+    vx:5,
+    vy:5
+};
+
+let playerScore=0;
+let cpuScore=0;
+
+function resetBall(direction=1){
+    ball.x=canvas.width/2;
+    ball.y=canvas.height/2;
+
+    let angle=(Math.random()*1.2)-0.6;
+
+    ball.vx=Math.sin(angle)*7;
+    ball.vy=7*direction;
+}
+
+player.x=canvas.width/2-player.w/2;
+player.y=canvas.height-60;
+
+cpu.x=canvas.width/2-cpu.w/2;
+
+resetBall(1);
+
+function update(){
+
+    cpu.x += ((ball.x-cpu.w/2)-cpu.x)*0.08;
+
+    ball.x+=ball.vx;
+    ball.y+=ball.vy;
+
+    if(ball.x-ball.r<0){
+        ball.x=ball.r;
+        ball.vx*=-1;
+    }
+
+    if(ball.x+ball.r>canvas.width){
+        ball.x=canvas.width-ball.r;
+        ball.vx*=-1;
+    }
+
+    if(
+        ball.y+ball.r>=player.y &&
+        ball.y-ball.r<=player.y+player.h &&
+        ball.x>=player.x &&
+        ball.x<=player.x+player.w &&
+        ball.vy>0
+    ){
+        const hit=(ball.x-(player.x+player.w/2))/(player.w/2);
+
+        ball.vy=-Math.abs(ball.vy)-0.15;
+        ball.vx+=hit*3;
+    }
+
+    if(
+        ball.y-ball.r<=cpu.y+cpu.h &&
+        ball.y+ball.r>=cpu.y &&
+        ball.x>=cpu.x &&
+        ball.x<=cpu.x+cpu.w &&
+        ball.vy<0
+    ){
+        const hit=(ball.x-(cpu.x+cpu.w/2))/(cpu.w/2);
+
+        ball.vy=Math.abs(ball.vy)+0.15;
+        ball.vx+=hit*2;
+    }
+
+    if(ball.y>canvas.height){
+        cpuScore++;
+        updateScore();
+
+        if(cpuScore>=11){
+            alert("コンピュータの勝ち！");
+            restart();
+            return;
+        }
+
+        resetBall(-1);
+    }
+
+    if(ball.y<0){
+        playerScore++;
+        updateScore();
+
+        if(playerScore>=11){
+            alert("あなたの勝ち！");
+            restart();
+            return;
+        }
+
+        resetBall(1);
+    }
+}
+
+function updateScore(){
+    document.getElementById("score").textContent=
+        playerScore+" : "+cpuScore;
+}
+
+function restart(){
+    playerScore=0;
+    cpuScore=0;
+    updateScore();
+    resetBall(1);
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=4;
+
+    ctx.beginPath();
+    ctx.moveTo(0,canvas.height/2);
+    ctx.lineTo(canvas.width,canvas.height/2);
+    ctx.stroke();
+
+    ctx.fillStyle="#4FC3F7";
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+
+    ctx.fillStyle="#FF5252";
+    ctx.fillRect(cpu.x,cpu.y,cpu.w,cpu.h);
+
+    ctx.fillStyle="white";
+
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fill();
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+function movePaddle(clientX){
+    player.x=clientX-player.w/2;
+
+    if(player.x<0){
+        player.x=0;
+    }
+
+    if(player.x+player.w>canvas.width){
+        player.x=canvas.width-player.w;
+    }
+}
+
+canvas.addEventListener("mousemove",e=>{
+    movePaddle(e.clientX);
+});
+
+canvas.addEventListener("touchstart",e=>{
+    movePaddle(e.touches[0].clientX);
+});
+
+canvas.addEventListener("touchmove",e=>{
+    movePaddle(e.touches[0].clientX);
+    e.preventDefault();
+},{passive:false});
+</script>
+
+</body>
+</html>
