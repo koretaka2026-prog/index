@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リバーシ</title>
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#2b2b2b;
+    color:white;
+    margin:0;
+    padding:20px;
+}
+
+h1{
+    margin-top:0;
+}
+
+#info{
+    margin:10px 0;
+    font-size:18px;
+}
+
+#board{
+    width:min(90vw, 560px);
+    height:min(90vw, 560px);
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    grid-template-rows:repeat(8,1fr);
+    gap:2px;
+    background:#003300;
+    padding:2px;
+    touch-action:manipulation;
+}
+
+.cell{
+    background:#0a7a28;
+    position:relative;
+    cursor:pointer;
+    user-select:none;
+}
+
+.cell.valid::after{
+    content:"";
+    position:absolute;
+    width:20%;
+    height:20%;
+    border-radius:50%;
+    background:rgba(255,255,0,.7);
+    top:40%;
+    left:40%;
+}
+
+.stone{
+    position:absolute;
+    width:80%;
+    height:80%;
+    border-radius:50%;
+    top:10%;
+    left:10%;
+}
+
+.black{
+    background:black;
+    box-shadow:0 0 4px rgba(0,0,0,0.6);
+}
+
+.white{
+    background:white;
+    box-shadow:0 0 4px rgba(255,255,255,0.6);
+}
+
+#status{
+    margin-top:10px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+button{
+    margin-top:15px;
+    padding:10px 20px;
+    font-size:16px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>リバーシ</h1>
+
+<div id="info"></div>
+<div id="board"></div>
+<div id="status"></div>
+
+<button id="restart">最初から</button>
+
+<script>
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = 2;
+
+let board = [];
+let currentPlayer = BLACK;
+
+const dirs = [
+    [-1,-1],[-1,0],[-1,1],
+    [0,-1],        [0,1],
+    [1,-1],[1,0],[1,1]
+];
+
+function initGame() {
+    board = Array(8).fill().map(() => Array(8).fill(EMPTY));
+
+    board[3][3] = WHITE;
+    board[3][4] = BLACK;
+    board[4][3] = BLACK;
+    board[4][4] = WHITE;
+
+    currentPlayer = BLACK;
+
+    render();
+}
+
+function inBoard(r,c){
+    return r>=0 && r<8 && c>=0 && c<8;
+}
+
+function opponent(player){
+    return player===BLACK ? WHITE : BLACK;
+}
+
+function getFlips(row,col,player){
+    if(board[row][col]!==EMPTY) return [];
+
+    const result = [];
+    const enemy = opponent(player);
+
+    for(const [dr,dc] of dirs){
+        let r=row+dr;
+        let c=col+dc;
+        const temp=[];
+
+        while(inBoard(r,c) && board[r][c]===enemy){
+            temp.push([r,c]);
+            r+=dr;
+            c+=dc;
+        }
+
+        if(
+            temp.length>0 &&
+            inBoard(r,c) &&
+            board[r][c]===player
+        ){
+            result.push(...temp);
+        }
+    }
+
+    return result;
+}
+
+function validMoves(player){
+    const moves=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(getFlips(r,c,player).length>0){
+                moves.push([r,c]);
+            }
+        }
+    }
+
+    return moves;
+}
+
+function placeStone(row,col){
+    const flips = getFlips(row,col,currentPlayer);
+
+    if(flips.length===0) return;
+
+    board[row][col]=currentPlayer;
+
+    for(const [r,c] of flips){
+        board[r][c]=currentPlayer;
+    }
+
+    currentPlayer = opponent(currentPlayer);
+
+    checkTurn();
+    render();
+}
+
+function checkTurn(){
+    let moves = validMoves(currentPlayer);
+
+    if(moves.length>0) return;
+
+    currentPlayer = opponent(currentPlayer);
+
+    moves = validMoves(currentPlayer);
+
+    if(moves.length>0){
+        alert("置ける場所がないためパスします。");
+        return;
+    }
+
+    finishGame();
+}
+
+function finishGame(){
+    let black=0;
+    let white=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(board[r][c]===BLACK) black++;
+            if(board[r][c]===WHITE) white++;
+        }
+    }
+
+    let msg = `ゲーム終了！ 黒:${black} 白:${white} `;
+
+    if(black>white) msg += "黒の勝ち";
+    else if(white>black) msg += "白の勝ち";
+    else msg += "引き分け";
+
+    document.getElementById("status").textContent = msg;
+}
+
+function render(){
+    const boardEl = document.getElementById("board");
+    boardEl.innerHTML = "";
+
+    const moves = validMoves(currentPlayer);
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+
+            if(moves.some(m=>m[0]===r && m[1]===c)){
+                cell.classList.add("valid");
+            }
+
+            cell.addEventListener("click",()=>{
+                placeStone(r,c);
+            });
+
+            if(board[r][c]!==EMPTY){
+                const stone = document.createElement("div");
+                stone.className =
+                    "stone " +
+                    (board[r][c]===BLACK ? "black" : "white");
+
+                cell.appendChild(stone);
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    let black=0;
+    let white=0;
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(board[r][c]===BLACK) black++;
+            if(board[r][c]===WHITE) white++;
+        }
+    }
+
+    document.getElementById("info").textContent =
+        `手番: ${currentPlayer===BLACK ? "黒" : "白"}　` +
+        `黒:${black} 白:${white}`;
+
+    if(document.getElementById("status").textContent.startsWith("ゲーム終了")){
+        return;
+    }
+
+    document.getElementById("status").textContent = "";
+}
+
+document.getElementById("restart").addEventListener(
+    "click",
+    ()=>{
+        document.getElementById("status").textContent="";
+        initGame();
+    }
+);
+
+initGame();
+</script>
+
+</body>
+</html>
