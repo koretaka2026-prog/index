@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>もぐらたたき</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    text-align:center;
+    background:#87ceeb;
+}
+
+h1{
+    margin:10px 0;
+}
+
+#info{
+    font-size:24px;
+    margin:10px;
+}
+
+#board{
+    width:330px;
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(3,100px);
+    gap:10px;
+}
+
+.hole{
+    width:100px;
+    height:100px;
+    background:#6b4423;
+    border-radius:50%;
+    position:relative;
+    overflow:hidden;
+}
+
+.mole{
+    position:absolute;
+    width:80px;
+    height:80px;
+    left:10px;
+    top:10px;
+    background:#8b5a2b;
+    border-radius:50%;
+    display:none;
+    cursor:pointer;
+    font-size:40px;
+    line-height:80px;
+}
+
+.show{
+    display:block;
+}
+
+button{
+    font-size:20px;
+    padding:10px 20px;
+}
+</style>
+</head>
+<body>
+
+<h1>🔨もぐらたたき</h1>
+
+<div id="info">
+スコア: <span id="score">0</span>
+　
+残り: <span id="time">30</span>秒
+</div>
+
+<div id="board"></div>
+
+<button id="startBtn">ゲーム開始</button>
+
+<script>
+const board = document.getElementById("board");
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
+
+let score = 0;
+let time = 30;
+let current = -1;
+let moleTimer;
+let gameTimer;
+let running = false;
+
+for(let i=0;i<9;i++){
+    const hole = document.createElement("div");
+    hole.className = "hole";
+
+    const mole = document.createElement("div");
+    mole.className = "mole";
+    mole.textContent = "🐹";
+
+    mole.addEventListener("click", () => {
+        if(!running) return;
+
+        if(Number(mole.dataset.id) === current){
+            score++;
+            scoreEl.textContent = score;
+            mole.classList.remove("show");
+            current = -1;
+        }
+    });
+
+    mole.dataset.id = i;
+
+    hole.appendChild(mole);
+    board.appendChild(hole);
+}
+
+const moles = document.querySelectorAll(".mole");
+
+function showRandomMole(){
+
+    moles.forEach(m =>
+        m.classList.remove("show")
+    );
+
+    current = Math.floor(Math.random() * 9);
+
+    moles[current].classList.add("show");
+}
+
+function startGame(){
+
+    clearInterval(moleTimer);
+    clearInterval(gameTimer);
+
+    score = 0;
+    time = 30;
+
+    scoreEl.textContent = score;
+    timeEl.textContent = time;
+
+    running = true;
+
+    moleTimer = setInterval(() => {
+        showRandomMole();
+    }, 600);
+
+    gameTimer = setInterval(() => {
+
+        time--;
+        timeEl.textContent = time;
+
+        if(time <= 0){
+
+            running = false;
+
+            clearInterval(moleTimer);
+            clearInterval(gameTimer);
+
+            moles.forEach(m =>
+                m.classList.remove("show")
+            );
+
+            alert("ゲーム終了！\nスコア: " + score);
+        }
+
+    },1000);
+}
+
+document
+.getElementById("startBtn")
+.addEventListener("click", startGame);
+</script>
+
+</body>
+</html>
