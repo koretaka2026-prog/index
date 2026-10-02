@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ジャンプアクションゲーム</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#87ceeb;
+    font-family:sans-serif;
+    user-select:none;
+}
+
+canvas{
+    display:block;
+    margin:auto;
+    background:#87ceeb;
+}
+
+#score{
+    position:fixed;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:24px;
+    font-weight:bold;
+    text-shadow:2px 2px 4px black;
+}
+
+#ui{
+    position:fixed;
+    bottom:10px;
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:center;
+    gap:12px;
+}
+
+.btn{
+    width:90px;
+    height:90px;
+    border:none;
+    border-radius:50%;
+    font-size:32px;
+    background:white;
+    box-shadow:0 4px 10px rgba(0,0,0,.3);
+}
+</style>
+</head>
+<body>
+
+<div id="score">スコア: 0</div>
+
+<canvas id="game" width="960" height="540"></canvas>
+
+<div id="ui">
+    <button class="btn" id="left">◀</button>
+    <button class="btn" id="right">▶</button>
+    <button class="btn" id="jump">▲</button>
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let score = 0;
+let gameClear = false;
+
+const gravity = 0.7;
+
+const player = {
+    x:100,
+    y:300,
+    w:40,
+    h:50,
+    vx:0,
+    vy:0,
+    onGround:false
+};
+
+let cameraX = 0;
+
+const control = {
+    left:false,
+    right:false
+};
+
+const platforms = [
+    {x:0,y:470,w:3200,h:70},
+
+    {x:250,y:380,w:160,h:20},
+    {x:500,y:320,w:160,h:20},
+    {x:800,y:260,w:160,h:20},
+
+    {x:1100,y:380,w:180,h:20},
+    {x:1400,y:300,w:180,h:20},
+    {x:1700,y:220,w:180,h:20},
+
+    {x:2100,y:350,w:180,h:20},
+    {x:2450,y:280,w:180,h:20}
+];
+
+const coins = [
+    {x:300,y:330,taken:false},
+    {x:550,y:270,taken:false},
+    {x:850,y:210,taken:false},
+    {x:1180,y:330,taken:false},
+    {x:1480,y:250,taken:false},
+    {x:1780,y:170,taken:false},
+    {x:2180,y:300,taken:false},
+    {x:2530,y:230,taken:false}
+];
+
+const enemies = [
+    {
+        x:650,
+        y:430,
+        w:40,
+        h:40,
+        dir:1,
+        minX:550,
+        maxX:850
+    },
+    {
+        x:1500,
+        y:260,
+        w:40,
+        h:40,
+        dir:1,
+        minX:1400,
+        maxX:1580
+    },
+    {
+        x:2200,
+        y:310,
+        w:40,
+        h:40,
+        dir:-1,
+        minX:2100,
+        maxX:2250
+    }
+];
+
+function respawn(){
+
+    player.x = 100;
+    player.y = 300;
+    player.vx = 0;
+    player.vy = 0;
+}
+
+function jump(){
+
+    if(player.onGround){
+        player.vy = -14;
+        player.onGround = false;
+    }
+}
+
+function update(){
+
+    if(gameClear){
+        return;
+    }
+
+    if(control.left){
+        player.vx = -5;
+    }
+    else if(control.right){
+        player.vx = 5;
+    }
+    else{
+        player.vx = 0;
+    }
+
+    player.x += player.vx;
+
+    const oldY = player.y;
+
+    player.vy += gravity;
+    player.y += player.vy;
+
+    player.onGround = false;
+
+    for(const p of platforms){
+
+        const overlapX =
+            player.x + player.w > p.x &&
+            player.x < p.x + p.w;
+
+        const wasAbove =
+            oldY + player.h <= p.y;
+
+        const crossed =
+            player.y + player.h >= p.y;
+
+        if(
+            overlapX &&
+            wasAbove &&
+            crossed &&
+            player.vy >= 0
+        ){
+            player.y = p.y - player.h;
+            player.vy = 0;
+            player.onGround = true;
+        }
+    }
+
+    for(const coin of coins){
+
+        if(coin.taken) continue;
+
+        const dx =
+            player.x + player.w/2 - coin.x;
+
+        const dy =
+            player.y + player.h/2 - coin.y;
+
+        if(Math.sqrt(dx*dx + dy*dy) < 28){
+
+            coin.taken = true;
+            score += 1;
+
+            document.getElementById("score")
+            .textContent = "スコア: " + score;
+        }
+    }
+
+    for(let i=enemies.length-1;i>=0;i--){
+
+        const e = enemies[i];
+
+        e.x += e.dir * 2;
+
+        if(e.x < e.minX){
+            e.dir = 1;
+        }
+
+        if(e.x > e.maxX){
+            e.dir = -1;
+        }
+
+        const hit =
+            player.x < e.x + e.w &&
+            player.x + player.w > e.x &&
+            player.y < e.y + e.h &&
+            player.y + player.h > e.y;
+
+        if(hit){
+
+            const stomp =
+                player.vy > 0 &&
+                player.y + player.h <
+                e.y + 18;
+
+            if(stomp){
+
+                enemies.splice(i,1);
+
+                player.vy = -10;
+
+                score += 5;
+
+                document.getElementById("score")
+                .textContent =
+                "スコア: " + score;
+
+            }else{
+
+                respawn();
+            }
+        }
+    }
+
+    if(player.y > 700){
+        respawn();
+    }
+
+    if(player.x > 2850){
+        gameClear = true;
+    }
+
+    cameraX = player.x - 250;
+
+    if(cameraX < 0){
+        cameraX = 0;
+    }
+}
+
+function drawBackground(){
+
+    ctx.fillStyle = "#87ceeb";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "white";
+
+    ctx.beginPath();
+    ctx.arc(120,100,40,0,Math.PI*2);
+    ctx.arc(160,90,35,0,Math.PI*2);
+    ctx.arc(200,100,40,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(600,140,30,0,Math.PI*2);
+    ctx.arc(640,130,25,0,Math.PI*2);
+    ctx.arc(680,140,30,0,Math.PI*2);
+    ctx.fill();
+}
+
+function draw(){
+
+    drawBackground();
+
+    ctx.fillStyle = "#6dbb4f";
+
+    for(const p of platforms){
+
+        ctx.fillRect(
+            p.x-cameraX,
+            p.y,
+            p.w,
+            p.h
+        );
+    }
+
+    for(const coin of coins){
+
+        if(coin.taken) continue;
+
+        ctx.fillStyle = "gold";
+
+        ctx.beginPath();
+        ctx.arc(
+            coin.x-cameraX,
+            coin.y,
+            10,
+            0,
+            Math.PI*2
+        );
+        ctx.fill();
+    }
+
+    for(const e of enemies){
+
+        ctx.fillStyle = "#8B4513";
+
+        ctx.fillRect(
+            e.x-cameraX,
+            e.y,
+            e.w,
+            e.h
+        );
+
+        ctx.fillStyle = "white";
+
+        ctx.fillRect(
+            e.x-cameraX+8,
+            e.y+10,
+            6,
+            6
+        );
+
+        ctx.fillRect(
+            e.x-cameraX+26,
+            e.y+10,
+            6,
+            6
+        );
+    }
+
+    ctx.fillStyle = "#e53935";
+
+    ctx.fillRect(
+        player.x-cameraX,
+        player.y,
+        player.w,
+        player.h
+    );
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(
+        player.x-cameraX+10,
+        player.y+10,
+        20,
+        10
+    );
+
+    const goalX = 2900;
+
+    ctx.fillStyle = "#666";
+
+    ctx.fillRect(
+        goalX-cameraX,
+        150,
+        10,
+        320
+    );
+
+    ctx.fillStyle="red";
+
+    ctx.fillRect(
+        goalX-cameraX,
+        160,
+        80,
+        40
+    );
+
+    if(gameClear){
+
+        ctx.fillStyle = "rgba(0,0,0,.7)";
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+
+        ctx.font = "60px sans-serif";
+        ctx.fillText(
+            "CLEAR!",
+            canvas.width/2,
+            220
+        );
+
+        ctx.font = "30px sans-serif";
+        ctx.fillText(
+            "最終スコア: " + score,
+            canvas.width/2,
+            300
+        );
+    }
+}
+
+function gameLoop(){
+
+    update();
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function bindHold(id, on, off){
+
+    const btn =
+        document.getElementById(id);
+
+    btn.addEventListener(
+        "pointerdown", on
+    );
+
+    btn.addEventListener(
+        "pointerup", off
+    );
+
+    btn.addEventListener(
+        "pointerleave", off
+    );
+
+    btn.addEventListener(
+        "pointercancel", off
+    );
+}
+
+bindHold(
+    "left",
+    ()=>control.left=true,
+    ()=>control.left=false
+);
+
+bindHold(
+    "right",
+    ()=>control.right=true,
+    ()=>control.right=false
+);
+
+document
+.getElementById("jump")
+.addEventListener(
+    "pointerdown",
+    jump
+);
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
