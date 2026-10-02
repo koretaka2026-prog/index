@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ゴー☆ジャス 国当て☆レボリューション！</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 50% 10%,#38216b 0,#121638 42%,#050817 100%);
+  color:#fff;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.game{
+  width:min(1000px,100%);
+  margin:auto;
+  padding:18px;
+}
+
+.title{
+  text-align:center;
+  font-weight:1000;
+  font-size:clamp(25px,5vw,48px);
+  color:#ffe34d;
+  text-shadow:
+    0 3px 0 #7a20c5,
+    0 0 18px #ffe34d55;
+  line-height:1.05;
+}
+
+.subtitle{
+  text-align:center;
+  color:#d8dcff;
+  margin:10px 0 18px;
+}
+
+.stats{
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.stat{
+  flex:1;
+  padding:8px;
+  background:#151a3b;
+  border:1px solid #454c82;
+  border-radius:12px;
+  text-align:center;
+  font-size:13px;
+}
+
+.stat strong{
+  display:block;
+  color:#ffe34d;
+  font-size:21px;
+}
+
+.target{
+  text-align:center;
+  background:#fff;
+  color:#17172c;
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.target small{
+  display:block;
+  color:#666;
+}
+
+.target strong{
+  color:#7025c5;
+  font-size:clamp(24px,6vw,34px);
+}
+
+.map-box{
+  position:relative;
+  background:
+    linear-gradient(#0a3974,#082a58);
+  border:4px solid #24295d;
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:
+    0 10px 35px #0007,
+    inset 0 0 40px #0006;
+}
+
+canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  touch-action:manipulation;
+  cursor:pointer;
+}
+
+.map-label{
+  position:absolute;
+  left:10px;
+  top:8px;
+  padding:5px 9px;
+  border-radius:8px;
+  background:#09132dcc;
+  color:#d9e8ff;
+  font-size:12px;
+  pointer-events:none;
+}
+
+.message{
+  min-height:42px;
+  margin:10px 0 4px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  font-size:clamp(17px,4vw,23px);
+  font-weight:900;
+}
+
+.choices{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:9px;
+}
+
+.choice{
+  min-height:52px;
+  border:2px solid #50588f;
+  border-radius:13px;
+  background:#191f4b;
+  color:#fff;
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.choice.correct{
+  background:#128f49;
+  border-color:#6dffad;
+}
+
+.choice.wrong{
+  background:#b52c45;
+  border-color:#ff8b9e;
+}
+
+.choice:active{
+  transform:scale(.98);
+}
+
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#08091fee;
+}
+
+.modal{
+  width:min(430px,100%);
+  background:#fff;
+  color:#18182c;
+  border-radius:22px;
+  padding:28px 22px;
+  text-align:center;
+  box-shadow:0 15px 60px #000b;
+}
+
+.modal h2{
+  color:#7025c5;
+  font-size:32px;
+  margin:0 0 10px;
+}
+
+.modal p{
+  line-height:1.7;
+}
+
+.start{
+  border:0;
+  border-radius:14px;
+  padding:15px 26px;
+  background:#ffcf27;
+  color:#32105c;
+  font-size:18px;
+  font-weight:1000;
+  cursor:pointer;
+  box-shadow:0 4px 0 #b48a00;
+}
+
+.hidden{
+  display:none;
+}
+
+.flash{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:#ffe84d;
+  opacity:0;
+}
+
+.flash.active{
+  animation:flash .5s ease;
+}
+
+@keyframes flash{
+  0%{opacity:.8}
+  100%{opacity:0}
+}
+
+@media(max-width:600px){
+
+  .game{
+    padding:10px;
+  }
+
+  .choices{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .choice{
+    font-size:14px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <div class="title">
+    🌎 ゴー☆ジャス<br>
+    国当て☆レボリューション！
+  </div>
+
+  <div class="subtitle">
+    地図をタップして、お題の国を探せ！
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      問題
+      <strong id="question">1 / 10</strong>
+    </div>
+
+    <div class="stat">
+      スコア
+      <strong id="score">0</strong>
+    </div>
+
+    <div class="stat">
+      ミス
+      <strong id="miss">0 / 3</strong>
+    </div>
+
+  </div>
+
+  <div class="target">
+    <small>今回探す国は……</small>
+    <strong id="target">マダガスカル</strong>
+  </div>
+
+  <div class="map-box">
+
+    <canvas id="map" width="1200" height="620"></canvas>
+
+    <div class="map-label">
+      WORLD MAP
+    </div>
+
+    <div class="flash" id="flash"></div>
+
+  </div>
+
+  <div
+    class="message"
+    id="message"
+    aria-live="polite"
+  >
+    地図から国を探してタップ！
+  </div>
+
+  <div
+    class="choices"
+    id="choices"
+  ></div>
+
+</div>
+
+
+<div class="overlay" id="overlay">
+
+  <div class="modal">
+
+    <h2 id="modalTitle">
+      🌎 国当てゲーム
+    </h2>
+
+    <p id="modalText">
+      地球儀ではなく世界地図で<br>
+      ゴー☆ジャスの国当てに挑戦！
+    </p>
+
+    <button
+      class="start"
+      id="start"
+    >
+      ゲームスタート！
+    </button>
+
+  </div>
+
+</div>
+
+
+<script>
+
+const canvas =
+  document.getElementById("map");
+
+const ctx =
+  canvas.getContext("2d");
+
+const targetElement =
+  document.getElementById("target");
+
+const questionElement =
+  document.getElementById("question");
+
+const scoreElement =
+  document.getElementById("score");
+
+const missElement =
+  document.getElementById("miss");
+
+const messageElement =
+  document.getElementById("message");
+
+const choicesElement =
+  document.getElementById("choices");
+
+const overlay =
+  document.getElementById("overlay");
+
+const modalTitle =
+  document.getElementById("modalTitle");
+
+const modalText =
+  document.getElementById("modalText");
+
+const startButton =
+  document.getElementById("start");
+
+const flash =
+  document.getElementById("flash");
+
+
+/*
+  世界地図用の簡略ポリゴン。
+
+  実際の地図帳に近い位置関係になるよう、
+  緯度経度をざっくりポリゴン化しています。
+
+  x = 経度
+  y = 緯度
+*/
+
+const countries = {
+
+  "カナダ":[
+    [-141,69],[-130,70],[-120,70],[-105,73],
+    [-90,70],[-75,62],[-60,55],[-65,48],
+    [-80,45],[-95,49],[-110,49],[-125,50],
+    [-135,58]
+  ],
+
+  "アメリカ":[
+    [-125,49],[-116,49],[-105,49],[-95,49],
+    [-82,46],[-70,44],[-67,38],[-75,30],
+    [-81,25],[-97,25],[-106,31],[-117,32],
+    [-124,40]
+  ],
+
+  "メキシコ":[
+    [-117,32],[-106,31],[-97,25],
+    [-90,19],[-92,15],[-102,17],
+    [-110,23]
+  ],
+
+  "ブラジル":[
+    [-73,5],[-60,5],[-50,2],[-35,-5],
+    [-35,-20],[-43,-28],[-53,-33],
+    [-65,-30],[-72,-15],[-75,-5]
+  ],
+
+  "アルゼンチン":[
+    [-68,-22],[-58,-22],[-53,-35],
+    [-58,-52],[-68,-55],[-72,-40]
+  ],
+
+  "チリ":[
+    [-70,-18],[-66,-25],[-68,-40],
+    [-72,-55],[-75,-45],[-73,-30]
+  ],
+
+  "イギリス":[
+    [-8,58],[-3,59],[2,55],[1,51],
+    [-4,50],[-6,53]
+  ],
+
+  "フランス":[
+    [-5,51],[2,51],[8,47],[6,43],
+    [0,43],[-2,47]
+  ],
+
+  "スペイン":[
+    [-9,43],[3,43],[4,37],[-8,36]
+  ],
+
+  "ドイツ":[
+    [6,55],[15,54],[15,47],[6,47]
+  ],
+
+  "イタリア":[
+    [7,46],[13,46],[18,40],[16,37],
+    [12,39],[10,43]
+  ],
+
+  "エジプト":[
+    [25,32],[36,31],[36,22],[25,22]
+  ],
+
+  "ナイジェリア":[
+    [3,14],[15,14],[14,4],[4,5]
+  ],
+
+  "南アフリカ":[
+    [16,-22],[33,-22],[32,-35],
+    [18,-35],[16,-29]
+  ],
+
+  /*
+    ★ここが今回の重要ポイント★
+
+    マダガスカルを独立した島として描画。
+    アフリカ東岸のモザンビーク海峡の東側。
+  */
+
+  "マダガスカル":[
+    [49,-12],
+    [50,-14],
+    [50.5,-18],
+    [50,-22],
+    [49,-25],
+    [47,-26],
+    [45.5,-24],
+    [44.5,-20],
+    [45,-16],
+    [46,-13],
+    [47.5,-11]
+  ],
+
+  "インド":[
+    [68,24],[78,31],[88,28],
+    [90,22],[85,18],[82,8],
+    [77,8],[73,16]
+  ],
+
+  "中国":[
+    [74,40],[80,45],[95,49],[110,48],
+    [124,43],[130,35],[121,22],
+    [108,20],[97,25],[85,28]
+  ],
+
+  "韓国":[
+    [126,38],[130,39],[129,35],[126,34]
+  ],
+
+  "日本":[
+    [130,33],[132,35],[134,37],
+    [136,39],[140,40],[142,43],
+    [145,42],[142,36],[138,34],
+    [135,32],[132,31]
+  ],
+
+  "オーストラリア":[
+    [113,-22],[114,-14],[125,-12],
+    [136,-12],[145,-16],[153,-24],
+    [151,-35],[140,-39],[126,-38],
+    [115,-33]
+  ],
+
+  "インドネシア":[
+    [95,5],[105,2],[115,-2],[125,-3],
+    [135,-5],[140,-9],[130,-10],
+    [118,-7],[108,-8],[100,-5]
+  ],
+
+  "タイ":[
+    [98,20],[106,20],[105,13],
+    [102,8],[99,8],[100,14]
+  ]
+
+};
+
+
+/*
+  出題候補。
+
+  マダガスカルを必ず含める。
+*/
+
+const questionCountries = [
+
+  "マダガスカル",
+  "日本",
+  "アメリカ",
+  "ブラジル",
+  "フランス",
+  "エジプト",
+  "オーストラリア",
+  "インド",
+  "イタリア",
+  "カナダ",
+  "スペイン",
+  "韓国",
+  "メキシコ",
+  "イギリス",
+  "ドイツ",
+  "タイ",
+  "中国",
+  "南アフリカ"
+
+];
+
+
+const flags = {
+
+  "マダガスカル":"🇲🇬",
+  "日本":"🇯🇵",
+  "アメリカ":"🇺🇸",
+  "ブラジル":"🇧🇷",
+  "フランス":"🇫🇷",
+  "エジプト":"🇪🇬",
+  "オーストラリア":"🇦🇺",
+  "インド":"🇮🇳",
+  "イタリア":"🇮🇹",
+  "カナダ":"🇨🇦",
+  "スペイン":"🇪🇸",
+  "韓国":"🇰🇷",
+  "メキシコ":"🇲🇽",
+  "イギリス":"🇬🇧",
+  "ドイツ":"🇩🇪",
+  "タイ":"🇹🇭",
+  "中国":"🇨🇳",
+  "南アフリカ":"🇿🇦"
+};
+
+
+let question = 0;
+let score = 0;
+let miss = 0;
+
+let currentCountry = null;
+
+let answered = false;
+
+let highlightedCountry = null;
+
+
+/*
+  緯度経度 → Canvas座標
+*/
+
+function project(lon,lat){
+
+  const x =
+    (lon + 180) / 360 * canvas.width;
+
+  const y =
+    (90 - lat) / 180 * canvas.height;
+
+  return [x,y];
+
+}
+
+
+/*
+  ポリゴンを描画
+*/
+
+function drawCountry(name){
+
+  const points =
+    countries[name];
+
+  if(!points) return;
+
+  ctx.beginPath();
+
+  points.forEach((point,index)=>{
+
+    const [x,y] =
+      project(point[0],point[1]);
+
+    if(index === 0){
+
+      ctx.moveTo(x,y);
+
+    }else{
+
+      ctx.lineTo(x,y);
+
+    }
+
+  });
+
+  ctx.closePath();
+
+  ctx.fillStyle =
+    name === highlightedCountry
+      ? "#ffe14b"
+      : "#55a84f";
+
+  ctx.fill();
+
+  ctx.strokeStyle =
+    name === highlightedCountry
+      ? "#ffffff"
+      : "#173f35";
+
+  ctx.lineWidth =
+    name === highlightedCountry
+      ? 4
+      : 1.5;
+
+  ctx.stroke();
+
+}
+
+
+/*
+  海を描く
+*/
+
+function drawOcean(){
+
+  const gradient =
+    ctx.createLinearGradient(
+      0,0,
+      0,canvas.height
+    );
+
+  gradient.addColorStop(
+    0,
+    "#14558e"
+  );
+
+  gradient.addColorStop(
+    .5,
+    "#0b477b"
+  );
+
+  gradient.addColorStop(
+    1,
+    "#062e5d"
+  );
+
+  ctx.fillStyle =
+    gradient;
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+}
+
+
+/*
+  緯度経度のグリッド
+*/
+
+function drawGrid(){
+
+  ctx.strokeStyle =
+    "rgba(170,220,255,.12)";
+
+  ctx.lineWidth = 1;
+
+  for(
+    let lon=-180;
+    lon<=180;
+    lon+=30
+  ){
+
+    const [x] =
+      project(lon,0);
+
+    ctx.beginPath();
+
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,canvas.height);
+
+    ctx.stroke();
+
+  }
+
+  for(
+    let lat=-60;
+    lat<=60;
+    lat+=30
+  ){
+
+    const [,y] =
+      project(0,lat);
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,y);
+    ctx.lineTo(canvas.width,y);
+
+    ctx.stroke();
+
+  }
+
+}
+
+
+/*
+  地図全体
+*/
+
+function drawMap(){
+
+  drawOcean();
+
+  drawGrid();
+
+  highlightedCountry = null;
+
+  Object.keys(countries).forEach(
+    drawCountry
+  );
+
+}
+
+
+/*
+  国の中心点を取得
+*/
+
+function getCenter(name){
+
+  const points =
+    countries[name];
+
+  let lon = 0;
+  let lat = 0;
+
+  points.forEach(p=>{
+    lon += p[0];
+    lat += p[1];
+  });
+
+  lon /= points.length;
+  lat /= points.length;
+
+  return project(lon,lat);
+
+}
+
+
+/*
+  国のポリゴン内判定
+*/
+
+function pointInPolygon(
+  x,
+  y,
+  points
+){
+
+  let inside = false;
+
+  for(
+    let i=0,j=points.length-1;
+    i<points.length;
+    j=i++
+  ){
+
+    const xi =
+      points[i][0];
+
+    const yi =
+      points[i][1];
+
+    const xj =
+      points[j][0];
+
+    const yj =
+      points[j][1];
+
+    const intersect =
+      (
+        (yi > y) !== (yj > y)
+      ) &&
+      (
+        x <
+        (xj-xi) *
+        (y-yi) /
+        (yj-yi) +
+        xi
+      );
+
+    if(intersect){
+
+      inside = !inside;
+
+    }
+
+  }
+
+  return inside;
+
+}
+
+
+/*
+  Canvas上のクリック位置から
+  国を探す
+*/
+
+function findCountryAt(
+  canvasX,
+  canvasY
+){
+
+  /*
+    上にある国からチェック。
+    島などを優先。
+  */
+
+  const names =
+    Object.keys(countries)
+      .reverse();
+
+  for(
+    const name of names
+  ){
+
+    const polygon =
+      countries[name]
+        .map(p=>project(p[0],p[1]));
+
+    if(
+      pointInPolygon(
+        canvasX,
+        canvasY,
+        polygon
+      )
+    ){
+
+      return name;
+
+    }
+
+  }
+
+  return null;
+
+}
+
+
+/*
+  地図クリック
+*/
+
+canvas.addEventListener(
+  "click",
+  event=>{
+
+    if(answered) return;
+
+    const rect =
+      canvas.getBoundingClientRect();
+
+    const scaleX =
+      canvas.width /
+      rect.width;
+
+    const scaleY =
+      canvas.height /
+      rect.height;
+
+    const x =
+      (event.clientX-rect.left)
+      * scaleX;
+
+    const y =
+      (event.clientY-rect.top)
+      * scaleY;
+
+    const selected =
+      findCountryAt(x,y);
+
+    if(!selected){
+
+      messageElement.textContent =
+        "🌊 そこは海だ！ 国を探してみよう！";
+
+      return;
+
+    }
+
+    answer(selected);
+
+  }
+);
+
+
+/*
+  選択肢クリック
+*/
+
+function answerFromButton(name){
+
+  if(answered) return;
+
+  answer(name);
+
+}
+
+
+/*
+  正解判定
+*/
+
+function answer(name){
+
+  answered = true;
+
+  highlightedCountry =
+    name;
+
+  drawMap();
+
+  if(
+    name === currentCountry
+  ){
+
+    score++;
+
+    scoreElement.textContent =
+      score;
+
+    messageElement.innerHTML =
+      "🌟 正解！！<br>" +
+      "<b>" +
+      flags[name] +
+      " " +
+      name +
+      "！！</b>";
+
+    messageElement.style.color =
+      "#71ffad";
+
+    flash.classList.remove(
+      "active"
+    );
+
+    void flash.offsetWidth;
+
+    flash.classList.add(
+      "active"
+    );
+
+    if(
+      name === "マダガスカル"
+    ){
+
+      setTimeout(()=>{
+
+        messageElement.innerHTML =
+          "🌎 <b>マダガスカル！！</b><br>" +
+          "君のハートに、レボ☆リューション！！";
+
+      },350);
+
+    }
+
+  }else{
+
+    miss++;
+
+    missElement.textContent =
+      miss + " / 3";
+
+    messageElement.innerHTML =
+      "💥 ちがう！<br>" +
+      "正解は " +
+      flags[currentCountry] +
+      " " +
+      currentCountry +
+      "！";
+
+    messageElement.style.color =
+      "#ff9aaa";
+
+    highlightedCountry =
+      currentCountry;
+
+    drawMap();
+
+  }
+
+
+  /*
+    選択肢の色
+  */
+
+  Array.from(
+    choicesElement.children
+  ).forEach(button=>{
+
+    if(
+      button.dataset.country ===
+      currentCountry
+    ){
+
+      button.classList.add(
+        "correct"
+      );
+
+    }
+
+    if(
+      button.dataset.country === name &&
+      name !== currentCountry
+    ){
+
+      button.classList.add(
+        "wrong"
+      );
+
+    }
+
+  });
+
+
+  if(miss >= 3){
+
+    setTimeout(
+      finishGame,
+      1200
+    );
+
+    return;
+
+  }
+
+
+  setTimeout(
+    nextQuestion,
+    1400
+  );
+
+}
+
+
+/*
+  配列シャッフル
+*/
+
+function shuffle(array){
+
+  return [...array].sort(
+    ()=>Math.random()-.5
+  );
+
+}
+
+
+/*
+  次の問題
+*/
+
+function nextQuestion(){
+
+  if(question >= 10){
+
+    finishGame();
+
+    return;
+
+  }
+
+  question++;
+
+  answered = false;
+
+  highlightedCountry = null;
+
+  /*
+    マダガスカルを
+    最初の問題で確実に登場させる。
+  */
+
+  if(question === 1){
+
+    currentCountry =
+      "マダガスカル";
+
+  }else{
+
+    currentCountry =
+      questionCountries[
+        Math.floor(
+          Math.random() *
+          questionCountries.length
+        )
+      ];
+
+  }
+
+
+  targetElement.textContent =
+    currentCountry;
+
+  questionElement.textContent =
+    question + " / 10";
+
+  messageElement.textContent =
+    "🗺️ 地図から " +
+    currentCountry +
+    " を探してタップ！";
+
+  messageElement.style.color =
+    "white";
+
+
+  drawMap();
+
+  createChoices();
+
+}
+
+
+/*
+  選択肢作成
+*/
+
+function createChoices(){
+
+  choicesElement.innerHTML =
+    "";
+
+  const wrong =
+    shuffle(
+      questionCountries.filter(
+        name =>
+          name !== currentCountry
+      )
+    ).slice(0,3);
+
+  const options =
+    shuffle([
+      currentCountry,
+      ...wrong
+    ]);
+
+
+  options.forEach(name=>{
+
+    const button =
+      document.createElement(
+        "button"
+      );
+
+    button.type =
+      "button";
+
+    button.className =
+      "choice";
+
+    button.dataset.country =
+      name;
+
+    button.textContent =
+      flags[name] +
+      " " +
+      name;
+
+    button.addEventListener(
+      "click",
+      ()=>{
+        answerFromButton(name);
+      }
+    );
+
+    choicesElement.appendChild(
+      button
+    );
+
+  });
+
+}
+
+
+/*
+  ゲーム終了
+*/
+
+function finishGame(){
+
+  answered = true;
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+  if(miss >= 3){
+
+    modalTitle.textContent =
+      "💥 GAME OVER";
+
+  }else{
+
+    modalTitle.textContent =
+      "🏆 レボ☆リューション！";
+
+  }
+
+  const rate =
+    Math.round(
+      score / 10 * 100
+    );
+
+  modalText.innerHTML =
+    "最終スコア<br>" +
+    "<strong style=\"" +
+    "font-size:42px;" +
+    "color:#7025c5" +
+    "\">" +
+    score +
+    " / 10" +
+    "</strong>" +
+    "<br>" +
+    "正解率 " +
+    rate +
+    "%";
+
+  startButton.textContent =
+    "もう一度遊ぶ！";
+
+}
+
+
+/*
+  ゲーム開始
+*/
+
+function startGame(){
+
+  question = 0;
+  score = 0;
+  miss = 0;
+
+  answered = false;
+
+  scoreElement.textContent =
+    "0";
+
+  missElement.textContent =
+    "0 / 3";
+
+  overlay.classList.add(
+    "hidden"
+  );
+
+  nextQuestion();
+
+}
+
+
+/*
+  スタートボタン
+*/
+
+startButton.addEventListener(
+  "click",
+  startGame
+);
+
+
+/*
+  初期表示
+*/
+
+drawMap();
+
+</script>
+
+</body>
+</html>
