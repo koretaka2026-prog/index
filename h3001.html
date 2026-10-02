@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>テトリス</title>
+ 
+<style>
+body{
+margin:0;
+background:#222;
+color:white;
+font-family:sans-serif;
+text-align:center;
+}
+ 
+#startScreen{
+position:fixed;
+inset:0;
+background:#222;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:100;
+}
+ 
+#startScreen h1{
+font-size:56px;
+margin-bottom:30px;
+}
+ 
+#startButton{
+width:220px;
+height:80px;
+font-size:28px;
+border:none;
+border-radius:15px;
+background:#27ae60;
+color:white;
+}
+ 
+#gameContainer{
+display:none;
+padding:10px;
+}
+ 
+#gameArea{
+display:flex;
+justify-content:center;
+margin-top:10px;
+}
+ 
+#boardFrame{
+display:inline-block;
+padding:10px;
+border:5px solid #888;
+border-radius:15px;
+background:#333;
+box-shadow:0 0 20px rgba(0,0,0,0.6);
+}
+ 
+canvas{
+background:#111;
+border:4px solid #fff;
+box-shadow:0 0 15px rgba(255,255,255,0.5);
+touch-action:none;
+}
+ 
+#info{
+margin-top:10px;
+font-size:22px;
+}
+ 
+.controls{
+margin-top:15px;
+display:grid;
+grid-template-columns:repeat(3,90px);
+gap:10px;
+justify-content:center;
+}
+ 
+button{
+font-size:24px;
+height:60px;
+border:none;
+border-radius:12px;
+background:#3498db;
+color:white;
+}
+ 
+button:active{
+transform:scale(0.95);
+}
+ 
+#drop{
+grid-column:2;
+}
+</style>
+</head>
+<body>
+ 
+<div id="startScreen">
+<h1>テトリス</h1>
+<button id="startButton">ゲーム開始</button>
+</div>
+ 
+<div id="gameContainer">
+ 
+<h2>テトリス</h2>
+ 
+<div id="gameArea">
+<div id="boardFrame">
+<canvas id="game" width="300" height="600"></canvas>
+</div>
+</div>
+ 
+<div id="info">
+スコア: <span id="score">0</span>
+</div>
+ 
+<div class="controls">
+<button id="rotate">↻</button>
+<button id="drop">↓</button>
+<button id="right">→</button>
+<button id="left">←</button>
+</div>
+ 
+</div>
+ 
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ 
+const ROWS = 20;
+const COLS = 10;
+const BLOCK = 30;
+ 
+const scoreText = document.getElementById("score");
+ 
+const colors = [
+null,
+"#00FFFF",
+"#FFFF00",
+"#AA00FF",
+"#00FF00",
+"#FF0000",
+"#0000FF",
+"#FF9900"
+];
+ 
+const pieces = [
+[],
+[[1,1,1,1]],
+[[2,2],[2,2]],
+[[0,3,0],[3,3,3]],
+[[0,4,4],[4,4,0]],
+[[5,5,0],[0,5,5]],
+[[6,0,0],[6,6,6]],
+[[0,0,7],[7,7,7]]
+];
+ 
+let board=[];
+let score=0;
+let current;
+let gameRunning=false;
+ 
+function initBoard(){
+board=[];
+for(let y=0;y<ROWS;y++){
+board.push(new Array(COLS).fill(0));
+}
+}
+ 
+function randomPiece(){
+const id=Math.floor(Math.random()*7)+1;
+ 
+return{
+x:3,
+y:0,
+shape:pieces[id],
+color:id
+};
+}
+ 
+function drawBlock(x,y,color){
+ctx.fillStyle=color;
+ctx.fillRect(
+x*BLOCK,
+y*BLOCK,
+BLOCK,
+BLOCK
+);
+ 
+ctx.strokeStyle="#000";
+ctx.strokeRect(
+x*BLOCK,
+y*BLOCK,
+BLOCK,
+BLOCK
+);
+}
+ 
+function drawGrid(){
+ctx.strokeStyle="#333";
+ 
+for(let x=0;x<=COLS;x++){
+ctx.beginPath();
+ctx.moveTo(x*BLOCK,0);
+ctx.lineTo(x*BLOCK,canvas.height);
+ctx.stroke();
+}
+ 
+for(let y=0;y<=ROWS;y++){
+ctx.beginPath();
+ctx.moveTo(0,y*BLOCK);
+ctx.lineTo(canvas.width,y*BLOCK);
+ctx.stroke();
+}
+}
+ 
+function draw(){
+ 
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+ 
+for(let y=0;y<ROWS;y++){
+for(let x=0;x<COLS;x++){
+if(board[y][x]){
+drawBlock(
+x,
+y,
+colors[board[y][x]]
+);
+}
+}
+}
+ 
+current.shape.forEach((row,dy)=>{
+row.forEach((value,dx)=>{
+if(value){
+drawBlock(
+current.x+dx,
+current.y+dy,
+colors[current.color]
+);
+}
+});
+});
+ 
+drawGrid();
+}
+ 
+function collide(px=current.x,py=current.y,shape=current.shape){
+ 
+for(let y=0;y<shape.length;y++){
+for(let x=0;x<shape[y].length;x++){
+ 
+if(shape[y][x]){
+ 
+let nx=px+x;
+let ny=py+y;
+ 
+if(
+nx<0||
+nx>=COLS||
+ny>=ROWS
+){
+return true;
+}
+ 
+if(
+ny>=0 &&
+board[ny][nx]
+){
+return true;
+}
+}
+}
+}
+ 
+return false;
+}
+ 
+function merge(){
+ 
+current.shape.forEach((row,y)=>{
+row.forEach((value,x)=>{
+if(value){
+board[current.y+y][current.x+x]=current.color;
+}
+});
+});
+}
+ 
+function clearLines(){
+ 
+let lines=0;
+ 
+for(let y=ROWS-1;y>=0;y--){
+ 
+if(board[y].every(v=>v!==0)){
+ 
+board.splice(y,1);
+board.unshift(
+new Array(COLS).fill(0)
+);
+ 
+lines++;
+y++;
+}
+}
+ 
+if(lines){
+score+=lines*100;
+scoreText.textContent=score;
+}
+}
+ 
+function spawn(){
+ 
+current=randomPiece();
+ 
+if(collide()){
+ 
+gameRunning=false;
+ 
+alert(
+"ゲームオーバー\nスコア: "+score
+);
+ 
+document.getElementById(
+"gameContainer"
+).style.display="none";
+ 
+document.getElementById(
+"startScreen"
+).style.display="flex";
+}
+}
+ 
+function move(dir){
+ 
+if(!collide(
+current.x+dir,
+current.y
+)){
+current.x+=dir;
+}
+}
+ 
+function rotate(){
+ 
+const rotated=current.shape[0].map(
+(_,i)=>
+current.shape
+.map(row=>row[i])
+.reverse()
+);
+ 
+if(!collide(
+current.x,
+current.y,
+rotated
+)){
+current.shape=rotated;
+}
+}
+ 
+function drop(){
+ 
+if(!collide(
+current.x,
+current.y+1
+)){
+current.y++;
+}
+else{
+ 
+merge();
+clearLines();
+spawn();
+}
+}
+ 
+let dropCounter=0;
+let lastTime=0;
+ 
+function update(time=0){
+ 
+if(!gameRunning) return;
+ 
+const delta=time-lastTime;
+lastTime=time;
+ 
+dropCounter+=delta;
+ 
+if(dropCounter>700){
+drop();
+dropCounter=0;
+}
+ 
+draw();
+ 
+requestAnimationFrame(update);
+}
+ 
+document.getElementById("left")
+.addEventListener("click",()=>move(-1));
+ 
+document.getElementById("right")
+.addEventListener("click",()=>move(1));
+ 
+document.getElementById("rotate")
+.addEventListener("click",()=>rotate());
+ 
+document.getElementById("drop")
+.addEventListener("click",()=>drop());
+ 
+document.getElementById("startButton")
+.addEventListener("click",()=>{
+ 
+score=0;
+scoreText.textContent=0;
+ 
+initBoard();
+current=randomPiece();
+ 
+document.getElementById(
+"startScreen"
+).style.display="none";
+ 
+document.getElementById(
+"gameContainer"
+).style.display="block";
+ 
+gameRunning=true;
+dropCounter=0;
+lastTime=0;
+ 
+update();
+});
+</script>
+ 
+</body>
+</html>
