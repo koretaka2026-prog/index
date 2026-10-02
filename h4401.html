@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>💖ギャルシー💖</title>
+
+<style>
+body{
+ margin:0;
+ text-align:center;
+ font-family:"Yu Gothic",sans-serif;
+ background:linear-gradient(135deg,#ff73c4,#ffc0e8,#ffe0f5);
+ color:#fff;
+}
+
+h1{
+ text-shadow:0 0 10px #fff,0 0 20px hotpink;
+ animation:pika 1s infinite alternate;
+}
+
+@keyframes pika{
+ from{transform:scale(1);}
+ to{transform:scale(1.08);}
+}
+
+select,button{
+ padding:10px;
+ margin:5px;
+ border:none;
+ border-radius:999px;
+ background:#ff4db8;
+ color:white;
+ font-weight:bold;
+ cursor:pointer;
+}
+
+#status,#score{
+ margin:10px;
+ font-size:20px;
+ font-weight:bold;
+}
+
+#board{
+ width:min(90vw,640px);
+ height:min(90vw,640px);
+
+ margin:auto;
+
+ display:grid;
+ grid-template-columns:repeat(8,1fr);
+
+ background:#ff4fc3;
+
+ border-radius:20px;
+
+ overflow:hidden;
+
+ box-shadow:
+ 0 0 20px white,
+ 0 0 40px hotpink;
+}
+
+.cell{
+ border:1px solid rgba(255,255,255,.3);
+ position:relative;
+}
+
+.black,.white{
+ width:80%;
+ height:80%;
+ position:absolute;
+ left:10%;
+ top:10%;
+ border-radius:50%;
+}
+
+.black{
+ background:linear-gradient(#555,#000);
+ box-shadow:0 0 15px white;
+}
+
+.white{
+ background:linear-gradient(#fff,#ffe3f7);
+ box-shadow:0 0 15px hotpink;
+}
+
+.valid::after{
+ content:"💖";
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>💖ギャルシー💖</h1>
+
+<div>
+
+<select id="mode">
+<option value="pvp">人対人</option>
+<option value="cpu">人対CPU</option>
+</select>
+
+<select id="side">
+<option value="black">先攻(黒)</option>
+<option value="white">後攻(白)</option>
+</select>
+
+<select id="level">
+<option value="1">よわたん</option>
+<option value="2">ふつー</option>
+<option value="3">ガチ強</option>
+</select>
+
+<button onclick="newGame()">START💖</button>
+
+</div>
+
+<div id="status"></div>
+<div id="score"></div>
+<div id="board"></div>
+
+<script>
+
+const E=0,B=1,W=2;
+
+let board=[];
+let turn=B;
+let player=B;
+let cpu=W;
+let mode="pvp";
+let level=2;
+
+const bd=document.getElementById("board");
+const st=document.getElementById("status");
+const sc=document.getElementById("score");
+
+const dir=[
+[-1,-1],[-1,0],[-1,1],
+[0,-1],[0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function init(){
+
+board=[];
+
+for(let y=0;y<8;y++){
+ board[y]=[];
+ for(let x=0;x<8;x++) board[y][x]=0;
+}
+
+board[3][3]=W;
+board[4][4]=W;
+board[3][4]=B;
+board[4][3]=B;
+
+turn=B;
+}
+
+function inB(x,y){
+ return x>=0&&x<8&&y>=0&&y<8;
+}
+
+function opp(c){
+ return c===B?W:B;
+}
+
+function flips(x,y,c){
+
+if(board[y][x]) return [];
+
+let r=[];
+
+for(const[dX,dY] of dir){
+
+ let t=[];
+ let nx=x+dX;
+ let ny=y+dY;
+
+ while(inB(nx,ny)&&board[ny][nx]===opp(c)){
+  t.push([nx,ny]);
+  nx+=dX;
+  ny+=dY;
+ }
+
+ if(
+ t.length &&
+ inB(nx,ny) &&
+ board[ny][nx]===c
+ ){
+  r.push(...t);
+ }
+}
+
+return r;
+}
+
+function moves(c){
+
+let m=[];
+
+for(let y=0;y<8;y++){
+ for(let x=0;x<8;x++){
+  if(flips(x,y,c).length)
+   m.push({x,y});
+ }
+}
+
+return m;
+}
+
+function put(x,y,c){
+
+let f=flips(x,y,c);
+
+if(!f.length) return false;
+
+board[y][x]=c;
+
+for(const p of f){
+ board[p[1]][p[0]]=c;
+}
+
+return true;
+}
+
+function draw(){
+
+bd.innerHTML="";
+
+let b=0,w=0;
+
+let m=moves(turn);
+
+for(let y=0;y<8;y++){
+for(let x=0;x<8;x++){
+
+ let c=document.createElement("div");
+ c.className="cell";
+
+ if(m.some(v=>v.x===x&&v.y===y))
+  c.classList.add("valid");
+
+ c.onclick=()=>clickCell(x,y);
+
+ if(board[y][x]===B){
+  let s=document.createElement("div");
+  s.className="black";
+  c.appendChild(s);
+  b++;
+ }
+
+ if(board[y][x]===W){
+  let s=document.createElement("div");
+  s.className="white";
+  c.appendChild(s);
+  w++;
+ }
+
+ bd.appendChild(c);
+}
+}
+
+sc.textContent=`🖤${b} : ${w}🤍`;
+
+st.textContent=
+turn===B ?
+"🖤黒たんのターン💅" :
+"🤍白たんのターン✨";
+}
+
+function clickCell(x,y){
+
+if(mode==="cpu"&&turn===cpu) return;
+
+if(!put(x,y,turn)) return;
+
+nextTurn();
+}
+
+function endGame(){
+
+let b=0,w=0;
+
+for(let y=0;y<8;y++){
+for(let x=0;x<8;x++){
+
+ if(board[y][x]===B)b++;
+ if(board[y][x]===W)w++;
+
+}
+}
+
+let msg=`🖤${b} : ${w}🤍\n`;
+
+if(b>w)
+msg+="黒たん優勝〜✨";
+
+else if(w>b)
+msg+="白たん強すぎ〜💖";
+
+else
+msg+="引き分け〜💕";
+
+alert(msg);
+}
+
+function nextTurn(){
+
+turn=opp(turn);
+
+if(!moves(turn).length){
+
+ if(!moves(opp(turn)).length){
+  draw();
+  endGame();
+  return;
+ }
+
+ alert("置けないからパス〜🤣");
+
+ turn=opp(turn);
+}
+
+draw();
+
+if(mode==="cpu"&&turn===cpu){
+ setTimeout(cpuMove,350);
+}
+}
+
+function score(color){
+
+let s=0;
+
+for(let y=0;y<8;y++){
+for(let x=0;x<8;x++){
+
+ if(board[y][x]===color) s++;
+ if(board[y][x]===opp(color)) s--;
+
+}
+}
+
+const c=[[0,0],[7,0],[0,7],[7,7]];
+
+for(const p of c){
+
+ if(board[p[1]][p[0]]===color)
+  s+=20;
+
+ if(board[p[1]][p[0]]===opp(color))
+  s-=20;
+}
+
+return s;
+}
+
+function copyBoard(){
+ return board.map(r=>r.slice());
+}
+
+function cpuMove(){
+
+let ms=moves(cpu);
+
+if(!ms.length){
+ nextTurn();
+ return;
+}
+
+let move;
+
+if(level===1){
+
+ move=ms[Math.floor(Math.random()*ms.length)];
+
+}else{
+
+ let best=-99999;
+ let list=[];
+
+ for(const m of ms){
+
+  let backup=copyBoard();
+
+  put(m.x,m.y,cpu);
+
+  let sc=
+
+  level===2
+  ? score(cpu)
+  : score(cpu)-moves(player).length*4;
+
+  board=backup;
+
+  if(sc>best){
+   best=sc;
+   list=[m];
+  }else if(sc===best){
+   list.push(m);
+  }
+ }
+
+ move=list[Math.floor(Math.random()*list.length)];
+}
+
+put(move.x,move.y,cpu);
+
+nextTurn();
+}
+
+function newGame(){
+
+mode=
+document.getElementById("mode").value;
+
+player=
+document.getElementById("side").value==="black"
+?B:W;
+
+cpu=opp(player);
+
+level=
+parseInt(document.getElementById("level").value);
+
+init();
+draw();
+
+if(mode==="cpu"&&player===W){
+ setTimeout(cpuMove,400);
+}
+}
+
+newGame();
+
+</script>
+
+</body>
+</html>
