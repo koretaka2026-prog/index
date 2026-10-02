@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>かわいいリバーシ</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body{
+    margin:0;
+    font-family:"Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", sans-serif;
+    background:linear-gradient(135deg,#ffddee,#ffecca);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:15px;
+}
+
+h1{
+    color:#ff55a5;
+    text-shadow:2px 2px 0 #fff;
+    margin:10px 0;
+}
+
+.panel{
+    background:white;
+    border-radius:20px;
+    padding:12px 20px;
+    box-shadow:0 5px 15px rgba(0,0,0,.15);
+    margin-bottom:10px;
+    text-align:center;
+}
+
+.score{
+    display:flex;
+    gap:20px;
+    justify-content:center;
+    margin-top:6px;
+    font-weight:bold;
+}
+
+.board{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    width:min(92vw,520px);
+    height:min(92vw,520px);
+    background:#6ed36e;
+    border:8px solid #ffb6d9;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+
+.cell{
+    border:1px solid rgba(255,255,255,.35);
+    position:relative;
+    cursor:pointer;
+}
+
+.cell.can::after{
+    content:"";
+    position:absolute;
+    width:18%;
+    height:18%;
+    border-radius:50%;
+    background:rgba(255,255,255,.75);
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+
+.disk{
+    width:82%;
+    height:82%;
+    border-radius:50%;
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    box-shadow:
+      inset -5px -5px 10px rgba(0,0,0,.2),
+      inset 5px 5px 10px rgba(255,255,255,.3);
+    animation:pop .2s ease;
+}
+
+.black{
+    background:linear-gradient(#666,#111);
+}
+
+.white{
+    background:linear-gradient(#fff,#dcdcdc);
+}
+
+@keyframes pop{
+    from{
+       transform:translate(-50%,-50%) scale(.3);
+    }
+    to{
+       transform:translate(-50%,-50%) scale(1);
+    }
+}
+
+button{
+    border:none;
+    background:#ff85c2;
+    color:white;
+    padding:10px 18px;
+    border-radius:999px;
+    font-size:16px;
+    cursor:pointer;
+    margin-top:8px;
+}
+
+button:active{
+    transform:scale(.96);
+}
+
+#message{
+    margin-top:8px;
+    font-weight:bold;
+    color:#ff4e97;
+}
+
+.footer{
+    margin-top:10px;
+    color:#666;
+    font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌸 かわいいリバーシ 🌸</h1>
+
+<div class="panel">
+    <div id="turn">黒の番</div>
+    <div class="score">
+        <div>⚫ <span id="blackCount">2</span></div>
+        <div>⚪ <span id="whiteCount">2</span></div>
+    </div>
+    <div id="message"></div>
+    <button onclick="resetGame()">もう一回</button>
+</div>
+
+<div id="board" class="board"></div>
+
+<div class="footer">
+タップまたはクリックで石を置けます♪
+</div>
+
+<script>
+const boardEl=document.getElementById("board");
+const turnEl=document.getElementById("turn");
+const blackEl=document.getElementById("blackCount");
+const whiteEl=document.getElementById("whiteCount");
+const messageEl=document.getElementById("message");
+
+const EMPTY=0;
+const BLACK=1;
+const WHITE=2;
+
+let current=BLACK;
+let board=[];
+
+function initBoard(){
+
+    board=Array(8).fill().map(()=>Array(8).fill(EMPTY));
+
+    board[3][3]=WHITE;
+    board[4][4]=WHITE;
+    board[3][4]=BLACK;
+    board[4][3]=BLACK;
+
+    current=BLACK;
+
+    render();
+}
+
+function createBeep(freq=600,duration=0.08){
+
+    const AudioCtx=
+        window.AudioContext||
+        window.webkitAudioContext;
+
+    const ctx=new AudioCtx();
+
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+
+    osc.frequency.value=freq;
+    osc.type="triangle";
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    gain.gain.value=0.08;
+
+    osc.start();
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      ctx.currentTime+duration
+    );
+
+    osc.stop(ctx.currentTime+duration);
+}
+
+const dirs=[
+[-1,-1],[-1,0],[-1,1],
+[0,-1],[0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function inside(r,c){
+    return r>=0&&r<8&&c>=0&&c<8;
+}
+
+function getFlips(r,c,color){
+
+    if(board[r][c]!==EMPTY) return [];
+
+    const enemy=color===BLACK?WHITE:BLACK;
+
+    let flips=[];
+
+    for(const[dR,dC] of dirs){
+
+        let rr=r+dR;
+        let cc=c+dC;
+
+        let temp=[];
+
+        while(
+            inside(rr,cc) &&
+            board[rr][cc]===enemy
+        ){
+            temp.push([rr,cc]);
+            rr+=dR;
+            cc+=dC;
+        }
+
+        if(
+            temp.length &&
+            inside(rr,cc) &&
+            board[rr][cc]===color
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(color){
+
+    let result=[];
+
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            if(getFlips(r,c,color).length){
+                result.push([r,c]);
+            }
+        }
+    }
+
+    return result;
+}
+
+function putStone(r,c){
+
+    const flips=getFlips(r,c,current);
+
+    if(!flips.length) return;
+
+    board[r][c]=current;
+
+    for(const[pR,pC] of flips){
+        board[pR][pC]=current;
+    }
+
+    createBeep(current===BLACK?550:750);
+
+    current=current===BLACK?WHITE:BLACK;
+
+    let moves=validMoves(current);
+
+    if(moves.length===0){
+
+        current=current===BLACK?WHITE:BLACK;
+
+        const other=validMoves(current);
+
+        if(other.length===0){
+            finishGame();
+            return;
+        }
+
+        messageEl.textContent="パス！";
+    }else{
+        messageEl.textContent="";
+    }
+
+    render();
+}
+
+function finishGame(){
+
+    let black=0;
+    let white=0;
+
+    for(let row of board){
+        for(let v of row){
+            if(v===BLACK) black++;
+            if(v===WHITE) white++;
+        }
+    }
+
+    if(black>white){
+        messageEl.textContent=
+          "🎉 黒の勝ち！";
+    }
+    else if(white>black){
+        messageEl.textContent=
+          "🎉 白の勝ち！";
+    }
+    else{
+        messageEl.textContent=
+          "🤝 引き分け！";
+    }
+
+    render();
+}
+
+function render(){
+
+    boardEl.innerHTML="";
+
+    let black=0;
+    let white=0;
+
+    const moves=validMoves(current);
+
+    const moveSet=new Set(
+      moves.map(m=>m[0]+"-"+m[1])
+    );
+
+    for(let r=0;r<8;r++){
+
+        for(let c=0;c<8;c++){
+
+            const cell=document.createElement("div");
+            cell.className="cell";
+
+            if(moveSet.has(r+"-"+c)){
+                cell.classList.add("can");
+            }
+
+            cell.onclick=()=>{
+                putStone(r,c);
+            };
+
+            if(board[r][c]!==EMPTY){
+
+                const disk=
+                  document.createElement("div");
+
+                disk.className=
+                  "disk "+
+                  (board[r][c]===BLACK
+                    ?"black"
+                    :"white");
+
+                cell.appendChild(disk);
+
+                if(board[r][c]===BLACK){
+                    black++;
+                }else{
+                    white++;
+                }
+            }
+
+            boardEl.appendChild(cell);
+        }
+    }
+
+    blackEl.textContent=black;
+    whiteEl.textContent=white;
+
+    turnEl.textContent=
+      current===BLACK
+      ?"⚫ 黒の番"
+      :"⚪ 白の番";
+}
+
+function resetGame(){
+    initBoard();
+}
+
+initBoard();
+</script>
+
+</body>
+</html>
