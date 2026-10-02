@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スイカゲーム</title>
+
+<style>
+body{
+    margin:0;
+    background:#f5f2da;
+    font-family:sans-serif;
+    text-align:center;
+    user-select:none;
+}
+
+h1{
+    margin:10px 0;
+}
+
+#score{
+    font-size:24px;
+    font-weight:bold;
+}
+
+#highscore{
+    margin:8px;
+}
+
+canvas{
+    background:#fff8e7;
+    border:4px solid #444;
+    touch-action:none;
+}
+
+button{
+    margin:10px;
+    padding:8px 16px;
+    font-size:16px;
+}
+
+#msg{
+    font-size:32px;
+    color:red;
+    font-weight:bold;
+    height:40px;
+}
+</style>
+</head>
+<body>
+
+<h1>スイカゲーム</h1>
+
+<div id="score">Score: 0</div>
+<div id="highscore">High Score: 0</div>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<div id="msg"></div>
+
+<button onclick="restartGame()">リスタート</button>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreEl = document.getElementById("score");
+const highscoreEl = document.getElementById("highscore");
+const msgEl = document.getElementById("msg");
+
+const W = canvas.width;
+const H = canvas.height;
+
+const gravity = 0.35;
+const DEAD_LINE = 80;
+
+let score = 0;
+let dangerTimer = 0;
+let gameOver = false;
+
+let highscore =
+    Number(localStorage.getItem("suikaHighscore")) || 0;
+
+highscoreEl.textContent =
+    "High Score: " + highscore;
+
+const fruits = [
+    {emoji:"🍒", radius:16, color:"#ff6b6b"},
+    {emoji:"🍓", radius:22, color:"#ff8787"},
+    {emoji:"🍇", radius:28, color:"#b197fc"},
+    {emoji:"🍊", radius:35, color:"#ffa94d"},
+    {emoji:"🍎", radius:42, color:"#ff6b6b"},
+    {emoji:"🍑", radius:50, color:"#fcc2d7"},
+    {emoji:"🍍", radius:60, color:"#ffd43b"},
+    {emoji:"🍈", radius:72, color:"#8ce99a"},
+    {emoji:"🍉", radius:88, color:"#69db7c"}
+];
+
+let balls = [];
+
+let current = {
+    level:0,
+    x:W/2
+};
+
+function radius(level){
+    return fruits[level].radius;
+}
+
+function spawnFruit(){
+    current.level =
+        Math.floor(Math.random()*3);
+    current.x = W/2;
+}
+
+function updateScore(value){
+
+    score += value;
+
+    if(score > highscore){
+
+        highscore = score;
+
+        localStorage.setItem(
+            "suikaHighscore",
+            highscore
+        );
+
+        highscoreEl.textContent =
+            "High Score: " + highscore;
+    }
+
+    scoreEl.textContent =
+        "Score: " + score;
+}
+
+function dropFruit(){
+
+    if(gameOver) return;
+
+    balls.push({
+        x:current.x,
+        y:40,
+        vx:0,
+        vy:0,
+        level:current.level,
+        mergeCooldown:20
+    });
+
+    spawnFruit();
+}
+
+function pointerMove(x){
+
+    if(gameOver) return;
+
+    const r = radius(current.level);
+
+    current.x =
+        Math.max(r,
+        Math.min(W-r,x));
+}
+
+canvas.addEventListener("mousemove",e=>{
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    pointerMove(
+        e.clientX - rect.left
+    );
+});
+
+canvas.addEventListener("click",dropFruit);
+
+canvas.addEventListener("touchmove",e=>{
+
+    e.preventDefault();
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    pointerMove(
+        e.touches[0].clientX - rect.left
+    );
+});
+
+canvas.addEventListener("touchstart",e=>{
+
+    e.preventDefault();
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    pointerMove(
+        e.touches[0].clientX - rect.left
+    );
+
+    dropFruit();
+});
+
+function update(){
+
+    for(const b of balls){
+
+        if(b.mergeCooldown > 0){
+            b.mergeCooldown--;
+        }
+
+        b.vy += gravity;
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        b.vx *= 0.995;
+
+        const r = radius(b.level);
+
+        if(b.x-r < 0){
+
+            b.x = r;
+            b.vx *= -0.5;
+        }
+
+        if(b.x+r > W){
+
+            b.x = W-r;
+            b.vx *= -0.5;
+        }
+
+        if(b.y+r > H){
+
+            b.y = H-r;
+
+            b.vy *= -0.25;
+
+            if(Math.abs(b.vy) < 1){
+                b.vy = 0;
+            }
+
+            b.vx *= 0.98;
+        }
+    }
+
+    handleCollisions();
+
+    let overLine = false;
+
+    for(const b of balls){
+
+        const r = radius(b.level);
+
+        if(
+            b.y-r < DEAD_LINE &&
+            Math.abs(b.vy) < 0.5
+        ){
+            overLine = true;
+            break;
+        }
+    }
+
+    if(overLine){
+
+        dangerTimer++;
+
+        if(dangerTimer > 120){
+
+            gameOver = true;
+            msgEl.textContent =
+                "GAME OVER";
+        }
+
+    }else{
+
+        dangerTimer = 0;
+    }
+}
+
+function handleCollisions(){
+
+    for(let i=0;i<balls.length;i++){
+
+        for(let j=i+1;j<balls.length;j++){
+
+            const a = balls[i];
+            const b = balls[j];
+
+            const dx = b.x-a.x;
+            const dy = b.y-a.y;
+
+            const dist =
+                Math.hypot(dx,dy);
+
+            const minDist =
+                radius(a.level)+
+                radius(b.level);
+
+            if(dist >= minDist){
+                continue;
+            }
+
+            const nx = dx/(dist||1);
+            const ny = dy/(dist||1);
+
+            const overlap =
+                minDist-dist;
+
+            a.x -= nx*overlap*0.5;
+            a.y -= ny*overlap*0.5;
+
+            b.x += nx*overlap*0.5;
+            b.y += ny*overlap*0.5;
+
+            const impulse = 0.3;
+
+            a.vx -= nx*impulse;
+            a.vy -= ny*impulse;
+
+            b.vx += nx*impulse;
+            b.vy += ny*impulse;
+
+            if(
+                a.level === b.level &&
+                a.mergeCooldown <= 0 &&
+                b.mergeCooldown <= 0
+            ){
+
+                const cx =
+                    (a.x+b.x)/2;
+
+                const cy =
+                    (a.y+b.y)/2;
+
+                if(
+                    a.level ===
+                    fruits.length-1
+                ){
+
+                    balls.splice(j,1);
+                    balls.splice(i,1);
+
+                    updateScore(1000);
+                    return;
+                }
+
+                balls.splice(j,1);
+                balls.splice(i,1);
+
+                balls.push({
+
+                    x:cx,
+                    y:cy,
+
+                    vx:
+                    (Math.random()-0.5)*2,
+
+                    vy:-5,
+
+                    level:a.level+1,
+
+                    mergeCooldown:20
+                });
+
+                updateScore(
+                    (a.level+1)*20
+                );
+
+                return;
+            }
+        }
+    }
+}
+
+function drawFruit(x,y,level){
+
+    const f = fruits[level];
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        f.radius,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fillStyle = f.color;
+    ctx.fill();
+
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font =
+        f.radius+"px serif";
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(
+        f.emoji,
+        x,
+        y+2
+    );
+}
+
+function draw(){
+
+    ctx.clearRect(
+        0,0,W,H
+    );
+
+    ctx.strokeStyle="red";
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+    ctx.moveTo(0,DEAD_LINE);
+    ctx.lineTo(W,DEAD_LINE);
+    ctx.stroke();
+
+    drawFruit(
+        current.x,
+        25,
+        current.level
+    );
+
+    for(const b of balls){
+
+        drawFruit(
+            b.x,
+            b.y,
+            b.level
+        );
+    }
+}
+
+function loop(){
+
+    if(!gameOver){
+        update();
+    }
+
+    draw();
+
+    requestAnimationFrame(loop);
+}
+
+function restartGame(){
+
+    balls = [];
+
+    score = 0;
+
+    gameOver = false;
+
+    dangerTimer = 0;
+
+    msgEl.textContent = "";
+
+    scoreEl.textContent =
+        "Score: 0";
+
+    spawnFruit();
+}
+
+spawnFruit();
+loop();
+
+</script>
+
+</body>
+</html>
