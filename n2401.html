@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>リバーシ</title>
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#f0f0f0;
+    margin:0;
+    padding:10px;
+}
+
+h1{
+    margin:10px 0;
+}
+
+#menu{
+    margin-bottom:10px;
+}
+
+select,button{
+    padding:8px;
+    margin:4px;
+    font-size:16px;
+}
+
+#board{
+    width:min(90vw,560px);
+    height:min(90vw,560px);
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    grid-template-rows:repeat(8,1fr);
+    background:#006400;
+    border:4px solid #004000;
+    touch-action:manipulation;
+}
+
+.cell{
+    border:1px solid #003800;
+    position:relative;
+    cursor:pointer;
+}
+
+.cell.valid{
+    background:#0b7c0b;
+}
+
+.disc{
+    position:absolute;
+    width:80%;
+    height:80%;
+    border-radius:50%;
+    left:10%;
+    top:10%;
+}
+
+.black{
+    background:black;
+}
+
+.white{
+    background:white;
+}
+
+#status{
+    margin:10px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+#score{
+    margin:5px;
+    font-size:18px;
+}
+
+@media(max-width:600px){
+    #status,#score{
+        font-size:16px;
+    }
+}
+</style>
+</head>
+<body>
+
+<h1>リバーシ</h1>
+
+<div id="menu">
+    <select id="mode">
+        <option value="pvp">人対人</option>
+        <option value="cpu">人対コンピュータ</option>
+    </select>
+
+    <select id="side">
+        <option value="black">先攻（黒）</option>
+        <option value="white">後攻（白）</option>
+    </select>
+
+    <select id="level">
+        <option value="1">弱い</option>
+        <option value="2">普通</option>
+        <option value="3">強い</option>
+    </select>
+
+    <button onclick="newGame()">新しいゲーム</button>
+</div>
+
+<div id="status"></div>
+<div id="score"></div>
+<div id="board"></div>
+
+<script>
+
+const EMPTY=0;
+const BLACK=1;
+const WHITE=2;
+
+let board=[];
+let currentPlayer=BLACK;
+
+let mode="pvp";
+let humanColor=BLACK;
+let cpuColor=WHITE;
+let level=2;
+
+const boardDiv=document.getElementById("board");
+const statusDiv=document.getElementById("status");
+const scoreDiv=document.getElementById("score");
+
+const dirs=[
+[-1,-1],[-1,0],[-1,1],
+[0,-1],        [0,1],
+[1,-1],[1,0],[1,1]
+];
+
+function newGame(){
+
+    mode=document.getElementById("mode").value;
+    humanColor=document.getElementById("side").value==="black"
+        ?BLACK:WHITE;
+
+    cpuColor=(humanColor===BLACK)?WHITE:BLACK;
+
+    level=parseInt(document.getElementById("level").value);
+
+    board=[];
+
+    for(let y=0;y<8;y++){
+        board[y]=[];
+        for(let x=0;x<8;x++){
+            board[y][x]=EMPTY;
+        }
+    }
+
+    board[3][3]=WHITE;
+    board[4][4]=WHITE;
+    board[3][4]=BLACK;
+    board[4][3]=BLACK;
+
+    currentPlayer=BLACK;
+
+    drawBoard();
+
+    if(mode==="cpu" && currentPlayer===cpuColor){
+        setTimeout(cpuMove,500);
+    }
+}
+
+function inside(x,y){
+    return x>=0 && x<8 && y>=0 && y<8;
+}
+
+function opponent(player){
+    return player===BLACK ? WHITE : BLACK;
+}
+
+function getFlips(x,y,player){
+
+    if(board[y][x]!==EMPTY) return [];
+
+    let flips=[];
+
+    for(const [dx,dy] of dirs){
+
+        let temp=[];
+        let nx=x+dx;
+        let ny=y+dy;
+
+        while(
+            inside(nx,ny) &&
+            board[ny][nx]===opponent(player)
+        ){
+            temp.push([nx,ny]);
+            nx+=dx;
+            ny+=dy;
+        }
+
+        if(
+            temp.length>0 &&
+            inside(nx,ny) &&
+            board[ny][nx]===player
+        ){
+            flips.push(...temp);
+        }
+    }
+
+    return flips;
+}
+
+function validMoves(player){
+
+    let moves=[];
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+
+            let f=getFlips(x,y,player);
+
+            if(f.length>0){
+                moves.push({
+                    x,y,
+                    flips:f
+                });
+            }
+        }
+    }
+
+    return moves;
+}
+
+function makeMove(x,y){
+
+    let flips=getFlips(x,y,currentPlayer);
+
+    if(flips.length===0) return false;
+
+    board[y][x]=currentPlayer;
+
+    for(const [fx,fy] of flips){
+        board[fy][fx]=currentPlayer;
+    }
+
+    currentPlayer=opponent(currentPlayer);
+
+    checkGameState();
+
+    return true;
+}
+
+function checkGameState(){
+
+    let moves=validMoves(currentPlayer);
+
+    if(moves.length===0){
+
+        currentPlayer=opponent(currentPlayer);
+
+        let other=validMoves(currentPlayer);
+
+        if(other.length===0){
+            finishGame();
+            return;
+        }
+
+        alert("パスします");
+    }
+
+    drawBoard();
+
+    if(
+        mode==="cpu" &&
+        currentPlayer===cpuColor
+    ){
+        setTimeout(cpuMove,400);
+    }
+}
+
+function finishGame(){
+
+    let black=0;
+    let white=0;
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+            if(board[y][x]===BLACK) black++;
+            if(board[y][x]===WHITE) white++;
+        }
+    }
+
+    let msg;
+
+    if(black>white){
+        msg="黒の勝ち";
+    }else if(white>black){
+        msg="白の勝ち";
+    }else{
+        msg="引き分け";
+    }
+
+    drawBoard();
+
+    setTimeout(()=>{
+        alert(
+            msg +
+            "\n黒:"+black+
+            " 白:"+white
+        );
+    },100);
+}
+
+function drawBoard(){
+
+    boardDiv.innerHTML="";
+
+    const moves=validMoves(currentPlayer);
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+
+            const cell=document.createElement("div");
+            cell.className="cell";
+
+            if(
+                moves.some(
+                    m=>m.x===x && m.y===y
+                )
+            ){
+                cell.classList.add("valid");
+            }
+
+            cell.addEventListener("click",()=>{
+                handleClick(x,y);
+            });
+
+            if(board[y][x]!==EMPTY){
+
+                const disc=document.createElement("div");
+                disc.className=
+                    "disc "+
+                    (board[y][x]===BLACK
+                    ?"black":"white");
+
+                cell.appendChild(disc);
+            }
+
+            boardDiv.appendChild(cell);
+        }
+    }
+
+    updateInfo();
+}
+
+function updateInfo(){
+
+    let black=0;
+    let white=0;
+
+    for(let y=0;y<8;y++){
+        for(let x=0;x<8;x++){
+            if(board[y][x]===BLACK) black++;
+            if(board[y][x]===WHITE) white++;
+        }
+    }
+
+    statusDiv.textContent=
+        "手番: " +
+        (currentPlayer===BLACK
+        ?"黒":"白");
+
+    scoreDiv.textContent=
+        "黒 "+black+
+        " - "+white+" 白";
+}
+
+function handleClick(x,y){
+
+    if(
+        mode==="cpu" &&
+        currentPlayer===cpuColor
+    ){
+        return;
+    }
+
+    makeMove(x,y);
+}
+
+function cpuMove(){
+
+    const moves=validMoves(cpuColor);
+
+    if(moves.length===0){
+        checkGameState();
+        return;
+    }
+
+    let move;
+
+    if(level===1){
+
+        move=
+        moves[
+            Math.floor(
+                Math.random()*moves.length
+            )
+        ];
+
+    }else if(level===2){
+
+        move=moves.reduce(
+            (best,m)=>
+            m.flips.length>
+            best.flips.length
+            ?m:best
+        );
+
+    }else{
+
+        const corner=
+        moves.filter(m=>
+            (m.x===0&&m.y===0)||
+            (m.x===7&&m.y===0)||
+            (m.x===0&&m.y===7)||
+            (m.x===7&&m.y===7)
+        );
+
+        if(corner.length){
+            move=corner[0];
+        }else{
+
+            move=moves.reduce((best,m)=>{
+
+                let score=m.flips.length;
+
+                if(
+                    m.x===0||
+                    m.x===7||
+                    m.y===0||
+                    m.y===7
+                ){
+                    score+=5;
+                }
+
+                let bestScore=
+                    best.flips.length+
+                    (
+                    best.x===0||
+                    best.x===7||
+                    best.y===0||
+                    best.y===7
+                    ?5:0);
+
+                return score>bestScore
+                    ?m:best;
+
+            });
+        }
+    }
+
+    makeMove(move.x,move.y);
+}
+
+newGame();
+
+</script>
+
+</body>
+</html>
