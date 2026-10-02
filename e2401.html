@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トランプ</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#0c6b2f;
+    font-family:sans-serif;
+    touch-action:none;
+}
+
+#toolbar{
+    position:fixed;
+    top:10px;
+    left:10px;
+    z-index:1000;
+}
+
+button{
+    font-size:16px;
+    padding:8px 16px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+#table{
+    width:100vw;
+    height:100vh;
+    position:relative;
+}
+
+.card{
+    width:80px;
+    height:120px;
+    position:absolute;
+    transform-style:preserve-3d;
+    transition:transform 0.2s;
+    cursor:pointer;
+}
+
+.card.flipped{
+    transform:rotateY(180deg);
+}
+
+.face{
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:8px;
+    border:1px solid #333;
+    backface-visibility:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:26px;
+    font-weight:bold;
+    box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    user-select:none;
+}
+
+.front{
+    background:white;
+}
+
+.back{
+    background:
+        repeating-linear-gradient(
+            45deg,
+            #0033aa 0px,
+            #0033aa 8px,
+            #ffffff 8px,
+            #ffffff 16px
+        );
+    color:white;
+    transform:rotateY(180deg);
+}
+
+.red{
+    color:red;
+}
+
+.black{
+    color:black;
+}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+    <button id="shuffle">シャッフル</button>
+</div>
+
+<div id="table"></div>
+
+<script>
+const table = document.getElementById("table");
+
+const suits = [
+    {s:"♠", color:"black"},
+    {s:"♥", color:"red"},
+    {s:"♦", color:"red"},
+    {s:"♣", color:"black"}
+];
+
+const ranks = [
+    "A","2","3","4","5","6","7",
+    "8","9","10","J","Q","K"
+];
+
+let zCounter = 1;
+
+function createDeck(){
+    let x = 20;
+    let y = 60;
+
+    suits.forEach(suit=>{
+        ranks.forEach(rank=>{
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.style.left = x + "px";
+            card.style.top = y + "px";
+
+            card.innerHTML = `
+                <div class="face front ${suit.color}">
+                    ${rank}${suit.s}
+                </div>
+                <div class="face back"></div>
+            `;
+
+            table.appendChild(card);
+
+            setupCard(card);
+
+            x += 15;
+            y += 5;
+        });
+    });
+}
+
+function setupCard(card){
+
+    let startX, startY;
+    let originX, originY;
+    let dragging = false;
+
+    card.addEventListener("pointerdown", e=>{
+        card.setPointerCapture(e.pointerId);
+
+        dragging = false;
+
+        startX = e.clientX;
+        startY = e.clientY;
+
+        originX = parseFloat(card.style.left);
+        originY = parseFloat(card.style.top);
+
+        card.style.zIndex = ++zCounter;
+    });
+
+    card.addEventListener("pointermove", e=>{
+
+        if(startX === undefined) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if(Math.abs(dx) > 5 || Math.abs(dy) > 5){
+            dragging = true;
+
+            card.style.left = (originX + dx) + "px";
+            card.style.top = (originY + dy) + "px";
+        }
+    });
+
+    card.addEventListener("pointerup", ()=>{
+
+        if(!dragging){
+            card.classList.toggle("flipped");
+        }
+
+        startX = undefined;
+    });
+
+    card.addEventListener("pointercancel", ()=>{
+        startX = undefined;
+    });
+}
+
+document.getElementById("shuffle").addEventListener("click", ()=>{
+
+    const cards = [...document.querySelectorAll(".card")];
+
+    cards.forEach(card=>{
+
+        const x = Math.random() * (window.innerWidth - 100);
+        const y = Math.random() * (window.innerHeight - 140);
+
+        card.style.left = x + "px";
+        card.style.top = y + "px";
+
+        card.style.zIndex = ++zCounter;
+    });
+});
+
+createDeck();
+</script>
+
+</body>
+</html>
