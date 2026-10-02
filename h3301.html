@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>心理テスト</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:linear-gradient(135deg,#4f46e5,#9333ea);
+    color:white;
+    text-align:center;
+}
+
+.container{
+    max-width:600px;
+    margin:auto;
+    padding:20px;
+}
+
+.card{
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(10px);
+    border-radius:20px;
+    padding:20px;
+    margin-top:20px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin:10px 0;
+    border:none;
+    border-radius:15px;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.choice{
+    background:white;
+    color:#333;
+}
+
+#result{
+    font-size:22px;
+    line-height:1.8;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🧠 性格心理テスト</h1>
+
+<div class="card" id="quiz">
+
+<h2 id="question"></h2>
+
+<div id="choices"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const questions = [
+
+{
+q:"休日はどう過ごしたい？",
+a:[
+{text:"友達と遊ぶ",type:"A"},
+{text:"家でゆっくり",type:"B"}
+]
+},
+
+{
+q:"宝箱を見つけたら？",
+a:[
+{text:"すぐ開ける",type:"A"},
+{text:"慎重に調べる",type:"B"}
+]
+},
+
+{
+q:"旅行先で重視するのは？",
+a:[
+{text:"冒険",type:"A"},
+{text:"安心感",type:"B"}
+]
+},
+
+{
+q:"初対面の人には？",
+a:[
+{text:"自分から話す",type:"A"},
+{text:"様子を見る",type:"B"}
+]
+}
+
+];
+
+let index=0;
+let scoreA=0;
+let scoreB=0;
+
+const questionEl=document.getElementById("question");
+const choicesEl=document.getElementById("choices");
+const quizEl=document.getElementById("quiz");
+
+function showQuestion(){
+
+const q=questions[index];
+
+questionEl.textContent=q.q;
+
+choicesEl.innerHTML="";
+
+q.a.forEach(choice=>{
+
+const btn=document.createElement("button");
+
+btn.className="choice";
+
+btn.textContent=choice.text;
+
+btn.onclick=()=>answer(choice.type);
+
+choicesEl.appendChild(btn);
+
+});
+
+}
+
+function answer(type){
+
+if(type==="A") scoreA++;
+if(type==="B") scoreB++;
+
+index++;
+
+if(index<questions.length){
+
+showQuestion();
+
+}else{
+
+showResult();
+
+}
+
+}
+
+function showResult(){
+
+let title="";
+let desc="";
+
+if(scoreA>scoreB){
+
+title="🔥 チャレンジャータイプ";
+
+desc=
+"あなたは行動力があり、新しいことに挑戦するのが好きなタイプです。周囲を引っ張るリーダー気質があります。";
+
+}else if(scoreB>scoreA){
+
+title="🌙 慎重派タイプ";
+
+desc=
+"あなたは落ち着いて物事を考える堅実派です。信頼されやすく、計画的に行動できます。";
+
+}else{
+
+title="⭐ バランスタイプ";
+
+desc=
+"行動力と慎重さのバランスが良く、状況に応じて柔軟に考えられるタイプです。";
+
+}
+
+quizEl.innerHTML=
+`
+<div id="result">
+<h2>${title}</h2>
+<p>${desc}</p>
+<button onclick="location.reload()">もう一度遊ぶ</button>
+</div>
+`;
+
+}
+
+showQuestion();
+
+</script>
+
+</body>
+</html>
