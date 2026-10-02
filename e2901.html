@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>タップレースゲーム</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+    background:#f0f4f8;
+    margin:0;
+    padding:10px;
+}
+
+h1{
+    margin-top:5px;
+}
+
+#menu{
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    max-width:500px;
+    margin:auto;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+
+select,button{
+    font-size:18px;
+    padding:8px;
+    margin:5px;
+}
+
+#track{
+    width:95%;
+    max-width:900px;
+    margin:20px auto;
+}
+
+.lane{
+    position:relative;
+    height:80px;
+    border:2px solid #333;
+    margin:20px 0;
+    background:
+      repeating-linear-gradient(
+      to right,
+      #ddd,
+      #ddd 20px,
+      white 20px,
+      white 40px);
+}
+
+.finish{
+    position:absolute;
+    right:0;
+    top:0;
+    width:8px;
+    height:100%;
+    background:red;
+}
+
+.car{
+    position:absolute;
+    top:15px;
+    left:0;
+    width:50px;
+    height:50px;
+    border-radius:10px;
+    transition:.08s;
+}
+
+#car1{
+    background:#2196f3;
+}
+
+#car2{
+    background:#ff9800;
+}
+
+.controls{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    flex-wrap:wrap;
+}
+
+.raceBtn{
+    width:220px;
+    height:90px;
+    font-size:24px;
+    border:none;
+    border-radius:14px;
+    color:white;
+}
+
+#btn1{
+    background:#2196f3;
+}
+
+#btn2{
+    background:#ff9800;
+}
+
+#status{
+    font-size:24px;
+    font-weight:bold;
+    margin:15px;
+}
+
+.hidden{
+    display:none;
+}
+</style>
+</head>
+<body>
+
+<h1>🏁 タップレースゲーム</h1>
+
+<div id="menu">
+
+<div>
+ゲームモード
+<select id="mode">
+<option value="cpu">人 vs コンピュータ</option>
+<option value="pvp">人 vs 人</option>
+</select>
+</div>
+
+<div>
+あなたの順番
+<select id="order">
+<option value="first">先攻</option>
+<option value="second">後攻</option>
+</select>
+</div>
+
+<div>
+コンピュータ強さ
+<select id="difficulty">
+<option value="weak">弱い</option>
+<option value="normal" selected>普通</option>
+<option value="strong">強い</option>
+</select>
+</div>
+
+<button onclick="startGame()">ゲーム開始</button>
+
+</div>
+
+<div id="status">ゲームを開始してください</div>
+
+<div id="track">
+<div class="lane">
+<div class="finish"></div>
+<div id="car1" class="car"></div>
+</div>
+
+<div class="lane">
+<div class="finish"></div>
+<div id="car2" class="car"></div>
+</div>
+</div>
+
+<div class="controls">
+<button id="btn1" class="raceBtn">プレイヤー1</button>
+<button id="btn2" class="raceBtn">プレイヤー2</button>
+</div>
+
+<script>
+
+const GOAL = 800;
+
+let pos1 = 0;
+let pos2 = 0;
+
+let gameMode = "cpu";
+let playerFirst = true;
+
+let cpuTimer = null;
+let raceRunning = false;
+
+const car1 = document.getElementById("car1");
+const car2 = document.getElementById("car2");
+
+const btn1 = document.getElementById("btn1");
+const btn2 = document.getElementById("btn2");
+
+function startGame(){
+
+    clearInterval(cpuTimer);
+
+    pos1 = 0;
+    pos2 = 0;
+
+    updateCars();
+
+    raceRunning = true;
+
+    gameMode =
+        document.getElementById("mode").value;
+
+    playerFirst =
+        document.getElementById("order").value === "first";
+
+    document.getElementById("status").textContent =
+        "レース開始！";
+
+    btn1.disabled = false;
+    btn2.disabled = false;
+
+    if(gameMode === "cpu"){
+
+        if(playerFirst){
+            btn1.textContent = "あなた";
+            btn2.textContent = "CPU";
+        }else{
+            btn1.textContent = "CPU";
+            btn2.textContent = "あなた";
+        }
+
+        btn1.disabled = !playerFirst;
+        btn2.disabled = playerFirst;
+
+        startCPU();
+    }
+    else{
+        btn1.textContent = "プレイヤー1";
+        btn2.textContent = "プレイヤー2";
+    }
+}
+
+function startCPU(){
+
+    let difficulty =
+        document.getElementById("difficulty").value;
+
+    let speed;
+
+    if(difficulty==="weak"){
+        speed = 250;
+    }
+    else if(difficulty==="normal"){
+        speed = 150;
+    }
+    else{
+        speed = 80;
+    }
+
+    cpuTimer = setInterval(()=>{
+
+        if(!raceRunning) return;
+
+        let advance =
+            Math.random()*14 + 6;
+
+        if(playerFirst){
+            pos2 += advance;
+        }else{
+            pos1 += advance;
+        }
+
+        updateCars();
+        checkWinner();
+
+    },speed);
+}
+
+function updateCars(){
+
+    car1.style.left =
+        Math.min(pos1,GOAL)+"px";
+
+    car2.style.left =
+        Math.min(pos2,GOAL)+"px";
+}
+
+function checkWinner(){
+
+    if(pos1>=GOAL || pos2>=GOAL){
+
+        raceRunning=false;
+
+        clearInterval(cpuTimer);
+
+        let winner;
+
+        if(pos1>=GOAL && pos2>=GOAL){
+            winner="引き分け！";
+        }
+        else if(pos1>=GOAL){
+            winner=
+            (gameMode==="cpu" && !playerFirst)
+            ? "あなたの勝ち！"
+            : (gameMode==="cpu"
+            ? "CPUの勝ち！"
+            : "プレイヤー1の勝ち！");
+        }
+        else{
+            winner=
+            (gameMode==="cpu" && playerFirst)
+            ? "あなたの勝ち！"
+            : (gameMode==="cpu"
+            ? "CPUの勝ち！"
+            : "プレイヤー2の勝ち！");
+        }
+
+        document.getElementById("status").textContent =
+            "🏆 " + winner;
+    }
+}
+
+function tapPlayer1(){
+
+    if(!raceRunning) return;
+
+    pos1 += Math.random()*14 + 10;
+
+    updateCars();
+    checkWinner();
+}
+
+function tapPlayer2(){
+
+    if(!raceRunning) return;
+
+    pos2 += Math.random()*14 + 10;
+
+    updateCars();
+    checkWinner();
+}
+
+btn1.addEventListener("pointerdown",()=>{
+
+    if(gameMode==="cpu"){
+        if(playerFirst) tapPlayer1();
+        else return;
+    }else{
+        tapPlayer1();
+    }
+
+});
+
+btn2.addEventListener("pointerdown",()=>{
+
+    if(gameMode==="cpu"){
+        if(!playerFirst) tapPlayer2();
+        else return;
+    }else{
+        tapPlayer2();
+    }
+
+});
+
+</script>
+
+</body>
+</html>
