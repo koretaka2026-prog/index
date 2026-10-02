@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ドラッグよけゲーム</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#87ceeb;
+}
+canvas{
+    display:block;
+    margin:auto;
+    background:#c8f0ff;
+}
+</style>
+</head>
+<body>
+<canvas id="game" width="900" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {
+    x: 100,
+    y: 220,
+    w: 50,
+    h: 50
+};
+
+let obstacles = [];
+let score = 0;
+let gameOver = false;
+
+function spawnObstacle(){
+    obstacles.push({
+        x: canvas.width,
+        y: Math.random() * (canvas.height - 60),
+        w: 40 + Math.random()*30,
+        h: 40 + Math.random()*30,
+        speed: 5 + Math.random()*4
+    });
+}
+
+setInterval(()=>{
+    if(!gameOver) spawnObstacle();
+},800);
+
+canvas.addEventListener("pointermove",(e)=>{
+    const rect = canvas.getBoundingClientRect();
+    player.x = e.clientX - rect.left - player.w/2;
+    player.y = e.clientY - rect.top - player.h/2;
+});
+
+function hit(a,b){
+    return a.x < b.x+b.w &&
+           a.x+a.w > b.x &&
+           a.y < b.y+b.h &&
+           a.y+a.h > b.y;
+}
+
+function update(){
+
+    if(gameOver) return;
+
+    score++;
+
+    obstacles.forEach(o=>{
+        o.x -= o.speed;
+
+        if(hit(player,o)){
+            gameOver = true;
+        }
+    });
+
+    obstacles = obstacles.filter(o=>o.x+o.w>0);
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="green";
+    ctx.fillRect(0,450,900,50);
+
+    ctx.fillStyle="dodgerblue";
+    ctx.fillRect(player.x,player.y,player.w,player.h);
+
+    ctx.fillStyle="crimson";
+    obstacles.forEach(o=>{
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+    });
+
+    ctx.fillStyle="black";
+    ctx.font="30px Arial";
+    ctx.fillText("Score: "+score,20,40);
+
+    if(gameOver){
+        ctx.fillStyle="black";
+        ctx.font="60px Arial";
+        ctx.fillText("GAME OVER",250,250);
+
+        ctx.font="30px Arial";
+        ctx.fillText("リロードで再スタート",300,320);
+    }
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
