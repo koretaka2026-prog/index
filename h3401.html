@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>逃げろ！サバイバル</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#111;
+    font-family:sans-serif;
+}
+canvas{
+    display:block;
+}
+#info{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:20px;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div id="info">
+タップして移動
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const info = document.getElementById("info");
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize",resize);
+
+let player={
+    x:200,
+    y:200,
+    hp:5,
+    score:0
+};
+
+let targetX=200;
+let targetY=200;
+
+let timeLeft=30;
+
+const gems=[];
+const enemies=[];
+
+function makeGem(){
+    gems.push({
+        x:Math.random()*canvas.width,
+        y:Math.random()*canvas.height
+    });
+}
+
+function makeEnemy(){
+    enemies.push({
+        x:Math.random()*canvas.width,
+        y:Math.random()*canvas.height,
+        speed:1+Math.random()*2
+    });
+}
+
+for(let i=0;i<10;i++) makeGem();
+for(let i=0;i<8;i++) makeEnemy();
+
+canvas.addEventListener("pointerdown",e=>{
+    targetX=e.clientX;
+    targetY=e.clientY;
+});
+
+setInterval(()=>{
+    timeLeft--;
+
+    if(timeLeft<=0){
+        alert("クリア！ スコア:"+player.score);
+        location.reload();
+    }
+},1000);
+
+function distance(ax,ay,bx,by){
+    return Math.hypot(ax-bx,ay-by);
+}
+
+function update(){
+
+    let dx=targetX-player.x;
+    let dy=targetY-player.y;
+    let d=Math.hypot(dx,dy);
+
+    if(d>2){
+        player.x+=dx/d*4;
+        player.y+=dy/d*4;
+    }
+
+    for(let e of enemies){
+
+        let ex=player.x-e.x;
+        let ey=player.y-e.y;
+        let ed=Math.hypot(ex,ey);
+
+        if(ed>0){
+            e.x+=ex/ed*e.speed;
+            e.y+=ey/ed*e.speed;
+        }
+
+        if(ed<25){
+
+            player.hp--;
+
+            player.x=canvas.width/2;
+            player.y=canvas.height/2;
+
+            if(player.hp<=0){
+                alert("ゲームオーバー");
+                location.reload();
+            }
+        }
+    }
+
+    for(let i=gems.length-1;i>=0;i--){
+
+        if(distance(
+            player.x,
+            player.y,
+            gems[i].x,
+            gems[i].y
+        )<25){
+
+            gems.splice(i,1);
+            player.score+=10;
+            makeGem();
+        }
+    }
+
+    info.innerHTML=
+        "⏱️"+timeLeft+
+        " ❤️"+player.hp+
+        " 💎"+player.score;
+}
+
+function draw(){
+
+    ctx.fillStyle="#111";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.font="30px serif";
+
+    for(let g of gems){
+        ctx.fillText("💎",g.x,g.y);
+    }
+
+    for(let e of enemies){
+        ctx.fillText("👾",e.x,e.y);
+    }
+
+    ctx.font="40px serif";
+    ctx.fillText("🙂",player.x,player.y);
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
+``
