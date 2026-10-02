@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🍰 お菓子作りゲーム</title>
+
+<style>
+body{
+    margin:0;
+    background:#fff7f0;
+    font-family:sans-serif;
+    text-align:center;
+    user-select:none;
+}
+
+h1{
+    margin:0;
+    padding:15px;
+    background:#ffb6c1;
+    color:#fff;
+}
+
+#game{
+    padding:20px;
+}
+
+#message{
+    font-size:24px;
+    min-height:40px;
+    margin:20px;
+}
+
+.items{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.btn{
+    border:none;
+    border-radius:15px;
+    padding:15px 20px;
+    font-size:20px;
+    background:#ffd966;
+    cursor:pointer;
+    box-shadow:0 4px #c7a536;
+}
+
+.btn:active{
+    transform:translateY(2px);
+}
+
+#bowl{
+    width:300px;
+    height:200px;
+    margin:25px auto;
+    background:#87ceeb;
+    border:5px solid #4682b4;
+    border-radius:0 0 150px 150px;
+    position:relative;
+    overflow:hidden;
+}
+
+#whisk{
+    position:absolute;
+    top:25px;
+    left:50px;
+    font-size:42px;
+    z-index:10;
+    display:none;
+    transition:all .15s ease;
+}
+
+#contents{
+    position:absolute;
+    width:80%;
+    left:10%;
+    bottom:18px;
+    min-height:55px;
+    padding:10px;
+    border-radius:18px;
+    transition:.3s;
+    font-size:18px;
+}
+
+#ingredientArea,
+#mixArea,
+#ovenArea,
+#finishArea{
+    display:none;
+}
+
+#mixCount{
+    font-size:28px;
+    margin:15px;
+}
+
+#cakeDisplay{
+    font-size:160px;
+    animation:pop 1s infinite alternate;
+}
+
+@keyframes pop{
+    from{transform:scale(1);}
+    to{transform:scale(1.08);}
+}
+
+#cakeName{
+    color:#d2691e;
+}
+
+.cake{
+    width:260px;
+    margin:0 auto;
+}
+
+.cake-base{
+    height:120px;
+    border-radius:20px;
+    margin-top:30px;
+    position:relative;
+}
+
+.cake-top{
+    height:40px;
+    border-radius:20px 20px 10px 10px;
+}
+
+.decor{
+    font-size:30px;
+    position:absolute;
+    top:-20px;
+    width:100%;
+}
+
+#finishCakeSvg{
+    margin:auto;
+    width:260px;
+}
+</style>
+</head>
+<body>
+
+<h1>🍰 お菓子作りゲーム 🍰</h1>
+
+<div id="game">
+
+<div id="message">
+好きな味を選ぼう！
+</div>
+
+<div id="flavorArea" class="items">
+    <button class="btn" onclick="selectFlavor('choco')">🍫 チョコ</button>
+    <button class="btn" onclick="selectFlavor('strawberry')">🍓 いちご</button>
+    <button class="btn" onclick="selectFlavor('vanilla')">🍦 バニラ</button>
+</div>
+
+<div id="bowl">
+
+    <div id="whisk">🥄🫧</div>
+
+    <div id="contents">
+        空っぽ
+    </div>
+
+</div>
+
+<div id="ingredientArea" class="items"></div>
+
+<div id="mixArea">
+
+    <div id="mixCount">
+        混ぜた回数: 0 / 10
+    </div>
+
+    <button class="btn" onclick="mix()">
+        🥄🫧 泡だてる！
+    </button>
+
+</div>
+
+<div id="ovenArea">
+    <p>生地ができたよ！</p>
+
+    <button class="btn" onclick="bake()">
+        🔥 オーブンで焼く
+    </button>
+</div>
+
+<div id="finishArea">
+
+    <div id="finishCakeSvg"></div>
+
+    <h2 id="cakeName">完成！</h2>
+
+    <button class="btn" onclick="restart()">
+        もう一回あそぶ
+    </button>
+
+</div>
+
+</div>
+
+<script>
+
+let selectedFlavor = "";
+let recipeIngredients = [];
+let ingredients = [];
+let mixCounter = 0;
+let whiskSide = 0;
+
+function selectFlavor(flavor){
+
+    selectedFlavor = flavor;
+
+    recipeIngredients = [
+        "🥚 卵",
+        "🌾 小麦粉",
+        "🥛 牛乳"
+    ];
+
+    let name = "";
+
+    if(flavor === "choco"){
+        name = "チョコ";
+        recipeIngredients.push("🍫 ココア");
+    }
+
+    if(flavor === "strawberry"){
+        name = "いちご";
+        recipeIngredients.push("🍓 いちごジャム");
+    }
+
+    if(flavor === "vanilla"){
+        name = "バニラ";
+        recipeIngredients.push("🌼 バニラエッセンス");
+    }
+
+    document.getElementById("message").textContent =
+        name + "ケーキを作ろう！";
+
+    document.getElementById("flavorArea").style.display =
+        "none";
+
+    createIngredientButtons();
+
+    document.getElementById("ingredientArea").style.display =
+        "flex";
+}
+
+function createIngredientButtons(){
+
+    const area = document.getElementById("ingredientArea");
+
+    area.innerHTML = "";
+
+    recipeIngredients.forEach(item => {
+
+        const btn = document.createElement("button");
+
+        btn.className = "btn";
+        btn.textContent = item;
+
+        btn.onclick = () => addIngredient(item);
+
+        area.appendChild(btn);
+    });
+}
+
+function addIngredient(item){
+
+    if(ingredients.includes(item)) return;
+
+    ingredients.push(item);
+
+    document.getElementById("contents").innerHTML =
+        ingredients.join("<br>");
+
+    if(ingredients.length === recipeIngredients.length){
+
+        document.getElementById("message").textContent =
+            "材料が全部入った！泡だてよう！";
+
+        document.getElementById("ingredientArea").style.display =
+            "none";
+
+        document.getElementById("mixArea").style.display =
+            "block";
+    }
+}
+
+function mix(){
+
+    const whisk = document.getElementById("whisk");
+    const bowl = document.getElementById("bowl");
+    const contents = document.getElementById("contents");
+
+    whisk.style.display = "block";
+
+    mixCounter++;
+
+    document.getElementById("mixCount").textContent =
+        "混ぜた回数: " + mixCounter + " / 10";
+
+    let doughColor = "#f7ebce";
+
+    if(selectedFlavor === "choco"){
+        doughColor = "#8b5a2b";
+    }
+
+    if(selectedFlavor === "strawberry"){
+        doughColor = "#ffb6c9";
+    }
+
+    if(selectedFlavor === "vanilla"){
+        doughColor = "#fff3c7";
+    }
+
+    contents.style.background = doughColor;
+    contents.style.color =
+        selectedFlavor === "choco" ? "#fff" : "#333";
+
+    if(mixCounter <= 3){
+
+        contents.innerHTML =
+            "🥣<br>とろとろ";
+
+    }else if(mixCounter <= 7){
+
+        contents.innerHTML =
+            "🥣🫧<br>まぜまぜ";
+
+    }else{
+
+        contents.innerHTML =
+            "🥣🫧🫧<br>ふわふわ";
+    }
+
+    bowl.style.transform =
+        "rotate("+(Math.random()*8-4)+"deg)";
+
+    if(whiskSide === 0){
+
+        whisk.style.left = "180px";
+        whisk.style.transform = "rotate(25deg)";
+        whiskSide = 1;
+
+    }else{
+
+        whisk.style.left = "40px";
+        whisk.style.transform = "rotate(-25deg)";
+        whiskSide = 0;
+    }
+
+    if(mixCounter >= 10){
+
+        if(selectedFlavor === "choco"){
+            contents.innerHTML =
+                "🍫🥣✨<br>チョコ生地";
+        }
+
+        if(selectedFlavor === "strawberry"){
+            contents.innerHTML =
+                "🍓🥣✨<br>いちご生地";
+        }
+
+        if(selectedFlavor === "vanilla"){
+            contents.innerHTML =
+                "🍦🥣✨<br>バニラ生地";
+        }
+
+        document.getElementById("message").textContent =
+            "ふわふわの生地ができた！焼こう！";
+
+        document.getElementById("mixArea").style.display =
+            "none";
+
+        document.getElementById("ovenArea").style.display =
+            "block";
+    }
+}
+
+function makeCakeGraphic(){
+
+    let color1 = "#d8b07a";
+    let color2 = "#fff3cd";
+    let deco = "🎂";
+
+    if(selectedFlavor === "choco"){
+        color1 = "#6f4e37";
+        color2 = "#8b5a2b";
+        deco = "🍫";
+    }
+
+    if(selectedFlavor === "strawberry"){
+        color1 = "#ff8fb1";
+        color2 = "#ffd2de";
+        deco = "🍓";
+    }
+
+    if(selectedFlavor === "vanilla"){
+        color1 = "#f7deb2";
+        color2 = "#fff6dd";
+        deco = "🍦";
+    }
+
+    document.getElementById("finishCakeSvg").innerHTML = `
+        <div class="cake">
+            <div class="cake-base"
+                 style="background:${color1};">
+                <div class="decor">${deco} ✨ ${deco}</div>
+            </div>
+            <div class="cake-top"
+                 style="background:${color2};">
+            </div>
+        </div>
+    `;
+}
+
+function bake(){
+
+    document.getElementById("whisk").style.display =
+        "none";
+
+    document.getElementById("ovenArea").style.display =
+        "none";
+
+    document.getElementById("message").textContent =
+        "🔥 焼いています...";
+
+    setTimeout(()=>{
+
+        let name = "ケーキ";
+
+        if(selectedFlavor === "choco"){
+            name = "チョコケーキ";
+        }
+
+        if(selectedFlavor === "strawberry"){
+            name = "いちごケーキ";
+        }
+
+        if(selectedFlavor === "vanilla"){
+            name = "バニラケーキ";
+        }
+
+        makeCakeGraphic();
+
+        document.getElementById("cakeName").textContent =
+            name + " 完成！";
+
+        document.getElementById("message").textContent =
+            "おいしそうに焼けたよ！";
+
+        document.getElementById("bowl").style.display =
+            "none";
+
+        document.getElementById("finishArea").style.display =
+            "block";
+
+    },2000);
+}
+
+function restart(){
+
+    selectedFlavor = "";
+    recipeIngredients = [];
+    ingredients = [];
+    mixCounter = 0;
+    whiskSide = 0;
+
+    document.getElementById("message").textContent =
+        "好きな味を選ぼう！";
+
+    const contents =
+        document.getElementById("contents");
+
+    contents.innerHTML = "空っぽ";
+    contents.style.background = "transparent";
+    contents.style.color = "#000";
+
+    document.getElementById("whisk").style.display =
+        "none";
+
+    document.getElementById("whisk").style.left =
+        "50px";
+
+    document.getElementById("whisk").style.transform =
+        "rotate(0deg)";
+
+    document.getElementById("bowl").style.transform =
+        "rotate(0deg)";
+
+    document.getElementById("mixCount").textContent =
+        "混ぜた回数: 0 / 10";
+
+    document.getElementById("finishCakeSvg").innerHTML =
+        "";
+
+    document.getElementById("flavorArea").style.display =
+        "flex";
+
+    document.getElementById("ingredientArea").style.display =
+        "none";
+
+    document.getElementById("mixArea").style.display =
+        "none";
+
+    document.getElementById("ovenArea").style.display =
+        "none";
+
+    document.getElementById("finishArea").style.display =
+        "none";
+
+    document.getElementById("bowl").style.display =
+        "block";
+}
+
+</script>
+
+</body>
+</html>
