@@ -1,0 +1,2251 @@
+以下が完成版です。**1つのHTMLファイルだけ**で動作します。\
+ `index.html` として保存してブラウザで開いてください。
+
+ - **WASD**：プレイヤー1移動
+- **F**：プレイヤー1シュート
+- **矢印キー**：プレイヤー2移動
+- **L**：プレイヤー2シュート
+- 人間 vs CPUではプレイヤー1を操作
+- 人間 vs 人間では2人ともキーボード操作
+- CPUの強さ、先攻・後攻を選択可能
+- フィールド上に選手・ボール・ゴールを表示
+- キーボードだけでプレイ可能
+
+```
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キーボードサッカーバトル</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #07150e;
+  color: #fff;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.game {
+  width: min(1100px, 100%);
+  padding: 18px;
+}
+
+h1 {
+  text-align: center;
+  margin: 0 0 18px;
+  font-size: clamp(26px, 5vw, 42px);
+}
+
+.panel {
+  background: #10261a;
+  border: 1px solid #2d5b40;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, .3);
+}
+
+/* =========================
+   設定
+========================= */
+
+.setup {
+  max-width: 650px;
+  margin: auto;
+}
+
+.setup-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.option label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 800;
+}
+
+select {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  color: white;
+  background: #091910;
+  border: 1px solid #467458;
+  border-radius: 10px;
+}
+
+.start-button {
+  border: 0;
+  border-radius: 13px;
+  background: #19a966;
+  color: white;
+  font-weight: 900;
+  font-size: 20px;
+  min-height: 56px;
+  margin-top: 5px;
+}
+
+.start-button:hover {
+  background: #21bd74;
+}
+
+.instructions {
+  margin-top: 18px;
+  background: #0b1c13;
+  border-radius: 12px;
+  padding: 14px;
+  color: #b9d2c1;
+  line-height: 1.7;
+}
+
+.key {
+  display: inline-block;
+  min-width: 32px;
+  padding: 2px 7px;
+  margin: 1px;
+  text-align: center;
+  border-radius: 6px;
+  background: #283d31;
+  border: 1px solid #587363;
+  color: white;
+  font-weight: 800;
+}
+
+/* =========================
+   ゲーム画面
+========================= */
+
+.hidden {
+  display: none !important;
+}
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.team {
+  text-align: center;
+  background: #091a10;
+  border-radius: 13px;
+  padding: 10px;
+}
+
+.team-name {
+  font-weight: 900;
+}
+
+.score {
+  font-size: 38px;
+  line-height: 1;
+  margin-top: 4px;
+  font-weight: 1000;
+}
+
+.vs {
+  font-weight: 1000;
+  color: #9ab7a4;
+}
+
+.status {
+  min-height: 45px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #173825;
+  border-radius: 11px;
+  margin-bottom: 14px;
+  text-align: center;
+  font-weight: 800;
+}
+
+/* =========================
+   サッカー場
+========================= */
+
+.field {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 350px;
+  overflow: hidden;
+
+  border: 5px solid #e4f4e7;
+  border-radius: 17px;
+
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,.035) 0,
+      rgba(255,255,255,.035) 10%,
+      transparent 10%,
+      transparent 20%
+    ),
+    #18864e;
+}
+
+/* 中央線 */
+
+.mid-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: rgba(255,255,255,.75);
+  transform: translateX(-50%);
+}
+
+/* 中央円 */
+
+.center-circle {
+  position: absolute;
+  width: 20%;
+  aspect-ratio: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 3px solid rgba(255,255,255,.75);
+  border-radius: 50%;
+}
+
+.center-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ペナルティエリア */
+
+.penalty {
+  position: absolute;
+  top: 27%;
+  bottom: 27%;
+  width: 15%;
+  border: 3px solid rgba(255,255,255,.8);
+}
+
+.penalty.left {
+  left: -3px;
+  border-left: 0;
+}
+
+.penalty.right {
+  right: -3px;
+  border-right: 0;
+}
+
+/* ゴール */
+
+.goal {
+  position: absolute;
+  top: 38%;
+  bottom: 38%;
+  width: 4%;
+  border: 4px solid white;
+  background: rgba(255,255,255,.08);
+}
+
+.goal.left {
+  left: -4px;
+  border-left: 0;
+}
+
+.goal.right {
+  right: -4px;
+  border-right: 0;
+}
+
+/* =========================
+   選手
+========================= */
+
+.player {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border-radius: 50%;
+  z-index: 10;
+
+  font-size: 27px;
+
+  transform: translate(-50%, -50%);
+
+  user-select: none;
+  pointer-events: none;
+
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.35),
+    inset 0 0 0 3px rgba(255,255,255,.55);
+
+  transition:
+    left .04s linear,
+    top .04s linear;
+}
+
+.player.p1 {
+  background: #1677d2;
+}
+
+.player.p2 {
+  background: #d33e45;
+}
+
+.player.cpu {
+  background: #d33e45;
+}
+
+.player-label {
+  position: absolute;
+  top: -27px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 2px 3px black;
+}
+
+/* ボール */
+
+.ball {
+  position: absolute;
+
+  width: 25px;
+  height: 25px;
+
+  border-radius: 50%;
+  background: white;
+
+  color: #111;
+  font-size: 15px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  transform: translate(-50%, -50%);
+
+  z-index: 15;
+
+  box-shadow: 0 3px 7px rgba(0,0,0,.4);
+
+  transition:
+    left .06s linear,
+    top .06s linear;
+}
+
+/* =========================
+   操作説明
+========================= */
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.control-card {
+  background: #0a1d12;
+  border-radius: 12px;
+  padding: 13px;
+}
+
+.control-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.control-card p {
+  margin: 0;
+  color: #b9d0c1;
+  line-height: 1.8;
+}
+
+.game-help {
+  text-align: center;
+  margin-top: 13px;
+  color: #9bb5a4;
+  font-size: 14px;
+}
+
+/* =========================
+   結果
+========================= */
+
+.result {
+  margin-top: 16px;
+  padding: 20px;
+  text-align: center;
+  background: #173a27;
+  border-radius: 14px;
+}
+
+.result h2 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+
+.result p {
+  color: #c8ddd0;
+}
+
+.restart-button {
+  min-height: 50px;
+  padding: 10px 25px;
+  border: 0;
+  border-radius: 12px;
+  background: #7545c5;
+  color: white;
+  font-weight: 900;
+}
+
+/* =========================
+   シュート演出
+========================= */
+
+@keyframes goalFlash {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(255,255,255,0);
+  }
+
+  50% {
+    box-shadow: inset 0 0 70px 20px rgba(255,255,255,.75);
+  }
+
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(255,255,255,0);
+  }
+}
+
+.field.goal-flash {
+  animation: goalFlash .5s ease;
+}
+
+/* =========================
+   レスポンシブ
+========================= */
+
+@media (max-width: 700px) {
+  .game {
+    padding: 10px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .field {
+    min-height: 240px;
+  }
+
+  .player {
+    width: 40px;
+    height: 40px;
+    font-size: 21px;
+  }
+
+  .ball {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .score {
+    font-size: 30px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <h1>⚽ キーボード・サッカーバトル</h1>
+
+  <!-- =========================
+       設定画面
+  ========================== -->
+
+  <section id="setup" class="panel setup">
+
+    <div class="setup-grid">
+
+      <div class="option">
+        <label for="mode">ゲームモード</label>
+
+        <select id="mode">
+          <option value="cpu">
+            人間 vs コンピュータ
+          </option>
+
+          <option value="pvp">
+            人間 vs 人間
+          </option>
+        </select>
+      </div>
+
+      <div class="option">
+        <label for="order">
+          先攻・後攻
+        </label>
+
+        <select id="order">
+          <option value="first">
+            プレイヤー1が先攻
+          </option>
+
+          <option value="second">
+            プレイヤー1が後攻
+          </option>
+        </select>
+      </div>
+
+      <div
+        class="option"
+        id="difficultyArea"
+      >
+        <label for="difficulty">
+          コンピュータの強さ
+        </label>
+
+        <select id="difficulty">
+          <option value="easy">
+            弱い
+          </option>
+
+          <option value="normal" selected>
+            普通
+          </option>
+
+          <option value="hard">
+            強い
+          </option>
+        </select>
+      </div>
+
+      <button
+        id="startButton"
+        class="start-button"
+        type="button"
+      >
+        ⚽ ゲーム開始
+      </button>
+
+    </div>
+
+    <div class="instructions">
+
+      <strong>🎮 操作方法</strong>
+
+      <br>
+
+      プレイヤー1：
+      <span class="key">W</span>
+      <span class="key">A</span>
+      <span class="key">S</span>
+      <span class="key">D</span>
+      で移動、
+      <span class="key">F</span>
+      でシュート
+
+      <br>
+
+      プレイヤー2：
+      <span class="key">↑</span>
+      <span class="key">←</span>
+      <span class="key">↓</span>
+      <span class="key">→</span>
+      で移動、
+      <span class="key">L</span>
+      でシュート
+
+      <br><br>
+
+      <strong>⚽ ルール</strong>
+
+      <br>
+
+      相手ゴールにボールを入れると1点。
+      先に5点取ったプレイヤーの勝利です。
+
+      <br>
+
+      ボールの近くまで移動してシュートしてください。
+
+    </div>
+
+  </section>
+
+  <!-- =========================
+       ゲーム画面
+  ========================== -->
+
+  <section
+    id="gamePanel"
+    class="panel hidden"
+  >
+
+    <!-- スコア -->
+
+    <div class="scoreboard">
+
+      <div class="team">
+
+        <div
+          id="p1Name"
+          class="team-name"
+        >
+          プレイヤー1
+        </div>
+
+        <div
+          id="p1Score"
+          class="score"
+        >
+          0
+        </div>
+
+      </div>
+
+      <div class="vs">
+        VS
+      </div>
+
+      <div class="team">
+
+        <div
+          id="p2Name"
+          class="team-name"
+        >
+          プレイヤー2
+        </div>
+
+        <div
+          id="p2Score"
+          class="score"
+        >
+          0
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ステータス -->
+
+    <div
+      id="status"
+      class="status"
+      aria-live="polite"
+    >
+      ゲーム開始！
+    </div>
+
+    <!-- =========================
+         フィールド
+    ========================== -->
+
+    <div
+      id="field"
+      class="field"
+    >
+
+      <div class="mid-line"></div>
+
+      <div class="center-circle"></div>
+
+      <div class="center-dot"></div>
+
+      <div class="penalty left"></div>
+
+      <div class="penalty right"></div>
+
+      <div class="goal left"></div>
+
+      <div class="goal right"></div>
+
+      <!-- プレイヤー1 -->
+
+      <div
+        id="player1"
+        class="player p1"
+      >
+        <span class="player-label">
+          P1
+        </span>
+        🧑
+      </div>
+
+      <!-- プレイヤー2 -->
+
+      <div
+        id="player2"
+        class="player p2"
+      >
+        <span class="player-label">
+          P2
+        </span>
+        🧑
+      </div>
+
+      <!-- ボール -->
+
+      <div
+        id="ball"
+        class="ball"
+      >
+        ⚽
+      </div>
+
+    </div>
+
+    <!-- 操作説明 -->
+
+    <div class="controls">
+
+      <div class="control-card">
+
+        <h3>🔵 プレイヤー1</h3>
+
+        <p>
+          <span class="key">W</span>
+          前
+          <span class="key">S</span>
+          後
+          <span class="key">A</span>
+          左
+          <span class="key">D</span>
+          右
+          <br>
+          <span class="key">F</span>
+          シュート
+        </p>
+
+      </div>
+
+      <div class="control-card">
+
+        <h3>🔴 プレイヤー2</h3>
+
+        <p>
+          <span class="key">↑</span>
+          前
+          <span class="key">↓</span>
+          後
+          <span class="key">←</span>
+          左
+          <span class="key">→</span>
+          右
+          <br>
+          <span class="key">L</span>
+          シュート
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="game-help">
+      ボールに近づいてシュート！
+      CPU戦では赤い選手がコンピュータです。
+    </div>
+
+    <!-- 試合結果 -->
+
+    <div
+      id="result"
+      class="result hidden"
+    >
+
+      <h2 id="resultTitle">
+        試合終了
+      </h2>
+
+      <p id="resultText"></p>
+
+      <button
+        id="restartButton"
+        class="restart-button"
+        type="button"
+      >
+        🔄 もう一度遊ぶ
+      </button>
+
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const setup = document.getElementById("setup");
+const gamePanel = document.getElementById("gamePanel");
+
+const modeSelect = document.getElementById("mode");
+const orderSelect = document.getElementById("order");
+const difficultySelect =
+  document.getElementById("difficulty");
+
+const difficultyArea =
+  document.getElementById("difficultyArea");
+
+const startButton =
+  document.getElementById("startButton");
+
+const restartButton =
+  document.getElementById("restartButton");
+
+const statusElement =
+  document.getElementById("status");
+
+const p1NameElement =
+  document.getElementById("p1Name");
+
+const p2NameElement =
+  document.getElementById("p2Name");
+
+const p1ScoreElement =
+  document.getElementById("p1Score");
+
+const p2ScoreElement =
+  document.getElementById("p2Score");
+
+const field =
+  document.getElementById("field");
+
+const player1Element =
+  document.getElementById("player1");
+
+const player2Element =
+  document.getElementById("player2");
+
+const ballElement =
+  document.getElementById("ball");
+
+const resultElement =
+  document.getElementById("result");
+
+const resultTitleElement =
+  document.getElementById("resultTitle");
+
+const resultTextElement =
+  document.getElementById("resultText");
+
+/* =========================================================
+   ゲーム設定
+========================================================= */
+
+const WIN_SCORE = 5;
+
+const PLAYER_RADIUS = 3.0;
+const BALL_RADIUS = 1.7;
+
+const PLAYER_SPEED = 0.55;
+const CPU_SPEED = 0.38;
+
+const BALL_FRICTION = 0.965;
+
+const KICK_DISTANCE = 9;
+const KICK_POWER = 1.9;
+
+/* =========================================================
+   ゲーム状態
+========================================================= */
+
+const game = {
+
+  running: false,
+
+  mode: "cpu",
+
+  difficulty: "normal",
+
+  p1First: true,
+
+  p1Score: 0,
+
+  p2Score: 0,
+
+  /*
+    攻撃権。
+    1 = P1
+    2 = P2
+  */
+  attacker: 1,
+
+  players: {
+
+    p1: {
+      x: 25,
+      y: 50
+    },
+
+    p2: {
+      x: 75,
+      y: 50
+    }
+
+  },
+
+  ball: {
+
+    x: 50,
+
+    y: 50,
+
+    vx: 0,
+
+    vy: 0
+
+  },
+
+  keys: {},
+
+  lastTime: 0,
+
+  animationId: null,
+
+  cpuTimer: 0,
+
+  shotCooldown1: 0,
+
+  shotCooldown2: 0,
+
+  messageTimer: 0
+
+};
+
+/* =========================================================
+   ユーティリティ
+========================================================= */
+
+function clamp(value, min, max) {
+
+  return Math.max(
+    min,
+    Math.min(max, value)
+  );
+
+}
+
+function distance(x1, y1, x2, y2) {
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  return Math.sqrt(
+    dx * dx +
+    dy * dy
+  );
+
+}
+
+function setStatus(text) {
+
+  statusElement.textContent = text;
+
+}
+
+function updateScore() {
+
+  p1ScoreElement.textContent =
+    String(game.p1Score);
+
+  p2ScoreElement.textContent =
+    String(game.p2Score);
+
+}
+
+/* =========================================================
+   モード設定
+========================================================= */
+
+function updateSetup() {
+
+  if (modeSelect.value === "cpu") {
+
+    difficultyArea.classList.remove(
+      "hidden"
+    );
+
+  } else {
+
+    difficultyArea.classList.add(
+      "hidden"
+    );
+
+  }
+
+}
+
+modeSelect.addEventListener(
+  "change",
+  updateSetup
+);
+
+/* =========================================================
+   ゲーム開始
+========================================================= */
+
+function startGame() {
+
+  game.running = true;
+
+  game.mode =
+    modeSelect.value;
+
+  game.difficulty =
+    difficultySelect.value;
+
+  game.p1First =
+    orderSelect.value === "first";
+
+  game.p1Score = 0;
+
+  game.p2Score = 0;
+
+  game.attacker =
+    game.p1First ? 1 : 2;
+
+  game.lastTime =
+    performance.now();
+
+  game.cpuTimer = 0;
+
+  game.shotCooldown1 = 0;
+
+  game.shotCooldown2 = 0;
+
+  game.keys = {};
+
+  resetPositions();
+
+  updateScore();
+
+  setup.classList.add("hidden");
+
+  gamePanel.classList.remove("hidden");
+
+  resultElement.classList.add("hidden");
+
+  if (game.mode === "cpu") {
+
+    p1NameElement.textContent =
+      "あなた";
+
+    p2NameElement.textContent =
+      "コンピュータ";
+
+  } else {
+
+    p1NameElement.textContent =
+      "プレイヤー1";
+
+    p2NameElement.textContent =
+      "プレイヤー2";
+
+  }
+
+  if (
+    game.mode === "cpu" &&
+    game.attacker === 2
+  ) {
+
+    setStatus(
+      "コンピュータの先攻！"
+    );
+
+  } else {
+
+    setStatus(
+      game.attacker === 1
+        ? "あなたの攻撃！ボールを奪ってシュート！"
+        : "プレイヤー2の攻撃！"
+    );
+
+  }
+
+  if (game.animationId !== null) {
+
+    cancelAnimationFrame(
+      game.animationId
+    );
+
+  }
+
+  game.animationId =
+    requestAnimationFrame(
+      gameLoop
+    );
+
+}
+
+/* =========================================================
+   初期配置
+========================================================= */
+
+function resetPositions() {
+
+  game.players.p1.x = 25;
+  game.players.p1.y = 50;
+
+  game.players.p2.x = 75;
+  game.players.p2.y = 50;
+
+  game.ball.x = 50;
+  game.ball.y = 50;
+
+  game.ball.vx = 0;
+  game.ball.vy = 0;
+
+  render();
+}
+
+/* =========================================================
+   キーボード
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    /*
+      ゲーム中だけ操作する
+    */
+    if (!game.running) {
+      return;
+    }
+
+    const key =
+      event.key.toLowerCase();
+
+    /*
+      矢印キーによるページスクロールを防止
+    */
+    const controlledKeys = [
+      "w",
+      "a",
+      "s",
+      "d",
+      "f",
+      "l",
+      "arrowup",
+      "arrowdown",
+      "arrowleft",
+      "arrowright"
+    ];
+
+    if (
+      controlledKeys.includes(key)
+    ) {
+
+      event.preventDefault();
+
+    }
+
+    /*
+      シュート
+    */
+    if (
+      key === "f" &&
+      !event.repeat
+    ) {
+
+      shoot(1);
+
+    }
+
+    if (
+      key === "l" &&
+      !event.repeat
+    ) {
+
+      /*
+        CPU戦ではLを無視
+      */
+      if (game.mode === "pvp") {
+
+        shoot(2);
+
+      }
+
+    }
+
+    game.keys[key] = true;
+
+  },
+  { passive: false }
+);
+
+document.addEventListener(
+  "keyup",
+  function(event) {
+
+    game.keys[
+      event.key.toLowerCase()
+    ] = false;
+
+  }
+);
+
+/* =========================================================
+   プレイヤー移動
+========================================================= */
+
+function updatePlayer1(delta) {
+
+  if (!game.running) {
+    return;
+  }
+
+  let dx = 0;
+  let dy = 0;
+
+  if (game.keys["w"]) {
+    dy -= 1;
+  }
+
+  if (game.keys["s"]) {
+    dy += 1;
+  }
+
+  if (game.keys["a"]) {
+    dx -= 1;
+  }
+
+  if (game.keys["d"]) {
+    dx += 1;
+  }
+
+  /*
+    斜め移動が速くなりすぎないようにする
+  */
+  const length =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  if (length > 0) {
+
+    dx /= length;
+    dy /= length;
+
+  }
+
+  game.players.p1.x +=
+    dx * PLAYER_SPEED * delta;
+
+  game.players.p1.y +=
+    dy * PLAYER_SPEED * delta;
+
+  clampPlayer(
+    game.players.p1
+  );
+
+}
+
+function updatePlayer2(delta) {
+
+  /*
+    CPU戦の場合はAI
+  */
+  if (game.mode === "cpu") {
+
+    updateCPU(delta);
+
+    return;
+  }
+
+  let dx = 0;
+  let dy = 0;
+
+  if (game.keys["arrowup"]) {
+    dy -= 1;
+  }
+
+  if (game.keys["arrowdown"]) {
+    dy += 1;
+  }
+
+  if (game.keys["arrowleft"]) {
+    dx -= 1;
+  }
+
+  if (game.keys["arrowright"]) {
+    dx += 1;
+  }
+
+  const length =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  if (length > 0) {
+
+    dx /= length;
+    dy /= length;
+
+  }
+
+  game.players.p2.x +=
+    dx * PLAYER_SPEED * delta;
+
+  game.players.p2.y +=
+    dy * PLAYER_SPEED * delta;
+
+  clampPlayer(
+    game.players.p2
+  );
+
+}
+
+function clampPlayer(player) {
+
+  player.x =
+    clamp(
+      player.x,
+      4,
+      96
+    );
+
+  player.y =
+    clamp(
+      player.y,
+      7,
+      93
+    );
+
+}
+
+/* =========================================================
+   CPU
+========================================================= */
+
+function getCpuParameters() {
+
+  if (game.difficulty === "easy") {
+
+    return {
+      speed: 0.24,
+      accuracy: 0.55,
+      reaction: 0.20
+    };
+
+  }
+
+  if (game.difficulty === "hard") {
+
+    return {
+      speed: 0.58,
+      accuracy: 0.95,
+      reaction: 0.04
+    };
+
+  }
+
+  return {
+    speed: 0.39,
+    accuracy: 0.76,
+    reaction: 0.10
+  };
+
+}
+
+function updateCPU(delta) {
+
+  const params =
+    getCpuParameters();
+
+  const cpu =
+    game.players.p2;
+
+  const ball =
+    game.ball;
+
+  /*
+    CPUは基本的にボールを追う。
+  */
+
+  let targetX =
+    ball.x;
+
+  let targetY =
+    ball.y;
+
+  /*
+    ボールが自陣に近いときは守備位置を
+    少しゴール寄りにする。
+  */
+
+  if (
+    game.attacker === 1 &&
+    ball.x < 55
+  ) {
+
+    targetX =
+      ball.x + 4;
+
+    targetY =
+      ball.y;
+
+  }
+
+  /*
+    CPUがボールを持っているような状況では
+    プレイヤー1のゴール方向へ向かう。
+  */
+
+  if (
+    game.attacker === 2 &&
+    distance(
+      cpu.x,
+      cpu.y,
+      ball.x,
+      ball.y
+    ) < 12
+  ) {
+
+    targetX = 18;
+    targetY = 50;
+
+  }
+
+  const dx =
+    targetX - cpu.x;
+
+  const dy =
+    targetY - cpu.y;
+
+  const len =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  if (len > 0.8) {
+
+    cpu.x +=
+      dx / len *
+      params.speed *
+      delta;
+
+    cpu.y +=
+      dy / len *
+      params.speed *
+      delta;
+
+  }
+
+  clampPlayer(cpu);
+
+  /*
+    CPUがボールの近くなら自動シュート
+  */
+
+  const d =
+    distance(
+      cpu.x,
+      cpu.y,
+      ball.x,
+      ball.y
+    );
+
+  game.cpuTimer -= delta;
+
+  if (
+    d < KICK_DISTANCE &&
+    game.cpuTimer <= 0 &&
+    game.attacker === 2
+  ) {
+
+    if (
+      Math.random() <
+      params.accuracy
+    ) {
+
+      shoot(2);
+
+    }
+
+    game.cpuTimer =
+      30 +
+      Math.random() * 35;
+
+  }
+
+}
+
+/* =========================================================
+   ボール物理
+========================================================= */
+
+function updateBall(delta) {
+
+  const ball =
+    game.ball;
+
+  ball.x +=
+    ball.vx * delta;
+
+  ball.y +=
+    ball.vy * delta;
+
+  /*
+    摩擦
+  */
+
+  const friction =
+    Math.pow(
+      BALL_FRICTION,
+      delta
+    );
+
+  ball.vx *= friction;
+  ball.vy *= friction;
+
+  /*
+    上下の壁
+  */
+
+  if (ball.y < 3) {
+
+    ball.y = 3;
+
+    ball.vy =
+      Math.abs(ball.vy) *
+      0.75;
+
+  }
+
+  if (ball.y > 97) {
+
+    ball.y = 97;
+
+    ball.vy =
+      -Math.abs(ball.vy) *
+      0.75;
+
+  }
+
+  /*
+    左右の壁。
+
+    ゴール部分だけは通過できる。
+  */
+
+  const inGoalHeight =
+    ball.y > 35 &&
+    ball.y < 65;
+
+  if (
+    ball.x < 2 &&
+    !inGoalHeight
+  ) {
+
+    ball.x = 2;
+
+    ball.vx =
+      Math.abs(ball.vx) *
+      0.75;
+
+  }
+
+  if (
+    ball.x > 98 &&
+    !inGoalHeight
+  ) {
+
+    ball.x = 98;
+
+    ball.vx =
+      -Math.abs(ball.vx) *
+      0.75;
+
+  }
+
+  /*
+    ゴール判定
+  */
+
+  if (
+    ball.x <= 0 &&
+    inGoalHeight
+  ) {
+
+    goal(2);
+
+  }
+
+  if (
+    ball.x >= 100 &&
+    inGoalHeight
+  ) {
+
+    goal(1);
+
+  }
+
+}
+
+/* =========================================================
+   選手とボールの接触
+========================================================= */
+
+function handlePlayerBallCollision(
+  player,
+  playerId
+) {
+
+  const ball =
+    game.ball;
+
+  const dx =
+    ball.x - player.x;
+
+  const dy =
+    ball.y - player.y;
+
+  const dist =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  const minDist =
+    PLAYER_RADIUS +
+    BALL_RADIUS;
+
+  if (dist < minDist) {
+
+    /*
+      プレイヤーがボールを押す
+    */
+
+    let nx = dx;
+    let ny = dy;
+
+    if (dist < 0.001) {
+
+      nx =
+        playerId === 1
+          ? 1
+          : -1;
+
+      ny = 0;
+
+    } else {
+
+      nx /= dist;
+      ny /= dist;
+
+    }
+
+    /*
+      めり込みを解消
+    */
+
+    ball.x =
+      player.x +
+      nx *
+      (minDist + 0.2);
+
+    ball.y =
+      player.y +
+      ny *
+      (minDist + 0.2);
+
+    /*
+      移動中なら少しボールを動かす
+    */
+
+    const speed =
+      Math.sqrt(
+        ball.vx * ball.vx +
+        ball.vy * ball.vy
+      );
+
+    if (speed < 0.35) {
+
+      ball.vx =
+        nx * 0.28;
+
+      ball.vy =
+        ny * 0.28;
+
+    }
+
+  }
+
+}
+
+/* =========================================================
+   シュート
+========================================================= */
+
+function shoot(playerId) {
+
+  if (!game.running) {
+    return;
+  }
+
+  const player =
+    playerId === 1
+      ? game.players.p1
+      : game.players.p2;
+
+  const ball =
+    game.ball;
+
+  /*
+    CPU戦でプレイヤー2を直接操作させない
+  */
+
+  if (
+    game.mode === "cpu" &&
+    playerId === 2
+  ) {
+
+    return;
+
+  }
+
+  /*
+    シュート連打防止
+  */
+
+  if (
+    playerId === 1 &&
+    game.shotCooldown1 > 0
+  ) {
+
+    return;
+
+  }
+
+  if (
+    playerId === 2 &&
+    game.shotCooldown2 > 0
+  ) {
+
+    return;
+
+  }
+
+  const d =
+    distance(
+      player.x,
+      player.y,
+      ball.x,
+      ball.y
+    );
+
+  if (d > KICK_DISTANCE) {
+
+    if (playerId === 1) {
+
+      setStatus(
+        "⚠️ ボールにもっと近づいてください！"
+      );
+
+    }
+
+    return;
+
+  }
+
+  /*
+    シュート方向
+
+    P1 → 右
+    P2 → 左
+  */
+
+  let directionX =
+    playerId === 1
+      ? 1
+      : -1;
+
+  /*
+    プレイヤーとボールの位置関係を使って
+    上下方向にも少し飛ばす。
+  */
+
+  let directionY =
+    (ball.y - player.y) * 0.10;
+
+  const length =
+    Math.sqrt(
+      directionX * directionX +
+      directionY * directionY
+    );
+
+  directionX /= length;
+  directionY /= length;
+
+  ball.vx =
+    directionX *
+    KICK_POWER;
+
+  ball.vy =
+    directionY *
+    KICK_POWER;
+
+  /*
+    攻撃権を変更
+  */
+
+  game.attacker =
+    playerId;
+
+  /*
+    クールダウン
+  */
+
+  if (playerId === 1) {
+
+    game.shotCooldown1 = 18;
+
+  } else {
+
+    game.shotCooldown2 = 18;
+
+  }
+
+  if (playerId === 1) {
+
+    setStatus(
+      "💥 シュート！"
+    );
+
+  } else {
+
+    setStatus(
+      "💥 コンピュータがシュート！"
+    );
+
+  }
+
+}
+
+/* =========================================================
+   ゴール
+========================================================= */
+
+function goal(scoringPlayer) {
+
+  if (!game.running) {
+    return;
+  }
+
+  if (scoringPlayer === 1) {
+
+    game.p1Score++;
+
+    setStatus(
+      "⚽ ゴール！プレイヤー1！"
+    );
+
+  } else {
+
+    game.p2Score++;
+
+    setStatus(
+      "⚽ ゴール！プレイヤー2！"
+    );
+
+  }
+
+  updateScore();
+
+  field.classList.remove(
+    "goal-flash"
+  );
+
+  /*
+    アニメーション再スタート
+  */
+
+  void field.offsetWidth;
+
+  field.classList.add(
+    "goal-flash"
+  );
+
+  /*
+    勝利判定
+  */
+
+  if (
+    game.p1Score >= WIN_SCORE ||
+    game.p2Score >= WIN_SCORE
+  ) {
+
+    finishGame();
+
+    return;
+
+  }
+
+  /*
+    得点した側ではなく、
+    相手が次のキックオフ
+  */
+
+  game.attacker =
+    scoringPlayer === 1
+      ? 2
+      : 1;
+
+  setTimeout(
+    resetAfterGoal,
+    700
+  );
+
+}
+
+function resetAfterGoal() {
+
+  if (!game.running) {
+    return;
+  }
+
+  game.players.p1.x = 25;
+  game.players.p1.y = 50;
+
+  game.players.p2.x = 75;
+  game.players.p2.y = 50;
+
+  game.ball.x = 50;
+  game.ball.y = 50;
+
+  game.ball.vx = 0;
+  game.ball.vy = 0;
+
+  game.cpuTimer = 0;
+
+  if (
+    game.mode === "cpu" &&
+    game.attacker === 2
+  ) {
+
+    setStatus(
+      "コンピュータのキックオフ！"
+    );
+
+  } else {
+
+    setStatus(
+      game.attacker === 1
+        ? "あなたのキックオフ！"
+        : "プレイヤー2のキックオフ！"
+    );
+
+  }
+
+}
+
+/* =========================================================
+   試合終了
+========================================================= */
+
+function finishGame() {
+
+  game.running = false;
+
+  game.keys = {};
+
+  if (
+    game.p1Score >
+    game.p2Score
+  ) {
+
+    if (game.mode === "cpu") {
+
+      resultTitleElement.textContent =
+        "🏆 あなたの勝利！";
+
+      resultTextElement.textContent =
+        `スコア ${game.p1Score} - ${game.p2Score}`;
+
+    } else {
+
+      resultTitleElement.textContent =
+        "🏆 プレイヤー1の勝利！";
+
+      resultTextElement.textContent =
+        `スコア ${game.p1Score} - ${game.p2Score}`;
+
+    }
+
+  } else {
+
+    if (game.mode === "cpu") {
+
+      resultTitleElement.textContent =
+        "🤖 コンピュータの勝利！";
+
+      resultTextElement.textContent =
+        `スコア ${game.p2Score} - ${game.p1Score}`;
+
+    } else {
+
+      resultTitleElement.textContent =
+        "🏆 プレイヤー2の勝利！";
+
+      resultTextElement.textContent =
+        `スコア ${game.p2Score} - ${game.p1Score}`;
+
+    }
+
+  }
+
+  resultElement.classList.remove(
+    "hidden"
+  );
+
+  setStatus(
+    "試合終了！"
+  );
+
+}
+
+/* =========================================================
+   描画
+========================================================= */
+
+function render() {
+
+  /*
+    left/topはパーセント指定。
+  */
+
+  player1Element.style.left =
+    game.players.p1.x + "%";
+
+  player1Element.style.top =
+    game.players.p1.y + "%";
+
+  player2Element.style.left =
+    game.players.p2.x + "%";
+
+  player2Element.style.top =
+    game.players.p2.y + "%";
+
+  ballElement.style.left =
+    game.ball.x + "%";
+
+  ballElement.style.top =
+    game.ball.y + "%";
+
+}
+
+/* =========================================================
+   ゲームループ
+========================================================= */
+
+function gameLoop(timestamp) {
+
+  if (!game.running) {
+
+    render();
+
+    return;
+
+  }
+
+  let delta =
+    timestamp -
+    game.lastTime;
+
+  /*
+    タブ復帰時などに巨大なdeltaにならないようにする
+  */
+
+  delta =
+    clamp(
+      delta,
+      0,
+      2
+    );
+
+  game.lastTime =
+    timestamp;
+
+  /*
+    クールダウン
+  */
+
+  game.shotCooldown1 =
+    Math.max(
+      0,
+      game.shotCooldown1 - delta
+    );
+
+  game.shotCooldown2 =
+    Math.max(
+      0,
+      game.shotCooldown2 - delta
+    );
+
+  /*
+    プレイヤー更新
+  */
+
+  updatePlayer1(delta);
+
+  updatePlayer2(delta);
+
+  /*
+    プレイヤーとボールの接触
+  */
+
+  handlePlayerBallCollision(
+    game.players.p1,
+    1
+  );
+
+  handlePlayerBallCollision(
+    game.players.p2,
+    2
+  );
+
+  /*
+    ボール更新
+  */
+
+  updateBall(delta);
+
+  /*
+    描画
+  */
+
+  render();
+
+  game.animationId =
+    requestAnimationFrame(
+      gameLoop
+    );
+
+}
+
+/* =========================================================
+   再スタート
+========================================================= */
+
+restartButton.addEventListener(
+  "click",
+  function() {
+
+    game.running = false;
+
+    game.keys = {};
+
+    if (
+      game.animationId !== null
+    ) {
+
+      cancelAnimationFrame(
+        game.animationId
+      );
+
+    }
+
+    gamePanel.classList.add(
+      "hidden"
+    );
+
+    setup.classList.remove(
+      "hidden"
+    );
+
+    resultElement.classList.add(
+      "hidden"
+    );
+
+    resetPositions();
+
+    updateSetup();
+
+  }
+);
+
+/* =========================================================
+   ゲーム開始ボタン
+========================================================= */
+
+startButton.addEventListener(
+  "click",
+  startGame
+);
+
+/* =========================================================
+   初期化
+========================================================= */
+
+updateSetup();
+
+resetPositions();
+
+</script>
+
+</body>
+</html>
+```
