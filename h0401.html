@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ドット絵レストラン</title>
+
+<style>
+body{
+margin:0;
+background:#222;
+font-family:monospace;
+color:white;
+overflow:hidden;
+}
+
+#ui{
+height:50px;
+background:#111;
+display:flex;
+align-items:center;
+padding:10px;
+gap:20px;
+}
+
+#game{
+width:960px;
+height:640px;
+margin:auto;
+position:relative;
+background:#2e7d32;
+overflow:hidden;
+image-rendering:pixelated;
+}
+
+/* 厨房 */
+
+#kitchen{
+position:absolute;
+bottom:0;
+width:100%;
+height:180px;
+background:#666;
+border-top:5px solid #333;
+}
+
+.counter{
+position:absolute;
+left:400px;
+top:30px;
+width:120px;
+height:60px;
+background:#ccc;
+border:4px solid #444;
+}
+
+/* 客席 */
+
+.table{
+position:absolute;
+width:80px;
+height:80px;
+background:#795548;
+border:4px solid #4e342e;
+}
+
+/* キャラ */
+
+.character{
+position:absolute;
+width:32px;
+height:32px;
+transition:none;
+}
+
+.pixel{
+width:32px;
+height:32px;
+position:relative;
+}
+
+.head{
+position:absolute;
+left:8px;
+top:2px;
+width:16px;
+height:12px;
+background:#ffd7b5;
+}
+
+.body{
+position:absolute;
+left:8px;
+top:14px;
+width:16px;
+height:12px;
+}
+
+.leg1,.leg2{
+position:absolute;
+width:5px;
+height:6px;
+background:black;
+bottom:0;
+}
+
+.leg1{left:10px;}
+.leg2{right:10px;}
+
+.waiter .body{
+background:#2196f3;
+}
+
+.customer .body{
+background:#4caf50;
+}
+
+.cook .body{
+background:#ff9800;
+}
+
+.selected{
+outline:3px solid yellow;
+}
+
+.orderBubble{
+position:absolute;
+top:-18px;
+left:-5px;
+font-size:18px;
+}
+
+.ready{
+filter:brightness(1.4);
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+<div>💰 売上: <span id="money">0</span></div>
+<div>😊 来客数: <span id="served">0</span></div>
+</div>
+
+<div id="game">
+
+<div class="table" style="left:180px;top:80px"></div>
+<div class="table" style="left:420px;top:80px"></div>
+<div class="table" style="left:660px;top:80px"></div>
+
+<div class="table" style="left:180px;top:260px"></div>
+
+<div id="kitchen">
+<div class="counter" id="counter"></div>
+</div>
+
+</div>
+
+<script>
+
+const game=document.getElementById("game");
+
+let money=0;
+let served=0;
+
+let selected=null;
+
+function createPixelCharacter(type,x,y){
+
+const el=document.createElement("div");
+el.className="character "+type;
+
+el.innerHTML=`
+<div class="pixel">
+<div class="head"></div>
+<div class="body"></div>
+<div class="leg1"></div>
+<div class="leg2"></div>
+</div>
+`;
+
+el.style.left=x+"px";
+el.style.top=y+"px";
+
+game.appendChild(el);
+
+return {
+type,
+x,
+y,
+targetX:x,
+targetY:y,
+speed:2,
+el,
+order:false,
+food:false
+};
+
+}
+
+const waiter=createPixelCharacter(
+"waiter",100,500
+);
+
+const cook=createPixelCharacter(
+"cook",500,530
+);
+
+waiter.el.onclick=(e)=>{
+e.stopPropagation();
+selected=waiter;
+
+document
+.querySelectorAll(".selected")
+.forEach(v=>v.classList.remove("selected"));
+
+waiter.el.classList.add("selected");
+};
+
+cook.el.onclick=(e)=>{
+e.stopPropagation();
+selected=cook;
+
+document
+.querySelectorAll(".selected")
+.forEach(v=>v.classList.remove("selected"));
+
+cook.el.classList.add("selected");
+};
+
+let customers=[];
+
+const tables=[
+{x:200,y:100,occupied:false},
+{x:440,y:100,occupied:false},
+{x:680,y:100,occupied:false},
+{x:200,y:280,occupied:false}
+];
+
+function spawnCustomer(){
+
+let free=tables.find(
+t=>!t.occupied
+);
+
+if(!free) return;
+
+free.occupied=true;
+
+const c=createPixelCharacter(
+"customer",
+50,
+40
+);
+
+c.table=free;
+
+c.targetX=free.x;
+c.targetY=free.y;
+
+c.state="sit";
+
+customers.push(c);
+
+}
+
+setInterval(spawnCustomer,5000);
+
+game.addEventListener("click",e=>{
+
+if(!selected) return;
+
+const rect=game.getBoundingClientRect();
+
+selected.targetX=
+e.clientX-rect.left-16;
+
+selected.targetY=
+e.clientY-rect.top-16;
+
+});
+
+function moveCharacter(char){
+
+let dx=char.targetX-char.x;
+let dy=char.targetY-char.y;
+
+let dist=Math.hypot(dx,dy);
+
+if(dist>1){
+
+char.x+=dx/dist*char.speed;
+char.y+=dy/dist*char.speed;
+
+char.el.style.left=char.x+"px";
+char.el.style.top=char.y+"px";
+
+let t=Date.now()/150;
+
+char.el.querySelector(".leg1")
+.style.height=
+6+
+Math.sin(t)*2+"px";
+
+char.el.querySelector(".leg2")
+.style.height=
+6+
+Math.cos(t)*2+"px";
+}
+}
+
+function updateCustomers(){
+
+customers.forEach(c=>{
+
+if(c.state==="sit"){
+
+let d=Math.hypot(
+c.x-c.table.x,
+c.y-c.table.y
+);
+
+if(d<5){
+
+c.state="waiting";
+
+const bubble=document.createElement("div");
+bubble.className="orderBubble";
+bubble.textContent="🍔";
+
+c.el.appendChild(bubble);
+
+c.orderBubble=bubble;
+}
+}
+
+if(c.state==="waiting"){
+
+let d=Math.hypot(
+waiter.x-c.x,
+waiter.y-c.y
+);
+
+if(d<40){
+
+c.state="ordered";
+c.orderBubble.textContent="📋";
+}
+}
+
+if(c.state==="ordered"){
+
+let d=Math.hypot(
+cook.x-460,
+cook.y-490
+);
+
+if(d<50){
+
+c.state="ready";
+c.orderBubble.textContent="✅";
+}
+}
+
+if(c.state==="ready"){
+
+let d=Math.hypot(
+waiter.x-c.x,
+waiter.y-c.y
+);
+
+if(d<40){
+
+money+=100;
+served++;
+
+document.getElementById("money")
+.textContent=money;
+
+document.getElementById("served")
+.textContent=served;
+
+c.el.remove();
+
+c.table.occupied=false;
+
+customers=
+customers.filter(v=>v!==c);
+}
+}
+});
+}
+
+function loop(){
+
+moveCharacter(waiter);
+moveCharacter(cook);
+
+customers.forEach(moveCharacter);
+
+updateCustomers();
+
+requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+</html>
