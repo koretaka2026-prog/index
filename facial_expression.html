@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>リアルタイム好感度 & 表情アナライザー</title>
+  <title>リアルタイム好感度 & 厳格表情アナライザー</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -27,7 +27,7 @@
       max-width: 420px;
     }
 
-    /* 🔥 好感度（ラブメーター）パネル */
+    /* 好感度（ラブメーター）パネル */
     .favorability-card {
       width: 100%;
       background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(175, 82, 222, 0.15));
@@ -83,6 +83,9 @@
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.7);
       border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     video, canvas {
@@ -124,6 +127,36 @@
     .face-guide.detected::after {
       content: "測定中";
       color: #ff2d55;
+    }
+
+    /* 🎯 カメラ中央に配置する起動ボタン */
+    #start-btn {
+      position: absolute;
+      z-index: 30;
+      width: 80%;
+      max-width: 260px;
+      background: linear-gradient(135deg, #ff2d55, #af52de);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 16px 20px;
+      font-size: 1.05rem;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(255, 45, 85, 0.5);
+      backdrop-filter: blur(5px);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #start-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 10px 30px rgba(255, 45, 85, 0.7);
+    }
+    #start-btn:disabled {
+      background: #3a3a3c;
+      border: none;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
     .emotion-card {
@@ -187,30 +220,16 @@
       font-family: monospace;
       font-weight: bold;
     }
-
-    button {
-      width: 100%;
-      background: linear-gradient(135deg, #007aff, #5856d6);
-      color: white;
-      border: none;
-      padding: 14px;
-      font-size: 1rem;
-      border-radius: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
-    }
-    button:disabled { background: #3a3a3c; cursor: not-allowed; box-shadow: none; }
   </style>
 </head>
 <body>
 
   <div class="main-layout">
 
-    <!-- 🔥 好感度メーターエリア -->
+    <!-- 好感度メーターエリア -->
     <div class="favorability-card">
       <div class="fav-header">
-        <span>💖 リアルタイム好感度</span>
+        <span>💖 リアルタイム好感度（厳格判定）</span>
         <span id="fav-rank">RANK --</span>
       </div>
       <div id="fav-score" class="fav-score-display">-- %</div>
@@ -225,6 +244,9 @@
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="output_canvas"></canvas>
       <div id="face-guide" class="face-guide"></div>
+
+      <!-- 🎯 画面中央に配置したボタン -->
+      <button id="start-btn">好感度測定を起動</button>
 
       <div class="emotion-card">
         <div id="emotion-title" class="emotion-title">🔍 顔を探しています...</div>
@@ -242,18 +264,17 @@
         <span id="val-smile" class="metric-value">0%</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">好意・ウインク (Eye Appeal)</span>
-        <div class="metric-bar-bg"><div id="bar-appeal" class="metric-bar-fill"></div></div>
-        <span id="val-appeal" class="metric-value">0%</span>
+        <span class="metric-label">怒り・険しさ (Anger)</span>
+        <div class="metric-bar-bg"><div id="bar-anger" class="metric-bar-fill"></div></div>
+        <span id="val-anger" class="metric-value">0%</span>
       </div>
       <div class="metric-row">
-        <span class="metric-label">不満・険しさ (Negative)</span>
-        <div class="metric-bar-bg"><div id="bar-negative" class="metric-bar-fill"></div></div>
-        <span id="val-negative" class="metric-value">0%</span>
+        <span class="metric-label">口元不満・下がり (Frown)</span>
+        <div class="metric-bar-bg"><div id="bar-frown" class="metric-bar-fill"></div></div>
+        <span id="val-frown" class="metric-value">0%</span>
       </div>
     </div>
 
-    <button id="start-btn">好感度測定を起動</button>
   </div>
 
   <script type="module">
@@ -276,8 +297,8 @@
     // パラメータUI
     const paramUI = {
       smile: { bar: document.getElementById('bar-smile'), val: document.getElementById('val-smile') },
-      appeal: { bar: document.getElementById('bar-appeal'), val: document.getElementById('val-appeal') },
-      negative: { bar: document.getElementById('bar-negative'), val: document.getElementById('val-negative') }
+      anger: { bar: document.getElementById('bar-anger'), val: document.getElementById('val-anger') },
+      frown: { bar: document.getElementById('bar-frown'), val: document.getElementById('val-frown') }
     };
 
     let faceLandmarker;
@@ -348,79 +369,84 @@
       emotionDetail.innerText = "ガイド枠内に顔をあわせてください";
     }
 
-    // 🔥 好感度の計算ロジック
+    // ⚡ 怒りを厳格に反映する好感度ロジック
     function calculateFavorability(scores) {
       const smileL = scores["mouthSmileLeft"] || 0;
       const smileR = scores["mouthSmileRight"] || 0;
       const smileAvg = (smileL + smileR) / 2; // 笑顔度
 
-      const blinkL = scores["eyeBlinkLeft"] || 0;
-      const blinkR = scores["eyeBlinkRight"] || 0;
-      const wink = Math.abs(blinkL - blinkR) > 0.3 ? Math.max(blinkL, blinkR) : 0; // ウインク/愛嬌
+      // 怒り要素（眉下げ・眉寄せ・鼻のひくつき）
+      const browDownL = scores["browDownLeft"] || 0;
+      const browDownR = scores["browDownRight"] || 0;
+      const noseSneerL = scores["noseSneerLeft"] || 0;
+      const noseSneerR = scores["noseSneerRight"] || 0;
+      const angerAvg = (browDownL + browDownR + noseSneerL + noseSneerR) / 4; // 怒り度
 
-      const cheekPuff = scores["cheekPuff"] || 0; // 照れ・膨らみ
-      const browDown = ((scores["browDownLeft"] || 0) + (scores["browDownRight"] || 0)) / 2; // 険しさ
-      const frown = ((scores["mouthFrownLeft"] || 0) + (scores["mouthFrownRight"] || 0)) / 2; // 不満
+      // 口元の不満
+      const frownL = scores["mouthFrownLeft"] || 0;
+      const frownR = scores["mouthFrownRight"] || 0;
+      const frownAvg = (frownL + frownR) / 2;
 
-      // 基本スコア：標準状態（真顔）で約 50%
-      let baseScore = 50;
+      // ⚡ 厳格化した計算：標準状態（真顔）を40%スタートに変更
+      let baseScore = 40;
       
-      // プラス要素
-      baseScore += smileAvg * 45;   // 笑顔で大幅アップ（最大+45%）
-      baseScore += wink * 15;       // ウインクで+15%
-      baseScore += cheekPuff * 10;  // 愛嬌で+10%
+      // プラス：しっかり笑わないとスコアが上がりにくい（最大+50%）
+      baseScore += Math.pow(smileAvg, 1.2) * 50;
 
-      // マイナス要素
-      baseScore -= browDown * 35;   // 眉間のしわで大幅ダウン
-      baseScore -= frown * 25;      // 口角下がりでダウン
+      // マイナス：怒りペナルティを大幅強化（怒ると一激で急降下）
+      baseScore -= angerAvg * 70;   // 怒り検出で最大 -70% の大減点
+      baseScore -= frownAvg * 35;   // 不満・口角下がりで -35%
 
-      // 0 ～ 100% の範囲に収める
+      // 0 ～ 100% の範囲に限定
       const finalScore = Math.min(100, Math.max(0, Math.round(baseScore)));
 
       // 各パラメータ表示の更新
       updateParamUI('smile', Math.round(smileAvg * 100), '#34C759');
-      updateParamUI('appeal', Math.round(wink * 100 + cheekPuff * 50), '#FF2D55');
-      updateParamUI('negative', Math.round((browDown + frown) / 2 * 100), '#FF3B30');
+      updateParamUI('anger', Math.round(angerAvg * 100), '#FF3B30');
+      updateParamUI('frown', Math.round(frownAvg * 100), '#FF9500');
 
       return {
         score: finalScore,
         smilePercent: Math.round(smileAvg * 100),
-        negativePercent: Math.round((browDown + frown) / 2 * 100)
+        angerPercent: Math.round(angerAvg * 100),
+        frownPercent: Math.round(frownAvg * 100)
       };
     }
 
-    // 好感度ランクとステータス表示の生成
+    // 厳格版の評価ランクテキスト
     function getFavorabilityText(fav) {
       const score = fav.score;
+      const anger = fav.angerPercent;
       let rank = "";
       let status = "";
       let title = "";
       let color = "";
 
-      if (score >= 90) {
+      // 怒りパラメータが一定以上の場合は強制的に「怒り検出」状態へ分岐
+      if (anger > 30) {
+        rank = "RANK D";
+        status = "【怒り検出】かなり強いお怒り・不満を感じます！";
+        title = "😡 激怒・強い警戒";
+        color = "#FF3B30";
+      } else if (score >= 85) {
         rank = "RANK S+";
-        status = "メロメロ状態！最高レベルの親愛度です💖";
-        title = "😍 大好き・好感度MAX";
+        status = "素晴らしい笑顔！最高ランクの好感度です💖";
+        title = "😍 夢中・好意MAX";
         color = "#FF2D55";
-      } else if (score >= 75) {
+      } else if (score >= 68) {
         rank = "RANK A";
-        status = "とても良い印象！笑顔が素敵です✨";
-        title = "😊 好印象・好意あり";
+        status = "とても良い印象です。親しみが持てます✨";
+        title = "😊 好印象";
         color = "#34C759";
-      } else if (score >= 55) {
+      } else if (score >= 45) {
         rank = "RANK B";
-        status = "穏やかで良好な関係性です👍";
-        title = "🙂 普通・親しみやすい";
-        color = "#30D158";
-      } else if (score >= 40) {
-        rank = "RANK C";
-        status = "少し距離感がある状態です";
-        title = "😐 中立・様子見";
+        status = "普通の印象です。もう少し笑顔があると高評価に！";
+        title = "😐 中立・やや硬い";
         color = "#FF9500";
       } else {
-        rank = "RANK D";
-        status = "警戒されているか不満を感じています…";
-        title = "😠 不機嫌・警戒中";
+        rank = "RANK C";
+        status = "表情が硬いか、少し警戒されている可能性があります";
+        title = "😟 警戒・冷淡";
         color = "#FF3B30";
       }
 
@@ -450,7 +476,6 @@
             scores[shape.categoryName] = shape.score;
           }
 
-          // 好感度の算出とUI更新
           const fav = calculateFavorability(scores);
           const favInfo = getFavorabilityText(fav);
 
@@ -461,7 +486,7 @@
 
           emotionTitle.innerText = favInfo.title;
           emotionTitle.style.color = favInfo.color;
-          emotionDetail.innerText = `笑顔: ${fav.smilePercent}% / 不満: ${fav.negativePercent}%`;
+          emotionDetail.innerText = `笑顔: ${fav.smilePercent}% / 怒り: ${fav.angerPercent}% / 不満: ${fav.frownPercent}%`;
 
           if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             drawLandmarks(results.faceLandmarks[0]);
