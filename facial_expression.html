@@ -114,46 +114,66 @@
     let faceLandmarker;
     let lastVideoTime = -1;
 
-    // 1. MediaPipe の初期化（Blendshapes設定を有効化）
-    async function initFaceLandmarker() {
-      const { FaceLandmarker, FilesetResolver } = vision;
-      const filesetResolver = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-      );
-      
-      faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "GPU"
-        },
-        runningMode: "VIDEO",
-        numFaces: 1,
-        outputFaceBlendshapes: true // ★ Blendshapes 出力を有効にする
-      });
-    }
+// 1. MediaPipe の初期化（エラーハンドリングを追加）
+async function initFaceLandmarker() {
+  try {
+    const { FaceLandmarker, FilesetResolver } = vision;
+    
+    // WASMモジュールのロード
+    const filesetResolver = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+    
+    // モデルのロード
+    faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numFaces: 1,
+      outputFaceBlendshapes: true
+    });
+    console.log("MediaPipeモデルの読み込み完了");
+  } catch (error) {
+    console.error("モデル読み込み失敗:", error);
+    alert("AIモデルの読み込みに失敗しました。ネットワーク接続を確認するか、ページを再読み込みしてください。\n詳細: " + error.message);
+    startBtn.innerText = "再試行する";
+    startBtn.disabled = false;
+    throw error; // 処理をストップ
+  }
+}
 
-    // 2. カメラ起動
-    async function startCamera() {
-      startBtn.innerText = "モデル読み込み中...";
-      startBtn.disabled = true;
+// 2. カメラ起動処理の修正
+async function startCamera() {
+  startBtn.innerText = "モデル読み込み中...";
+  startBtn.disabled = true;
 
-      await initFaceLandmarker();
+  try {
+    // まずAIモデルを読み込む
+    await initFaceLandmarker();
 
-      const constraints = {
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      };
+    // 次にカメラを開始
+    startBtn.innerText = "カメラ起動中...";
+    const constraints = {
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    };
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        video.addEventListener("loadeddata", predictWebcam);
-        startBtn.style.display = 'none';
-      } catch (err) {
-        console.error("カメラ起動エラー:", err);
-        alert("カメラのパーミッションを許可してください。");
-      }
-    }
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    
+    // 映像データが準備できたら推論開始
+    video.onloadeddata = () => {
+      startBtn.style.display = 'none';
+      predictWebcam();
+    };
+  } catch (err) {
+    console.error("起動処理エラー:", err);
+    startBtn.innerText = "起動失敗（再試行）";
+    startBtn.disabled = false;
+  }
+}
 
     // 3. 感情判定ロジック（Blendshapes スコアを活用）
     function detectEmotionFromBlendshapes(blendshapes) {
