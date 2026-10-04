@@ -44,7 +44,6 @@
       transform: scaleX(-1);
     }
 
-    /* 感情結果表示 */
     .emotion-card {
       position: absolute;
       bottom: 15px;
@@ -84,10 +83,15 @@
       cursor: pointer;
       z-index: 20;
     }
+
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
   </style>
 
-  <!-- MediaPipe Vision SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/vision_bundle.js" crossorigin="anonymous"></script>
+  <!-- MediaPipe Vision SDK の読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -97,11 +101,11 @@
 
     <div class="emotion-card">
       <div id="emotion-title" class="emotion-title">😐 普通</div>
-      <div id="emotion-detail" class="emotion-detail">スコア解析中...</div>
+      <div id="emotion-detail" class="emotion-detail">準備完了</div>
     </div>
   </div>
 
-  <button id="start-btn">Blendshapes 感情判定を起動</button>
+  <button id="start-btn">感情判定を起動</button>
 
   <script>
     const video = document.getElementById('webcam');
@@ -114,124 +118,95 @@
     let faceLandmarker;
     let lastVideoTime = -1;
 
-// 1. MediaPipe の初期化（エラーハンドリングを追加）
-async function initFaceLandmarker() {
-  try {
-    const { FaceLandmarker, FilesetResolver } = vision;
-    
-    // WASMモジュールのロード
-    const filesetResolver = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-    );
-    
-    // モデルのロード
-    faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numFaces: 1,
-      outputFaceBlendshapes: true
-    });
-    console.log("MediaPipeモデルの読み込み完了");
-  } catch (error) {
-    console.error("モデル読み込み失敗:", error);
-    alert("AIモデルの読み込みに失敗しました。ネットワーク接続を確認するか、ページを再読み込みしてください。\n詳細: " + error.message);
-    startBtn.innerText = "再試行する";
-    startBtn.disabled = false;
-    throw error; // 処理をストップ
-  }
-}
+    // 1. 安全に vision オブジェクトを取得する
+    function getVisionObject() {
+      if (typeof vision !== 'undefined') return vision;
+      if (typeof window.vision !== 'undefined') return window.vision;
+      if (typeof tasksVision !== 'undefined') return tasksVision;
+      return null;
+    }
 
-// 2. カメラ起動処理の修正
-async function startCamera() {
-  startBtn.innerText = "モデル読み込み中...";
-  startBtn.disabled = true;
+    // 2. MediaPipe の初期化
+    async function initFaceLandmarker() {
+      const visionObj = getVisionObject();
+      if (!visionObj) {
+        throw new Error("MediaPipe SDKのロードに失敗しました。CDN接続かLive Server等の実行環境を確認してください。");
+      }
 
-  try {
-    // まずAIモデルを読み込む
-    await initFaceLandmarker();
+      const { FaceLandmarker, FilesetResolver } = visionObj;
+      
+      const filesetResolver = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+      );
+      
+      faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true
+      });
+    }
 
-    // 次にカメラを開始
-    startBtn.innerText = "カメラ起動中...";
-    const constraints = {
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false
-    };
+    // 3. カメラ起動処理
+    async function startCamera() {
+      startBtn.innerText = "AIモデル読み込み中...";
+      startBtn.disabled = true;
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    
-    // 映像データが準備できたら推論開始
-    video.onloadeddata = () => {
-      startBtn.style.display = 'none';
-      predictWebcam();
-    };
-  } catch (err) {
-    console.error("起動処理エラー:", err);
-    startBtn.innerText = "起動失敗（再試行）";
-    startBtn.disabled = false;
-  }
-}
+      try {
+        await initFaceLandmarker();
 
-    // 3. 感情判定ロジック（Blendshapes スコアを活用）
+        startBtn.innerText = "カメラ起動中...";
+        const constraints = {
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        
+        video.onloadeddata = () => {
+          startBtn.style.display = 'none';
+          predictWebcam();
+        };
+      } catch (err) {
+        console.error("起動エラー:", err);
+        alert("起動に失敗しました:\n" + err.message);
+        startBtn.innerText = "再試行する";
+        startBtn.disabled = false;
+      }
+    }
+
+    // 4. 表情スコア判定
     function detectEmotionFromBlendshapes(blendshapes) {
-      // 扱いやすいように連想配列（Map）に変換
       const scores = {};
       for (const shape of blendshapes) {
         scores[shape.categoryName] = shape.score;
       }
 
-      // 感情に関連する主要スコアの抽出
       const smileLeft = scores["mouthSmileLeft"] || 0;
       const smileRight = scores["mouthSmileRight"] || 0;
-      const smileScore = (smileLeft + smileRight) / 2; // 笑顔度
+      const smileScore = (smileLeft + smileRight) / 2;
 
-      const jawOpen = scores["jawOpen"] || 0;           // 口の開き度
-      const browInnerUp = scores["browInnerUp"] || 0;   // 眉間の上がり度（驚き・困り）
-
-      const browDownLeft = scores["browDownLeft"] || 0; // 眉下げ度（怒り・しかめっ面）
+      const jawOpen = scores["jawOpen"] || 0;
+      const browInnerUp = scores["browInnerUp"] || 0;
+      const browDownLeft = scores["browDownLeft"] || 0;
       const browDownRight = scores["browDownRight"] || 0;
 
-      const mouthFrownLeft = scores["mouthFrownLeft"] || 0; // 口角下がり度（悲しみ・不満）
-      const mouthFrownRight = scores["mouthFrownRight"] || 0;
-
-      // 条件判定（閾値を調整して精度を高めます）
       if (smileScore > 0.4) {
-        return {
-          title: "😄 笑顔",
-          color: "#34C759",
-          detail: `笑顔度: ${Math.round(smileScore * 100)}%`
-        };
+        return { title: "😄 笑顔", color: "#34C759", detail: `笑顔度: ${Math.round(smileScore * 100)}%` };
       } else if (jawOpen > 0.35 && browInnerUp > 0.2) {
-        return {
-          title: "😲 びっくり！",
-          color: "#FF9500",
-          detail: `口開き: ${Math.round(jawOpen * 100)}% / 眉上昇: ${Math.round(browInnerUp * 100)}%`
-        };
+        return { title: "😲 びっくり！", color: "#FF9500", detail: `口開き: ${Math.round(jawOpen * 100)}%` };
       } else if ((browDownLeft + browDownRight) / 2 > 0.35) {
-        return {
-          title: "😠 怒り・真剣",
-          color: "#FF3B30",
-          detail: `眉の寄せ: ${Math.round(((browDownLeft + browDownRight) / 2) * 100)}%`
-        };
-      } else if ((mouthFrownLeft + mouthFrownRight) / 2 > 0.25) {
-        return {
-          title: "😢 悲しみ・不満",
-          color: "#5856D6",
-          detail: `口角下がり: ${Math.round((mouthFrownLeft + mouthFrownRight) / 2 * 100)}%`
-        };
+        return { title: "😠 怒り・真剣", color: "#FF3B30", detail: `眉寄せ: ${Math.round(((browDownLeft + browDownRight) / 2) * 100)}%` };
       } else {
-        return {
-          title: "😐 真顔・普通",
-          color: "#FFFFFF",
-          detail: "落ち着いた状態"
-        };
+        return { title: "😐 普通", color: "#FFFFFF", detail: "落ち着いた状態" };
       }
     }
 
-    // 4. リアルタイム判定ループ
+    // 5. ループ実行
     async function predictWebcam() {
       if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
         canvas.width = video.videoWidth;
@@ -248,21 +223,15 @@ async function startCamera() {
 
         if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
           const blendshapes = results.faceBlendshapes[0].categories;
-
-          // 感情を判定してUIを更新
           const emotion = detectEmotionFromBlendshapes(blendshapes);
+          
           emotionTitle.innerText = emotion.title;
           emotionTitle.style.color = emotion.color;
           emotionDetail.innerText = emotion.detail;
 
-          // 顔のメッシュも薄く表示
           if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             drawLandmarks(results.faceLandmarks[0]);
           }
-        } else {
-          emotionTitle.innerText = "🔍 顔を探しています...";
-          emotionTitle.style.color = "#8E8E93";
-          emotionDetail.innerText = "";
         }
       }
 
