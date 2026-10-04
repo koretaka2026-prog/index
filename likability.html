@@ -27,53 +27,6 @@
       max-width: 420px;
     }
 
-    /* 好感度（ラブメーター）パネル */
-    .favorability-card {
-      width: 100%;
-      background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(175, 82, 222, 0.15));
-      border: 1px solid rgba(255, 45, 85, 0.4);
-      border-radius: 20px;
-      padding: 14px 20px;
-      text-align: center;
-      box-shadow: 0 8px 20px rgba(255, 45, 85, 0.15);
-      backdrop-filter: blur(10px);
-    }
-    .fav-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      font-weight: bold;
-      color: #ff7597;
-      margin-bottom: 6px;
-    }
-    .fav-score-display {
-      font-size: 2.2rem;
-      font-weight: 900;
-      color: #ff2d55;
-      text-shadow: 0 0 12px rgba(255, 45, 85, 0.5);
-      letter-spacing: -1px;
-    }
-    .fav-meter-bg {
-      width: 100%;
-      height: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
-      overflow: hidden;
-      margin: 8px 0;
-    }
-    .fav-meter-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #ff9500, #ff2d55, #af52de);
-      border-radius: 6px;
-      transition: width 0.2s ease-out;
-    }
-    .fav-status-text {
-      font-size: 0.8rem;
-      color: #ddd;
-    }
-
     .camera-container {
       position: relative;
       width: 100%;
@@ -100,7 +53,7 @@
     .snapshot-box {
       position: absolute;
       top: 10px;
-      width: 80px;
+      width: 76px;
       background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(8px);
       border-radius: 12px;
@@ -119,9 +72,10 @@
       border: 1.5px solid #FF3B30;
     }
     .snapshot-tag {
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       font-weight: bold;
       padding: 2px 0;
+      letter-spacing: 0.5px;
     }
     .snapshot-box.best .snapshot-tag { color: #34C759; }
     .snapshot-box.worst .snapshot-tag { color: #FF3B30; }
@@ -143,7 +97,7 @@
 
     .face-guide {
       position: absolute;
-      top: 50%; left: 50%;
+      top: 45%; left: 50%;
       transform: translate(-50%, -55%);
       width: 58%; height: 58%;
       border: 2px dashed rgba(255, 255, 255, 0.4);
@@ -204,66 +158,65 @@
       transform: none;
     }
 
+    /* 画面下部：統合情報ウィンドウ */
     .emotion-card {
       position: absolute;
-      bottom: 12px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(15, 17, 21, 0.85);
       backdrop-filter: blur(12px);
-      padding: 10px 20px;
-      border-radius: 20px;
-      text-align: center;
+      padding: 12px 18px;
+      border-radius: 18px;
       pointer-events: none;
       z-index: 10;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      width: 90%;
+      width: 92%;
     }
-    .emotion-title { font-size: 1.2rem; font-weight: bold; }
-    .emotion-detail { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
-
-    .metrics-panel {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 16px;
-      padding: 10px 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .metrics-title {
-      font-size: 0.8rem;
-      font-weight: bold;
-      color: #8e8e93;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-    .metric-row {
+    .emotion-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 5px;
-      font-size: 0.8rem;
+      margin-bottom: 4px;
     }
-    .metric-label { color: #ccc; }
-    .metric-bar-bg {
-      flex-grow: 1;
-      height: 6px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
-      margin: 0 10px;
+    .emotion-title { 
+      font-size: 1.1rem; 
+      font-weight: bold; 
+    }
+    .fav-score-display {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #ff2d55;
+      font-family: monospace;
+    }
+    .fav-rank-badge {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #aaa;
+      margin-left: 6px;
+    }
+
+    /* 統合メーター */
+    .fav-meter-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
       overflow: hidden;
+      margin: 6px 0;
     }
-    .metric-bar-fill {
+    .fav-meter-fill {
       height: 100%;
       width: 0%;
-      background: #007aff;
-      border-radius: 3px;
-      transition: width 0.1s ease-out;
+      background: linear-gradient(90deg, #ff9500, #ff2d55, #af52de);
+      border-radius: 4px;
+      transition: width 0.2s ease-out;
     }
-    .metric-value {
-      width: 36px;
-      text-align: right;
-      font-family: monospace;
-      font-weight: bold;
+    .emotion-detail { 
+      font-size: 0.75rem; 
+      color: #ccc; 
+      margin-top: 2px;
+      text-align: center;
     }
   </style>
 </head>
@@ -271,34 +224,21 @@
 
   <div class="main-layout">
 
-    <!-- 好感度メーターエリア -->
-    <div class="favorability-card">
-      <div class="fav-header">
-        <span>💖 リアルタイム好感度（厳格判定）</span>
-        <span id="fav-rank">RANK --</span>
-      </div>
-      <div id="fav-score" class="fav-score-display">-- %</div>
-      <div class="fav-meter-bg">
-        <div id="fav-meter" class="fav-meter-fill"></div>
-      </div>
-      <div id="fav-status" class="fav-status-text">顔をかざすと測定を開始します</div>
-    </div>
-
     <!-- カメラ表示エリア -->
     <div class="camera-container">
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="output_canvas"></canvas>
 
-      <!-- 👑 画面左上：最高点数（BEST）の顔画像 -->
+      <!-- 👑 画面左上：BEST -->
       <div id="best-box" class="snapshot-box best">
-        <div class="snapshot-tag">最高点 BEST</div>
+        <div class="snapshot-tag">BEST</div>
         <img id="best-img" class="snapshot-img" alt="BEST">
         <div id="best-score-text" class="snapshot-score">--%</div>
       </div>
 
-      <!-- 💀 画面右上：最低点数（WORST）の顔画像 -->
+      <!-- 💀 画面右上：WORST -->
       <div id="worst-box" class="snapshot-box worst">
-        <div class="snapshot-tag">最低点 WORST</div>
+        <div class="snapshot-tag">WORST</div>
         <img id="worst-img" class="snapshot-img" alt="WORST">
         <div id="worst-score-text" class="snapshot-score">--%</div>
       </div>
@@ -308,30 +248,21 @@
       <!-- 画面中央の起動ボタン -->
       <button id="start-btn">好感度測定を起動</button>
 
+      <!-- 画面下部：好印象タイトル＋メーター＋パーセント統合ウィンドウ -->
       <div class="emotion-card">
-        <div id="emotion-title" class="emotion-title">🔍 顔を探しています...</div>
-        <div id="emotion-detail" class="emotion-detail">ガイド枠内に顔をあわせてください</div>
-      </div>
-    </div>
+        <div class="emotion-header">
+          <div id="emotion-title" class="emotion-title">🔍 顔を探しています...</div>
+          <div>
+            <span id="fav-score" class="fav-score-display">--%</span>
+            <span id="fav-rank" class="fav-rank-badge">--</span>
+          </div>
+        </div>
+        
+        <div class="fav-meter-bg">
+          <div id="fav-meter" class="fav-meter-fill"></div>
+        </div>
 
-    <!-- 数値パラメータパネル -->
-    <div class="metrics-panel">
-      <div class="metrics-title">表情構成パラメータ</div>
-      
-      <div class="metric-row">
-        <span class="metric-label">笑顔度 (Smile)</span>
-        <div class="metric-bar-bg"><div id="bar-smile" class="metric-bar-fill"></div></div>
-        <span id="val-smile" class="metric-value">0%</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">怒り・険しさ (Anger)</span>
-        <div class="metric-bar-bg"><div id="bar-anger" class="metric-bar-fill"></div></div>
-        <span id="val-anger" class="metric-value">0%</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">口元不満・下がり (Frown)</span>
-        <div class="metric-bar-bg"><div id="bar-frown" class="metric-bar-fill"></div></div>
-        <span id="val-frown" class="metric-value">0%</span>
+        <div id="fav-status" class="emotion-detail">ガイド枠内に顔をあわせてください</div>
       </div>
     </div>
 
@@ -346,9 +277,8 @@
     const startBtn = document.getElementById('start-btn');
     const faceGuide = document.getElementById('face-guide');
     const emotionTitle = document.getElementById('emotion-title');
-    const emotionDetail = document.getElementById('emotion-detail');
 
-    // 好感度UI
+    // 統合UIエレメント
     const favScore = document.getElementById('fav-score');
     const favMeter = document.getElementById('fav-meter');
     const favStatus = document.getElementById('fav-status');
@@ -370,13 +300,6 @@
     // 非表示でキャプチャを取得するためのオフスクリーンキャンバス
     const captureCanvas = document.createElement('canvas');
     const captureCtx = captureCanvas.getContext('2d');
-
-    // パラメータUI
-    const paramUI = {
-      smile: { bar: document.getElementById('bar-smile'), val: document.getElementById('val-smile') },
-      anger: { bar: document.getElementById('bar-anger'), val: document.getElementById('val-anger') },
-      frown: { bar: document.getElementById('bar-frown'), val: document.getElementById('val-frown') }
-    };
 
     let faceLandmarker;
     let lastVideoTime = -1;
@@ -425,25 +348,15 @@
       }
     }
 
-    function updateParamUI(key, percent, color) {
-      const target = paramUI[key];
-      if (!target) return;
-      target.bar.style.width = `${percent}%`;
-      if (color) target.bar.style.backgroundColor = color;
-      target.val.innerText = `${percent}%`;
-    }
-
     function resetAllParams() {
-      favScore.innerText = "-- %";
+      favScore.innerText = "--%";
       favMeter.style.width = "0%";
-      favRank.innerText = "RANK --";
-      favStatus.innerText = "顔をかざすと測定を開始します";
+      favRank.innerText = "--";
+      favStatus.innerText = "ガイド枠内に顔をあわせてください";
 
-      Object.keys(paramUI).forEach(key => updateParamUI(key, 0, '#007aff'));
       faceGuide.classList.remove('detected');
       emotionTitle.innerText = "🔍 顔を探しています...";
       emotionTitle.style.color = "#8E8E93";
-      emotionDetail.innerText = "ガイド枠内に顔をあわせてください";
     }
 
     // 現在のビデオフレームから顔部分をキャプチャ（鏡像を考慮）
@@ -459,7 +372,7 @@
       return captureCanvas.toDataURL('image/jpeg', 0.85);
     }
 
-    // 厳格版好感度計算ロジック
+    // 好感度計算ロジック
     function calculateFavorability(scores) {
       const smileL = scores["mouthSmileLeft"] || 0;
       const smileR = scores["mouthSmileRight"] || 0;
@@ -482,15 +395,9 @@
 
       const finalScore = Math.min(100, Math.max(0, Math.round(baseScore)));
 
-      updateParamUI('smile', Math.round(smileAvg * 100), '#34C759');
-      updateParamUI('anger', Math.round(angerAvg * 100), '#FF3B30');
-      updateParamUI('frown', Math.round(frownAvg * 100), '#FF9500');
-
       return {
         score: finalScore,
-        smilePercent: Math.round(smileAvg * 100),
-        angerPercent: Math.round(angerAvg * 100),
-        frownPercent: Math.round(frownAvg * 100)
+        angerPercent: Math.round(angerAvg * 100)
       };
     }
 
@@ -504,7 +411,7 @@
 
       if (anger > 30) {
         rank = "RANK D";
-        status = "【怒り検出】かなり強いお怒り・不満を感じます！";
+        status = "かなり強いお怒り・不満を感じます！";
         title = "😡 激怒・強い警戒";
         color = "#FF3B30";
       } else if (score >= 85) {
@@ -519,7 +426,7 @@
         color = "#34C759";
       } else if (score >= 45) {
         rank = "RANK B";
-        status = "普通の印象です。もう少し笑顔があると高評価に！";
+        status = "普通の印象です。もう少し笑顔で高評価に！";
         title = "😐 中立・やや硬い";
         color = "#FF9500";
       } else {
@@ -558,16 +465,15 @@
           const fav = calculateFavorability(scores);
           const favInfo = getFavorabilityText(fav);
 
-          favScore.innerText = `${fav.score} %`;
+          favScore.innerText = `${fav.score}%`;
           favMeter.style.width = `${fav.score}%`;
           favRank.innerText = favInfo.rank;
           favStatus.innerText = favInfo.status;
 
           emotionTitle.innerText = favInfo.title;
           emotionTitle.style.color = favInfo.color;
-          emotionDetail.innerText = `笑顔: ${fav.smilePercent}% / 怒り: ${fav.angerPercent}% / 不満: ${fav.frownPercent}%`;
 
-          // 📸 最高点数・最低点数の更新チェックと写真の保存
+          // 📸 最高点数（BEST）・最低点数（WORST）の更新チェックと写真の保存
           if (fav.score > maxScore) {
             maxScore = fav.score;
             const imgData = captureFaceImage();
