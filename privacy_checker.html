@@ -157,6 +157,11 @@
             color: #E65100;
         }
 
+        .btn-action {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
         /* Toggle Explanation Button */
         .btn-explain {
             background: #FFF8E1;
@@ -231,6 +236,7 @@
         .risk-high { background: #FFE5E5; color: #D32F2F; }
         .risk-mid  { background: #FFF3E0; color: #E65100; }
         .risk-low  { background: #E8F5E9; color: #2E7D32; }
+        .risk-perm { background: #EDE7F6; color: #512DA8; }
 
         .info-value {
             font-size: 1.05rem;
@@ -475,10 +481,20 @@
             <div class="info-desc" id="desc-isp">Docomo, SoftBank, au などのキャリアや固定回線事業者の名前が分かります。</div>
         </div>
 
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-wifi"></i> 通信回線タイプ ＆ 推定速度</span>
+                <span class="badge-risk risk-low">低リスク</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-network')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="network-speed">確認中...</div>
+            <div class="info-desc" id="desc-network">4G/5G/Wi-Fiなどの接続状況や応答速度（RTT）です。動画画質の最適化などに使われます。</div>
+        </div>
 
-        <!-- 2. スマホ・端末スペック -->
+
+        <!-- 2. スマホ・端末スペック ＆ ブラウザ設定 -->
         <div class="section-title">
-            <i class="fa-solid fa-mobile-button"></i> スマホ・端末の詳細情報
+            <i class="fa-solid fa-mobile-button"></i> スマホスペック ＆ ブラウザ設定
         </div>
 
         <div class="info-card">
@@ -513,6 +529,36 @@
 
         <div class="info-card">
             <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-hand-pointer"></i> マルチタッチ同時対応点数</span>
+                <span class="badge-risk risk-mid">中リスク</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-touch')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="touch-points">確認中...</div>
+            <div class="info-desc" id="desc-touch">画面が何点同時のタッチに対応しているか（スマホかPCかの判定）を示します。</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-moon"></i> ダークモード・アクセシビリティ設定</span>
+                <span class="badge-risk risk-low">低リスク</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-theme')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="theme-settings">取得中...</div>
+            <div class="info-desc" id="desc-theme">スマホの設定で「ダークモード」や「アニメーションの減衰」をオンにしているかが分かります。</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-font"></i> システム搭載フォント（ブラウザ指紋）</span>
+                <span class="badge-risk risk-high">高リスク</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-fonts')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="detected-fonts">検出中...</div>
+            <div class="info-desc" id="desc-fonts">端末にインストールされているフォントの組み合わせは、個人を特定（ブラウザ指紋）する大きな手がかりになります。</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-header">
                 <span class="info-label"><i class="fa-solid fa-battery-half"></i> バッテリー残量 ＆ 充電状態</span>
                 <span class="badge-risk risk-low">低リスク</span>
                 <button class="btn-explain" onclick="toggleDesc('desc-battery')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
@@ -521,9 +567,10 @@
             <div class="info-desc" id="desc-battery">一部のブラウザで取得可能です。省電力モードの切り替えなどに参照されることがあります。</div>
         </div>
 
-        <!-- 3. 環境・センサ情報 -->
+
+        <!-- 3. 環境・状態推測 -->
         <div class="section-title">
-            <i class="fa-solid fa-sliders"></i> 言語・利用環境・センサ
+            <i class="fa-solid fa-sliders"></i> 環境 ＆ サイト動作状態
         </div>
 
         <div class="info-card">
@@ -563,6 +610,46 @@
             <div class="info-desc" id="desc-ref">直前に見ていたWebサイトや検索エンジン、SNSリンクのURLです。</div>
         </div>
 
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-user-check"></i> 外部サービスのログイン状態推測 (XS-Leaks)</span>
+                <span class="badge-risk risk-high">高リスク</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-xs')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="xs-leak-status">
+                <button class="btn btn-action" onclick="checkLoginLeak()"><i class="fa-solid fa-magnifying-glass"></i> チェック開始</button>
+            </div>
+            <div class="info-desc" id="desc-xs">画像の読み込み速度の違いから、YouTubeやGoogle等にログイン中かどうかを推測する手法のテストです。</div>
+        </div>
+
+
+        <!-- 4. 許可（権限）が必要な情報 -->
+        <div class="section-title">
+            <i class="fa-solid fa-lock"></i> 許可（ポッフアップ）が必要な高度な情報
+        </div>
+
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-crosshairs"></i> ピンポイント現在地（GPS高精度）</span>
+                <span class="badge-risk risk-perm">要許可</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-gps')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="gps-status">
+                <button class="btn btn-action" onclick="requestGPS()"><i class="fa-solid fa-location-arrow"></i> 位置情報を取得</button>
+            </div>
+            <div class="info-desc" id="desc-gps">ユーザーが許可ポップアップで「許可」を押した場合のみ、数メートル単位の緯度・経度が取得されます。</div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-header">
+                <span class="info-label"><i class="fa-solid fa-camera"></i> カメラ・マイクのアクセス許可状態</span>
+                <span class="badge-risk risk-perm">要許可</span>
+                <button class="btn-explain" onclick="toggleDesc('desc-perm')"><i class="fa-regular fa-lightbulb"></i> 説明</button>
+            </div>
+            <div class="info-value" id="permission-status">確認中...</div>
+            <div class="info-desc" id="desc-perm">過去にこのブラウザでカメラやマイクのアクセスを許可したことがあるかの設定状態です。</div>
+        </div>
+
     </div>
 
     <!-- Cookie Explanation Modal -->
@@ -595,7 +682,7 @@
                 </div>
 
                 <div class="cookie-explain-item" style="border-left-color: #8EA7E9; background: #F0F4FF;">
-                    <h4 style="color: #3F51B5;">🛡️ スマホ内のデータは安全？</h4>
+                    <h4 style="color: #3F51B5;">🛡️️ スマホ内のデータは安全？</h4>
                     <p style="color: #303F9F;">連絡先・写真・別アプリのデータなどがCookieで勝手に盗まれることはありません。</p>
                 </div>
             </div>
@@ -704,7 +791,45 @@
             document.getElementById('gpu-info').innerText = '標準グラフィック処理チップ';
         }
 
-        // --- 4. Screen Resolution & Battery ---
+        // --- 4. Fonts, Theme, Network & Touch ---
+        function detectAdvancedSpecs() {
+            // Touch points
+            const touch = navigator.maxTouchPoints || 0;
+            document.getElementById('touch-points').innerText = touch > 0 ? `最大 ${touch} 点マルチタッチ対応` : 'タッチ非対応 (PC操作)';
+
+            // Dark Mode & Reduced Motion
+            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            document.getElementById('theme-settings').innerText = `${isDark ? 'ダークモード' : 'ライトモード'} / ${reduceMotion ? 'アニメーション軽減: ON' : '通常表示'}`;
+
+            // Network Connection (if supported)
+            if ('connection' in navigator) {
+                const conn = navigator.connection;
+                const type = conn.effectiveType || '4G';
+                const rtt = conn.rtt ? `${conn.rtt}ms` : '不明';
+                document.getElementById('network-speed').innerText = `タイプ: ${type.toUpperCase()} (応答速度: ${rtt})`;
+            } else {
+                document.getElementById('network-speed').innerText = '通常接続 (詳細API非対応)';
+            }
+
+            // Simple Font Fingerprint Test
+            const testFonts = ['Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Roboto', 'PingFang SC', 'Helvetica Neue'];
+            const detected = [];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const baseWidth = ctx.measureText('mmmmmmmmmmlli').width;
+
+            testFonts.forEach(font => {
+                ctx.font = `72px ${font}, sans-serif`;
+                if (ctx.measureText('mmmmmmmmmmlli').width !== baseWidth) {
+                    detected.push(font);
+                }
+            });
+
+            document.getElementById('detected-fonts').innerText = detected.length > 0 ? detected.slice(0, 3).join(', ') + ` など (${detected.length}種検出)` : '標準システムフォント';
+        }
+
+        // --- 5. Screen Resolution & Battery ---
         function detectScreenAndBattery() {
             const w = window.screen.width;
             const h = window.screen.height;
@@ -728,7 +853,7 @@
             document.getElementById('battery-status').innerText = `${level}%${charging}`;
         }
 
-        // --- 5. Language & Referrer ---
+        // --- 6. Language & Referrer ---
         function detectMisc() {
             const lang = navigator.language || 'ja';
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tokyo';
@@ -740,7 +865,7 @@
             }
         }
 
-        // --- 6. Gyro Sensor Handling ---
+        // --- 7. Gyro Sensor Handling ---
         function requestGyro() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
@@ -766,6 +891,63 @@
                 document.getElementById('gyro-y').innerText = (e.gamma || 0).toFixed(0) + '°';
                 document.getElementById('gyro-z').innerText = (e.alpha || 0).toFixed(0) + '°';
             });
+        }
+
+        // --- 8. XS-Leaks (Login Leak Check Test) ---
+        function checkLoginLeak() {
+            const container = document.getElementById('xs-leak-status');
+            container.innerHTML = '<span class="spinner"></span> 応答時間テスト中...';
+
+            const start = performance.now();
+            const img = new Image();
+            // Test requesting Google favicon
+            img.src = "https://accounts.google.com/ServiceLogin?passive=true&continue=https://www.google.com/favicon.ico&" + Math.random();
+            
+            img.onload = img.onerror = () => {
+                const duration = performance.now() - start;
+                if (duration < 80) {
+                    container.innerHTML = '<span style="color: #D32F2F;">⚠️ Googleアカウント キャッシュ検出（ログイン中可能性高）</span>';
+                } else {
+                    container.innerHTML = '<span style="color: #2E7D32;">✓ ログイン判定の痕跡なし</span>';
+                }
+            };
+        }
+
+        // --- 9. GPS & Permissions ---
+        function requestGPS() {
+            const target = document.getElementById('gps-status');
+            target.innerHTML = '<span class="spinner"></span> 衛星測位中...';
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude.toFixed(4);
+                        const lon = pos.coords.longitude.toFixed(4);
+                        const accuracy = Math.round(pos.coords.accuracy);
+                        target.innerHTML = `北緯${lat}° 東経${lon}° (誤差${accuracy}m)<br><a href="https://maps.google.com/?q=${lat},${lon}" target="_blank" style="font-size: 0.8rem; color: #5C6BC0;">📍 Googleマップで見る</a>`;
+                    },
+                    (err) => {
+                        target.innerHTML = '<span style="color: #D32F2F;">拒否されました（位置情報は保護されています）</span>';
+                    },
+                    { timeout: 8000 }
+                );
+            } else {
+                target.innerText = 'お使いのブラウザはGPS非対応です';
+            }
+        }
+
+        async function checkPermissions() {
+            if ('permissions' in navigator) {
+                try {
+                    const cam = await navigator.permissions.query({ name: 'camera' });
+                    const mic = await navigator.permissions.query({ name: 'microphone' });
+                    document.getElementById('permission-status').innerText = `カメラ: ${cam.state === 'granted' ? '許可済' : '未許可'} / マイク: ${mic.state === 'granted' ? '許可済' : '未許可'}`;
+                } catch {
+                    document.getElementById('permission-status').innerText = 'カメラ・マイク: 未許可 (保護中)';
+                }
+            } else {
+                document.getElementById('permission-status').innerText = 'アクセス権限未許可 (保護中)';
+            }
         }
 
         // --- Modal & Share Functions ---
@@ -806,8 +988,10 @@
             fetchIPInfo();
             analyzeDevice();
             detectGPU();
+            detectAdvancedSpecs();
             detectScreenAndBattery();
             detectMisc();
+            checkPermissions();
         });
     </script>
 </body>
