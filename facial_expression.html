@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaPipe Blendshapes 感情判定</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      position: relative;
+      width: 90vw;
+      max-width: 400px;
+      aspect-ratio: 3 / 4;
+      background-color: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    video, canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    /* 感情結果表示 */
+    .emotion-card {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      border-radius: 25px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      min-width: 220px;
+    }
+
+    .emotion-title {
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .emotion-detail {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    button {
+      margin-top: 20px;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 20;
+    }
+  </style>
+
+  <!-- MediaPipe Vision SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/vision_bundle.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div class="container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="output_canvas"></canvas>
+
+    <div class="emotion-card">
+      <div id="emotion-title" class="emotion-title">😐 普通</div>
+      <div id="emotion-detail" class="emotion-detail">スコア解析中...</div>
+    </div>
+  </div>
+
+  <button id="start-btn">Blendshapes 感情判定を起動</button>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('output_canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start-btn');
+    const emotionTitle = document.getElementById('emotion-title');
+    const emotionDetail = document.getElementById('emotion-detail');
+
+    let faceLandmarker;
+    let lastVideoTime = -1;
+
+    // 1. MediaPipe の初期化（Blendshapes設定を有効化）
+    async function initFaceLandmarker() {
+      const { FaceLandmarker, FilesetResolver } = vision;
+      const filesetResolver = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      );
+      
+      faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true // ★ Blendshapes 出力を有効にする
+      });
+    }
+
+    // 2. カメラ起動
+    async function startCamera() {
+      startBtn.innerText = "モデル読み込み中...";
+      startBtn.disabled = true;
+
+      await initFaceLandmarker();
+
+      const constraints = {
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        video.addEventListener("loadeddata", predictWebcam);
+        startBtn.style.display = 'none';
+      } catch (err) {
+        console.error("カメラ起動エラー:", err);
+        alert("カメラのパーミッションを許可してください。");
+      }
+    }
+
+    // 3. 感情判定ロジック（Blendshapes スコアを活用）
+    function detectEmotionFromBlendshapes(blendshapes) {
+      // 扱いやすいように連想配列（Map）に変換
+      const scores = {};
+      for (const shape of blendshapes) {
+        scores[shape.categoryName] = shape.score;
+      }
+
+      // 感情に関連する主要スコアの抽出
+      const smileLeft = scores["mouthSmileLeft"] || 0;
+      const smileRight = scores["mouthSmileRight"] || 0;
+      const smileScore = (smileLeft + smileRight) / 2; // 笑顔度
+
+      const jawOpen = scores["jawOpen"] || 0;           // 口の開き度
+      const browInnerUp = scores["browInnerUp"] || 0;   // 眉間の上がり度（驚き・困り）
+
+      const browDownLeft = scores["browDownLeft"] || 0; // 眉下げ度（怒り・しかめっ面）
+      const browDownRight = scores["browDownRight"] || 0;
+
+      const mouthFrownLeft = scores["mouthFrownLeft"] || 0; // 口角下がり度（悲しみ・不満）
+      const mouthFrownRight = scores["mouthFrownRight"] || 0;
+
+      // 条件判定（閾値を調整して精度を高めます）
+      if (smileScore > 0.4) {
+        return {
+          title: "😄 笑顔",
+          color: "#34C759",
+          detail: `笑顔度: ${Math.round(smileScore * 100)}%`
+        };
+      } else if (jawOpen > 0.35 && browInnerUp > 0.2) {
+        return {
+          title: "😲 びっくり！",
+          color: "#FF9500",
+          detail: `口開き: ${Math.round(jawOpen * 100)}% / 眉上昇: ${Math.round(browInnerUp * 100)}%`
+        };
+      } else if ((browDownLeft + browDownRight) / 2 > 0.35) {
+        return {
+          title: "😠 怒り・真剣",
+          color: "#FF3B30",
+          detail: `眉の寄せ: ${Math.round(((browDownLeft + browDownRight) / 2) * 100)}%`
+        };
+      } else if ((mouthFrownLeft + mouthFrownRight) / 2 > 0.25) {
+        return {
+          title: "😢 悲しみ・不満",
+          color: "#5856D6",
+          detail: `口角下がり: ${Math.round((mouthFrownLeft + mouthFrownRight) / 2 * 100)}%`
+        };
+      } else {
+        return {
+          title: "😐 真顔・普通",
+          color: "#FFFFFF",
+          detail: "落ち着いた状態"
+        };
+      }
+    }
+
+    // 4. リアルタイム判定ループ
+    async function predictWebcam() {
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      const startTimeMs = performance.now();
+
+      if (lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        const results = faceLandmarker.detectForVideo(video, startTimeMs);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+          const blendshapes = results.faceBlendshapes[0].categories;
+
+          // 感情を判定してUIを更新
+          const emotion = detectEmotionFromBlendshapes(blendshapes);
+          emotionTitle.innerText = emotion.title;
+          emotionTitle.style.color = emotion.color;
+          emotionDetail.innerText = emotion.detail;
+
+          // 顔のメッシュも薄く表示
+          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+            drawLandmarks(results.faceLandmarks[0]);
+          }
+        } else {
+          emotionTitle.innerText = "🔍 顔を探しています...";
+          emotionTitle.style.color = "#8E8E93";
+          emotionDetail.innerText = "";
+        }
+      }
+
+      requestAnimationFrame(predictWebcam);
+    }
+
+    function drawLandmarks(landmarks) {
+      ctx.fillStyle = "rgba(0, 122, 255, 0.5)";
+      for (const point of landmarks) {
+        const x = point.x * canvas.width;
+        const y = point.y * canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+
+    startBtn.addEventListener('click', startCamera);
+  </script>
+</body>
+</html>
