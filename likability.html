@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リアルタイム好感度 & 厳格表情アナライザー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0f1115;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* 好感度（ラブメーター）パネル */
+    .favorability-card {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(175, 82, 222, 0.15));
+      border: 1px solid rgba(255, 45, 85, 0.4);
+      border-radius: 20px;
+      padding: 14px 20px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(255, 45, 85, 0.15);
+      backdrop-filter: blur(10px);
+    }
+    .fav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #ff7597;
+      margin-bottom: 6px;
+    }
+    .fav-score-display {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #ff2d55;
+      text-shadow: 0 0 12px rgba(255, 45, 85, 0.5);
+      letter-spacing: -1px;
+    }
+    .fav-meter-bg {
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .fav-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff9500, #ff2d55, #af52de);
+      border-radius: 6px;
+      transition: width 0.2s ease-out;
+    }
+    .fav-status-text {
+      font-size: 0.8rem;
+      color: #ddd;
+    }
+
+    .camera-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background-color: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    video, canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .face-guide {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      width: 58%; height: 58%;
+      border: 2px dashed rgba(255, 255, 255, 0.4);
+      border-radius: 50% / 55%;
+      pointer-events: none;
+      z-index: 5;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .face-guide.detected {
+      border: 2.5px solid #ff2d55;
+      box-shadow: 0 0 15px rgba(255, 45, 85, 0.3);
+    }
+    .face-guide::after {
+      content: "ここに顔をあわせてください";
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+      background: rgba(0,0,0,0.6);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .face-guide.detected::after {
+      content: "測定中";
+      color: #ff2d55;
+    }
+
+    /* 🎯 カメラ中央に配置する起動ボタン */
+    #start-btn {
+      position: absolute;
+      z-index: 30;
+      width: 80%;
+      max-width: 260px;
+      background: linear-gradient(135deg, #ff2d55, #af52de);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 16px 20px;
+      font-size: 1.05rem;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(255, 45, 85, 0.5);
+      backdrop-filter: blur(5px);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #start-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 10px 30px rgba(255, 45, 85, 0.7);
+    }
+    #start-btn:disabled {
+      background: #3a3a3c;
+      border: none;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .emotion-card {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 17, 21, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      border-radius: 20px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      width: 90%;
+    }
+    .emotion-title { font-size: 1.2rem; font-weight: bold; }
+    .emotion-detail { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
+
+    .metrics-panel {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 10px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .metrics-title {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #8e8e93;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 0.8rem;
+    }
+    .metric-label { color: #ccc; }
+    .metric-bar-bg {
+      flex-grow: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      margin: 0 10px;
+      overflow: hidden;
+    }
+    .metric-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: #007aff;
+      border-radius: 3px;
+      transition: width 0.1s ease-out;
+    }
+    .metric-value {
+      width: 36px;
+      text-align: right;
+      font-family: monospace;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-layout">
+
+    <!-- 好感度メーターエリア -->
+    <div class="favorability-card">
+      <div class="fav-header">
+        <span>💖 リアルタイム好感度（厳格判定）</span>
+        <span id="fav-rank">RANK --</span>
+      </div>
+      <div id="fav-score" class="fav-score-display">-- %</div>
+      <div class="fav-meter-bg">
+        <div id="fav-meter" class="fav-meter-fill"></div>
+      </div>
+      <div id="fav-status" class="fav-status-text">顔をかざすと測定を開始します</div>
+    </div>
+
+    <!-- カメラ表示エリア -->
+    <div class="camera-container">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="output_canvas"></canvas>
+      <div id="face-guide" class="face-guide"></div>
+
+      <!-- 🎯 画面中央に配置したボタン -->
+      <button id="start-btn">好感度測定を起動</button>
+
+      <div class="emotion-card">
+        <div id="emotion-title" class="emotion-title">🔍 顔を探しています...</div>
+        <div id="emotion-detail" class="emotion-detail">ガイド枠内に顔をあわせてください</div>
+      </div>
+    </div>
+
+    <!-- 数値パラメータパネル -->
+    <div class="metrics-panel">
+      <div class="metrics-title">表情構成パラメータ</div>
+      
+      <div class="metric-row">
+        <span class="metric-label">笑顔度 (Smile)</span>
+        <div class="metric-bar-bg"><div id="bar-smile" class="metric-bar-fill"></div></div>
+        <span id="val-smile" class="metric-value">0%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">怒り・険しさ (Anger)</span>
+        <div class="metric-bar-bg"><div id="bar-anger" class="metric-bar-fill"></div></div>
+        <span id="val-anger" class="metric-value">0%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">口元不満・下がり (Frown)</span>
+        <div class="metric-bar-bg"><div id="bar-frown" class="metric-bar-fill"></div></div>
+        <span id="val-frown" class="metric-value">0%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm";
+
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('output_canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start-btn');
+    const faceGuide = document.getElementById('face-guide');
+    const emotionTitle = document.getElementById('emotion-title');
+    const emotionDetail = document.getElementById('emotion-detail');
+
+    // 好感度UI
+    const favScore = document.getElementById('fav-score');
+    const favMeter = document.getElementById('fav-meter');
+    const favStatus = document.getElementById('fav-status');
+    const favRank = document.getElementById('fav-rank');
+
+    // パラメータUI
+    const paramUI = {
+      smile: { bar: document.getElementById('bar-smile'), val: document.getElementById('val-smile') },
+      anger: { bar: document.getElementById('bar-anger'), val: document.getElementById('val-anger') },
+      frown: { bar: document.getElementById('bar-frown'), val: document.getElementById('val-frown') }
+    };
+
+    let faceLandmarker;
+    let lastVideoTime = -1;
+
+    async function initFaceLandmarker() {
+      const filesetResolver = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+      );
+      
+      faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true
+      });
+    }
+
+    async function startCamera() {
+      startBtn.innerText = "AIモデル読み込み中...";
+      startBtn.disabled = true;
+
+      try {
+        await initFaceLandmarker();
+
+        startBtn.innerText = "カメラ起動中...";
+        const constraints = {
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        
+        video.onloadeddata = () => {
+          startBtn.style.display = 'none';
+          predictWebcam();
+        };
+      } catch (err) {
+        console.error("起動エラー:", err);
+        alert("起動に失敗しました:\n" + err.message);
+        startBtn.innerText = "再試行する";
+        startBtn.disabled = false;
+      }
+    }
+
+    function updateParamUI(key, percent, color) {
+      const target = paramUI[key];
+      if (!target) return;
+      target.bar.style.width = `${percent}%`;
+      if (color) target.bar.style.backgroundColor = color;
+      target.val.innerText = `${percent}%`;
+    }
+
+    function resetAllParams() {
+      favScore.innerText = "-- %";
+      favMeter.style.width = "0%";
+      favRank.innerText = "RANK --";
+      favStatus.innerText = "顔をかざすと測定を開始します";
+
+      Object.keys(paramUI).forEach(key => updateParamUI(key, 0, '#007aff'));
+      faceGuide.classList.remove('detected');
+      emotionTitle.innerText = "🔍 顔を探しています...";
+      emotionTitle.style.color = "#8E8E93";
+      emotionDetail.innerText = "ガイド枠内に顔をあわせてください";
+    }
+
+    // ⚡ 怒りを厳格に反映する好感度ロジック
+    function calculateFavorability(scores) {
+      const smileL = scores["mouthSmileLeft"] || 0;
+      const smileR = scores["mouthSmileRight"] || 0;
+      const smileAvg = (smileL + smileR) / 2; // 笑顔度
+
+      // 怒り要素（眉下げ・眉寄せ・鼻のひくつき）
+      const browDownL = scores["browDownLeft"] || 0;
+      const browDownR = scores["browDownRight"] || 0;
+      const noseSneerL = scores["noseSneerLeft"] || 0;
+      const noseSneerR = scores["noseSneerRight"] || 0;
+      const angerAvg = (browDownL + browDownR + noseSneerL + noseSneerR) / 4; // 怒り度
+
+      // 口元の不満
+      const frownL = scores["mouthFrownLeft"] || 0;
+      const frownR = scores["mouthFrownRight"] || 0;
+      const frownAvg = (frownL + frownR) / 2;
+
+      // ⚡ 厳格化した計算：標準状態（真顔）を40%スタートに変更
+      let baseScore = 40;
+      
+      // プラス：しっかり笑わないとスコアが上がりにくい（最大+50%）
+      baseScore += Math.pow(smileAvg, 1.2) * 50;
+
+      // マイナス：怒りペナルティを大幅強化（怒ると一激で急降下）
+      baseScore -= angerAvg * 70;   // 怒り検出で最大 -70% の大減点
+      baseScore -= frownAvg * 35;   // 不満・口角下がりで -35%
+
+      // 0 ～ 100% の範囲に限定
+      const finalScore = Math.min(100, Math.max(0, Math.round(baseScore)));
+
+      // 各パラメータ表示の更新
+      updateParamUI('smile', Math.round(smileAvg * 100), '#34C759');
+      updateParamUI('anger', Math.round(angerAvg * 100), '#FF3B30');
+      updateParamUI('frown', Math.round(frownAvg * 100), '#FF9500');
+
+      return {
+        score: finalScore,
+        smilePercent: Math.round(smileAvg * 100),
+        angerPercent: Math.round(angerAvg * 100),
+        frownPercent: Math.round(frownAvg * 100)
+      };
+    }
+
+    // 厳格版の評価ランクテキスト
+    function getFavorabilityText(fav) {
+      const score = fav.score;
+      const anger = fav.angerPercent;
+      let rank = "";
+      let status = "";
+      let title = "";
+      let color = "";
+
+      // 怒りパラメータが一定以上の場合は強制的に「怒り検出」状態へ分岐
+      if (anger > 30) {
+        rank = "RANK D";
+        status = "【怒り検出】かなり強いお怒り・不満を感じます！";
+        title = "😡 激怒・強い警戒";
+        color = "#FF3B30";
+      } else if (score >= 85) {
+        rank = "RANK S+";
+        status = "素晴らしい笑顔！最高ランクの好感度です💖";
+        title = "😍 夢中・好意MAX";
+        color = "#FF2D55";
+      } else if (score >= 68) {
+        rank = "RANK A";
+        status = "とても良い印象です。親しみが持てます✨";
+        title = "😊 好印象";
+        color = "#34C759";
+      } else if (score >= 45) {
+        rank = "RANK B";
+        status = "普通の印象です。もう少し笑顔があると高評価に！";
+        title = "😐 中立・やや硬い";
+        color = "#FF9500";
+      } else {
+        rank = "RANK C";
+        status = "表情が硬いか、少し警戒されている可能性があります";
+        title = "😟 警戒・冷淡";
+        color = "#FF3B30";
+      }
+
+      return { rank, status, title, color };
+    }
+
+    async function predictWebcam() {
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      const startTimeMs = performance.now();
+
+      if (lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        const results = faceLandmarker.detectForVideo(video, startTimeMs);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+          faceGuide.classList.add('detected');
+
+          const categories = results.faceBlendshapes[0].categories;
+          const scores = {};
+          for (const shape of categories) {
+            scores[shape.categoryName] = shape.score;
+          }
+
+          const fav = calculateFavorability(scores);
+          const favInfo = getFavorabilityText(fav);
+
+          favScore.innerText = `${fav.score} %`;
+          favMeter.style.width = `${fav.score}%`;
+          favRank.innerText = favInfo.rank;
+          favStatus.innerText = favInfo.status;
+
+          emotionTitle.innerText = favInfo.title;
+          emotionTitle.style.color = favInfo.color;
+          emotionDetail.innerText = `笑顔: ${fav.smilePercent}% / 怒り: ${fav.angerPercent}% / 不満: ${fav.frownPercent}%`;
+
+          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+            drawLandmarks(results.faceLandmarks[0]);
+          }
+        } else {
+          resetAllParams();
+        }
+      }
+
+      requestAnimationFrame(predictWebcam);
+    }
+
+    function drawLandmarks(landmarks) {
+      ctx.fillStyle = "rgba(255, 45, 85, 0.6)";
+      for (const point of landmarks) {
+        const x = point.x * canvas.width;
+        const y = point.y * canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.2, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+
+    startBtn.addEventListener('click', startCamera);
+  </script>
+</body>
+</html>
