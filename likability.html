@@ -62,6 +62,14 @@
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       display: none; /* 初期状態は非表示 */
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .snapshot-box:hover {
+      transform: scale(1.05);
+    }
+    .snapshot-box:active {
+      transform: scale(0.95);
     }
     .snapshot-box.best {
       left: 10px;
@@ -168,7 +176,7 @@
       backdrop-filter: blur(12px);
       padding: 12px 18px;
       border-radius: 18px;
-      pointer-events: none;
+      pointer-events: auto;
       z-index: 10;
       border: 1px solid rgba(255, 255, 255, 0.15);
       width: 92%;
@@ -212,11 +220,91 @@
       border-radius: 4px;
       transition: width 0.2s ease-out;
     }
+    .emotion-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
     .emotion-detail { 
       font-size: 0.75rem; 
       color: #ccc; 
-      margin-top: 2px;
+      flex-grow: 1;
+      text-align: left;
+    }
+
+    /* 🔄 リセットボタン */
+    .reset-btn {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+    .reset-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .reset-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* 🔍 写真拡大用モーダル */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      position: relative;
+      background: #1c1c1e;
+      border-radius: 20px;
+      padding: 16px;
+      max-width: 360px;
+      width: 100%;
       text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .modal-header {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .modal-img {
+      width: 100%;
+      border-radius: 12px;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      display: block;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: -12px; right: -12px;
+      width: 36px; height: 36px;
+      background: #ff2d55;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
   </style>
 </head>
@@ -230,14 +318,14 @@
       <canvas id="output_canvas"></canvas>
 
       <!-- 👑 画面左上：BEST -->
-      <div id="best-box" class="snapshot-box best">
+      <div id="best-box" class="snapshot-box best" title="クリックして拡大">
         <div class="snapshot-tag">BEST</div>
         <img id="best-img" class="snapshot-img" alt="BEST">
         <div id="best-score-text" class="snapshot-score">--%</div>
       </div>
 
       <!-- 💀 画面右上：WORST -->
-      <div id="worst-box" class="snapshot-box worst">
+      <div id="worst-box" class="snapshot-box worst" title="クリックして拡大">
         <div class="snapshot-tag">WORST</div>
         <img id="worst-img" class="snapshot-img" alt="WORST">
         <div id="worst-score-text" class="snapshot-score">--%</div>
@@ -262,10 +350,22 @@
           <div id="fav-meter" class="fav-meter-fill"></div>
         </div>
 
-        <div id="fav-status" class="emotion-detail">ガイド枠内に顔をあわせてください</div>
+        <div class="emotion-footer">
+          <div id="fav-status" class="emotion-detail">ガイド枠内に顔をあわせてください</div>
+          <button id="reset-btn" class="reset-btn" title="記録した写真を消去">🔄 リセット</button>
+        </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- 🔍 拡大用モーダル構造 -->
+  <div id="image-modal" class="modal">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close-btn">✕</button>
+      <div id="modal-title" class="modal-header">BEST SCORE</div>
+      <img id="modal-img" class="modal-img" alt="拡大写真">
+    </div>
   </div>
 
   <script type="module">
@@ -275,6 +375,7 @@
     const canvas = document.getElementById('output_canvas');
     const ctx = canvas.getContext('2d');
     const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
     const faceGuide = document.getElementById('face-guide');
     const emotionTitle = document.getElementById('emotion-title');
 
@@ -292,6 +393,12 @@
     const worstBox = document.getElementById('worst-box');
     const worstImg = document.getElementById('worst-img');
     const worstScoreText = document.getElementById('worst-score-text');
+
+    // モーダル要素
+    const imageModal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('modal-img');
+    const modalTitle = document.getElementById('modal-title');
+    const modalClose = document.getElementById('modal-close');
 
     // ハイスコア・ロースコア保持用変数
     let maxScore = -1;
@@ -359,12 +466,25 @@
       emotionTitle.style.color = "#8E8E93";
     }
 
+    // 🔄 BEST・WORST記録のリセット処理
+    function resetSnapshots() {
+      maxScore = -1;
+      minScore = 101;
+
+      bestBox.style.display = 'none';
+      bestImg.src = '';
+      bestScoreText.innerText = '--%';
+
+      worstBox.style.display = 'none';
+      worstImg.src = '';
+      worstScoreText.innerText = '--%';
+    }
+
     // 現在のビデオフレームから顔部分をキャプチャ（鏡像を考慮）
     function captureFaceImage() {
       captureCanvas.width = video.videoWidth;
       captureCanvas.height = video.videoHeight;
       captureCtx.save();
-      // 鏡映像に合わせて左右反転でキャプチャ描画
       captureCtx.translate(captureCanvas.width, 0);
       captureCtx.scale(-1, 1);
       captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
@@ -372,32 +492,65 @@
       return captureCanvas.toDataURL('image/jpeg', 0.85);
     }
 
-    // 好感度計算ロジック
+    // 👁️ 目・眉の動きを盛り込んだ高精度な好感度計算ロジック
     function calculateFavorability(scores) {
+      // --- 👄 口元の要素 ---
       const smileL = scores["mouthSmileLeft"] || 0;
       const smileR = scores["mouthSmileRight"] || 0;
       const smileAvg = (smileL + smileR) / 2;
-
-      const browDownL = scores["browDownLeft"] || 0;
-      const browDownR = scores["browDownRight"] || 0;
-      const noseSneerL = scores["noseSneerLeft"] || 0;
-      const noseSneerR = scores["noseSneerRight"] || 0;
-      const angerAvg = (browDownL + browDownR + noseSneerL + noseSneerR) / 4;
 
       const frownL = scores["mouthFrownLeft"] || 0;
       const frownR = scores["mouthFrownRight"] || 0;
       const frownAvg = (frownL + frownR) / 2;
 
+      // --- 🤨 眉毛の要素 ---
+      const browDownL = scores["browDownLeft"] || 0;
+      const browDownR = scores["browDownRight"] || 0;
+      const browDownAvg = (browDownL + browDownR) / 2;
+
+      const browInnerUp = scores["browInnerUp"] || 0;
+      const browOuterUpL = scores["browOuterUpLeft"] || 0;
+      const browOuterUpR = scores["browOuterUpRight"] || 0;
+      const browOuterUpAvg = (browOuterUpL + browOuterUpR) / 2;
+
+      // --- 👁️ 目の要素 ---
+      const eyeWideL = scores["eyeWideLeft"] || 0;
+      const eyeWideR = scores["eyeWideRight"] || 0;
+      const eyeWideAvg = (eyeWideL + eyeWideR) / 2;
+
+      const eyeSquintL = scores["eyeSquintLeft"] || 0;
+      const eyeSquintR = scores["eyeSquintRight"] || 0;
+      const eyeSquintAvg = (eyeSquintL + eyeSquintR) / 2;
+
+      const noseSneerL = scores["noseSneerLeft"] || 0;
+      const noseSneerR = scores["noseSneerRight"] || 0;
+      const noseSneerAvg = (noseSneerL + noseSneerR) / 2;
+
+      const angerAvg = (browDownAvg * 1.2 + noseSneerAvg + frownAvg * 0.8) / 3;
+
       let baseScore = 40;
-      baseScore += Math.pow(smileAvg, 1.2) * 50;
-      baseScore -= angerAvg * 70;
-      baseScore -= frownAvg * 35;
+
+      baseScore += Math.pow(smileAvg, 1.2) * 40;
+
+      if (smileAvg > 0.25) {
+        baseScore += eyeSquintAvg * 15; 
+      } else {
+        baseScore -= eyeSquintAvg * 15;
+      }
+
+      baseScore += eyeWideAvg * 12;
+      baseScore += browOuterUpAvg * 10;
+      baseScore -= browInnerUp * 12;
+      baseScore -= browDownAvg * 35;
+      baseScore -= frownAvg * 20;
 
       const finalScore = Math.min(100, Math.max(0, Math.round(baseScore)));
 
       return {
         score: finalScore,
-        angerPercent: Math.round(angerAvg * 100)
+        angerPercent: Math.round(angerAvg * 100),
+        eyeWide: eyeWideAvg,
+        browDown: browDownAvg
       };
     }
 
@@ -409,30 +562,30 @@
       let title = "";
       let color = "";
 
-      if (anger > 30) {
+      if (anger > 28) {
         rank = "RANK D";
-        status = "かなり強いお怒り・不満を感じます！";
-        title = "😡 激怒・強い警戒";
+        status = "眉間や目元に力が入っています。リラックスしましょう！";
+        title = "😡 険しい表情・不快感";
         color = "#FF3B30";
       } else if (score >= 85) {
         rank = "RANK S+";
-        status = "素晴らしい笑顔！最高ランクの好感度です💖";
+        status = "目元も口元も完璧！最高に魅力的な笑顔です✨";
         title = "😍 夢中・好意MAX";
         color = "#FF2D55";
       } else if (score >= 68) {
         rank = "RANK A";
-        status = "とても良い印象です。親しみが持てます✨";
-        title = "😊 好印象";
+        status = "目元がやさしく明るい印象です。とても好印象！";
+        title = "😊 明るい笑顔";
         color = "#34C759";
       } else if (score >= 45) {
         rank = "RANK B";
-        status = "普通の印象です。もう少し笑顔で高評価に！";
-        title = "😐 中立・やや硬い";
+        status = "やや真顔に近いです。目元と口元をもう少し柔らかく！";
+        title = "😐 中立・やや真面目";
         color = "#FF9500";
       } else {
         rank = "RANK C";
-        status = "表情が硬いか、少し警戒されている可能性があります";
-        title = "😟 警戒・冷淡";
+        status = "目元や表情が硬くなっています。笑顔を作ってみましょう";
+        title = "😟 硬い表情・警戒";
         color = "#FF3B30";
       }
 
@@ -479,7 +632,7 @@
             const imgData = captureFaceImage();
             bestImg.src = imgData;
             bestScoreText.innerText = `${maxScore}%`;
-            bestBox.style.display = 'block'; // 左上を表示
+            bestBox.style.display = 'block';
           }
 
           if (fav.score < minScore) {
@@ -487,7 +640,7 @@
             const imgData = captureFaceImage();
             worstImg.src = imgData;
             worstScoreText.innerText = `${minScore}%`;
-            worstBox.style.display = 'block'; // 右上を表示
+            worstBox.style.display = 'block';
           }
 
           if (results.faceLandmarks && results.faceLandmarks.length > 0) {
@@ -512,6 +665,32 @@
       }
     }
 
+    // 🔍 写真拡大モーダル関連の処理
+    function openModal(title, imgSrc) {
+      if (!imgSrc) return;
+      modalTitle.innerText = title;
+      modalImg.src = imgSrc;
+      imageModal.classList.add('active');
+    }
+
+    function closeModal() {
+      imageModal.classList.remove('active');
+    }
+
+    bestBox.addEventListener('click', () => {
+      openModal(`BEST SCORE: ${bestScoreText.innerText}`, bestImg.src);
+    });
+
+    worstBox.addEventListener('click', () => {
+      openModal(`WORST SCORE: ${worstScoreText.innerText}`, worstImg.src);
+    });
+
+    modalClose.addEventListener('click', closeModal);
+    imageModal.addEventListener('click', (e) => {
+      if (e.target === imageModal) closeModal();
+    });
+
+    resetBtn.addEventListener('click', resetSnapshots);
     startBtn.addEventListener('click', startCamera);
   </script>
 </body>
