@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>きゅんきゅん☆おじさんっち 〜ぷるるの妖精生活〜</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: M PLUS Rounded 1p -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1p:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1p', sans-serif;
+            touch-action: manipulation;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        @keyframes popUp {
+            0% { transform: scale(0.4); opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+        }
+        .pop-effect {
+            animation: popUp 0.8s ease-out forwards;
+            position: absolute;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-pink-50 via-purple-50 to-amber-50 min-h-screen text-stone-700 flex flex-col items-center justify-between p-3 sm:p-5 select-none">
+
+    <!-- Header / Status Bar -->
+    <header class="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-md p-3.5 mb-3 flex justify-between items-center border border-pink-100">
+        <div class="flex items-center space-x-3">
+            <div class="bg-pink-100 text-pink-500 w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-1.5">
+                    <h1 id="ojisan-name" class="font-black text-sm text-stone-800">ぴこおじ</h1>
+                    <button onclick="openSettings()" class="text-stone-400 hover:text-stone-600 text-xs"><i class="fa-solid fa-pen-nib"></i></button>
+                </div>
+                <p class="text-[11px] text-stone-400">Lv.<span id="ojisan-level">1</span> <span id="ojisan-title" class="text-pink-500 font-bold">たまごおじさん妖精</span></p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="bg-pink-50 border border-pink-200 px-2.5 py-1 rounded-2xl flex items-center space-x-1 shadow-xs">
+                <i class="fa-solid fa-star text-pink-400 text-xs"></i>
+                <span class="text-xs text-stone-600 font-bold"><span id="day-count">1</span>日目</span>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-2xl flex items-center space-x-1 shadow-xs">
+                <i class="fa-solid fa-coins text-amber-400 text-xs"></i>
+                <span id="coin-count" class="font-bold text-amber-600 text-xs">300</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-md flex-1 flex flex-col justify-between space-y-3">
+        
+        <!-- Status Meters -->
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-md border border-pink-100 space-y-2.5">
+            <!-- Hungry / Food -->
+            <div>
+                <div class="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span class="text-amber-500 flex items-center gap-1"><i class="fa-solid fa-utensils"></i> おなか・満足度 (Food)</span>
+                    <span id="food-meter-text">60/100</span>
+                </div>
+                <div class="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
+                    <div id="food-bar" class="bg-gradient-to-r from-amber-300 to-orange-400 h-full rounded-full transition-all duration-500" style="width: 60%"></div>
+                </div>
+            </div>
+            <!-- Clean / Housekeeping -->
+            <div>
+                <div class="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span class="text-sky-500 flex items-center gap-1"><i class="fa-solid fa-sparkles"></i> お部屋の清潔度 (Clean)</span>
+                    <span id="clean-meter-text">80/100</span>
+                </div>
+                <div class="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
+                    <div id="clean-bar" class="bg-gradient-to-r from-sky-300 to-blue-400 h-full rounded-full transition-all duration-500" style="width: 80%"></div>
+                </div>
+            </div>
+            <!-- Love / Affection -->
+            <div>
+                <div class="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span class="text-pink-500 flex items-center gap-1"><i class="fa-solid fa-heart"></i> きゅんきゅん度 (Love)</span>
+                    <span id="love-meter-text">50/100</span>
+                </div>
+                <div class="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden p-0.5 shadow-inner">
+                    <div id="love-bar" class="bg-gradient-to-r from-pink-400 to-rose-400 h-full rounded-full transition-all duration-500" style="width: 50%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Character Stage Area -->
+        <div id="ojisan-stage" class="relative bg-gradient-to-b from-pink-100/60 via-purple-50/60 to-white backdrop-blur-md rounded-3xl p-6 shadow-lg border-2 border-white flex-1 flex flex-col items-center justify-center min-h-[260px] overflow-hidden cursor-pointer" onclick="ojisanTapEffect(event)">
+            
+            <!-- Room Background Elements / Room Decor -->
+            <div id="room-decor-layer" class="absolute inset-0 pointer-events-none flex items-end justify-around pb-6 px-4 opacity-90"></div>
+
+            <!-- Floating Effects Container -->
+            <div id="effects-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <!-- Speech Bubble -->
+            <div id="speech-bubble" class="absolute top-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-pink-200 text-xs font-bold text-stone-700 transition-all opacity-95 animate-float text-center max-w-[280px]">
+                「ぷるる〜☆ 今日も妖精としてがんばるおじさんだよ！」
+            </div>
+
+            <!-- Ojisan Fairy Avatar Graphic -->
+            <div id="ojisan-avatar" class="text-7xl sm:text-8xl filter drop-shadow-md transition-transform transform animate-float select-none mt-6">
+                🧚‍♂️
+            </div>
+
+            <!-- Tap/Pet Hint -->
+            <div class="absolute bottom-3 bg-white/80 backdrop-blur-sm px-3.5 py-1 rounded-full text-[10px] font-bold text-pink-500 shadow-xs flex items-center gap-1">
+                <i class="fa-solid fa-hand-pointer"></i> タップしてナデナデするきゅん ✨
+            </div>
+        </div>
+
+        <!-- Action Control Grid (6 Commands) -->
+        <div class="grid grid-cols-3 gap-2">
+            <button onclick="openFeedModal()" class="bg-white hover:bg-amber-50 text-amber-500 border border-amber-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-amber-100/60 group-hover:bg-amber-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">おやつあげる</span>
+            </button>
+            <button onclick="doWorkPartTime()" class="bg-white hover:bg-purple-50 text-purple-500 border border-purple-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-purple-100/60 group-hover:bg-purple-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-briefcase"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">お仕事バイト</span>
+            </button>
+            <button onclick="doCleanRoom()" class="bg-white hover:bg-sky-50 text-sky-500 border border-sky-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-sky-100/60 group-hover:bg-sky-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-broom"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">お部屋そうじ</span>
+            </button>
+            <button onclick="doSingSong()" class="bg-white hover:bg-pink-50 text-pink-500 border border-pink-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-pink-100/60 group-hover:bg-pink-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">魔法の歌</span>
+            </button>
+            <button onclick="openMiniGame()" class="bg-white hover:bg-emerald-50 text-emerald-500 border border-emerald-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-emerald-100/60 group-hover:bg-emerald-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-dice-five"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">妖精の運試し</span>
+            </button>
+            <button onclick="doSleep()" class="bg-white hover:bg-indigo-50 text-indigo-500 border border-indigo-100 rounded-2xl p-2.5 flex flex-col items-center justify-center shadow-sm transition active:scale-95 group">
+                <div class="w-8 h-8 rounded-xl bg-indigo-100/60 group-hover:bg-indigo-100 flex items-center justify-center text-sm mb-1 transition">
+                    <i class="fa-solid fa-bed"></i>
+                </div>
+                <span class="text-[11px] font-bold text-stone-600">おねんね</span>
+            </button>
+        </div>
+
+        <!-- Sub menu: Shop & Encyclopedia -->
+        <div class="flex gap-2">
+            <button onclick="openShopModal()" class="flex-1 bg-white hover:bg-pink-50/50 border border-pink-200 py-2 rounded-2xl text-xs font-bold text-stone-600 shadow-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-store text-pink-400"></i> きゅんきゅんショップ
+            </button>
+            <button onclick="openEncyclopedia()" class="flex-1 bg-white hover:bg-purple-50/50 border border-purple-200 py-2 rounded-2xl text-xs font-bold text-stone-600 shadow-xs flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-book-bookmark text-purple-400"></i> おじさん図鑑
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal: Food / Snacks -->
+    <div id="feed-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-xl border border-pink-100 space-y-3.5">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <i class="fa-solid fa-utensils text-pink-500"></i> おやつをプレゼント
+                </h3>
+                <button onclick="closeModals()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <p class="text-[11px] text-stone-400">おじさん妖精の大好物を与えてご機嫌を取ろう！</p>
+            <div id="food-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Mini-Game / Fairy Dice -->
+    <div id="minigame-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-xl border border-emerald-100 space-y-4 text-center">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <i class="fa-solid fa-dice-five text-emerald-500"></i> 妖精の運試しルーレット
+                </h3>
+                <button onclick="closeModals()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <p class="text-xs text-stone-500">参加費: <span class="font-bold text-amber-500">60コイン</span></p>
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-6 my-2">
+                <div id="lottery-display" class="text-4xl mb-2">✨🍀✨</div>
+                <p id="lottery-text" class="text-xs font-bold text-stone-600">ボタンを押して幸運を引き当てよう！</p>
+            </div>
+            <button onclick="playLottery()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-2xl text-xs shadow-md transition active:scale-95">
+                運試しスタート！
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Shop & Decor -->
+    <div id="shop-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-xl border border-pink-100 space-y-3.5">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-pink-500"></i> きゅんきゅんショップ
+                </h3>
+                <button onclick="closeModals()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <div id="shop-items-container" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Encyclopedia -->
+    <div id="encyclopedia-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-xl border border-purple-100 space-y-3.5">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-purple-500"></i> おじさん図鑑・エンディング
+                </h3>
+                <button onclick="closeModals()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <p class="text-[11px] text-stone-400">これまでに解放した進化形態とエンディングの記録だよ。</p>
+            <div id="encyclopedia-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Ending Modal -->
+    <div id="ending-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-2 border-pink-400 space-y-4 text-center">
+            <div class="w-16 h-16 bg-pink-100 text-pink-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-inner animate-pulse-glow">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <h2 id="ending-title" class="font-black text-xl text-stone-800">エンディングタイトル</h2>
+            <p id="ending-desc" class="text-xs text-stone-600 leading-relaxed bg-pink-50/60 p-3.5 rounded-2xl border border-pink-100">ここにストーリーが表示されます。</p>
+            <button onclick="restartAfterEnding()" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-2xl text-sm shadow-md transition active:scale-95">
+                次のぷるるを育てるきゅん！
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xs rounded-3xl p-5 shadow-xl border border-stone-200 space-y-3.5">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm text-stone-800 flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-stone-500"></i> せってい
+                </h3>
+                <button onclick="closeModals()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-stone-400 mb-1">おじさんの名前</label>
+                    <input type="text" id="rename-input" class="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-700 focus:outline-none focus:border-pink-400" maxlength="10">
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-xl text-xs shadow-md transition active:scale-95">
+                    保存する
+                </button>
+                <button onclick="resetGameData()" class="w-full bg-stone-100 hover:bg-stone-200 text-rose-500 font-bold py-2 rounded-xl text-xs transition">
+                    はじめからやり直す
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-message" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-stone-800/95 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center gap-2">
+        <i class="fa-solid fa-sparkles text-pink-400"></i>
+        <span id="toast-text">通知メッセージ</span>
+    </div>
+
+    <!-- JavaScript Game Engine -->
+    <script>
+        let gameState = {
+            name: "ぴこおじ",
+            level: 1,
+            exp: 0,
+            coins: 300,
+            days: 1,
+            food: 60,
+            clean: 80,
+            love: 50,
+            inventory: {
+                snack_beer: 1,
+                snack_edamame: 1,
+                snack_pudding: 0
+            },
+            equippedItem: null,
+            unlockedEndings: []
+        };
+
+        const foodDatabase = {
+            snack_beer: { name: "シュワシュワ妖精ビール", food: 35, love: 15, price: 50, icon: "fa-beer-mug-empty" },
+            snack_edamame: { name: "塩ゆでピカピカ枝豆", food: 25, love: 20, price: 40, icon: "fa-seedling" },
+            snack_pudding: { name: "王様ぷるぷるプリン", food: 50, love: 40, price: 120, icon: "fa-ice-cream" }
+        };
+
+        const shopDatabase = [
+            { id: "snack_beer", name: "妖精ビール", price: 50, type: "food", icon: "fa-beer-mug-empty", desc: "おじさんの元気のみなもと" },
+            { id: "snack_edamame", name: "ピカピカ枝豆", price: 40, type: "food", icon: "fa-seedling", desc: "塩気がたまらないおつまみ" },
+            { id: "snack_pudding", name: "王様プリン", price: 120, type: "food", icon: "fa-ice-cream", desc: "甘くてきゅんとするデザート" },
+            { id: "decor_flower", name: "まほうのお花ポット", price: 300, type: "decor", icon: "fa-seedling", desc: "お部屋をかわいく彩るお花" },
+            { id: "decor_arcade", name: "ミニアーケード筐体", price: 600, type: "decor", icon: "fa-gamepad", desc: "レトロでポップなゲーム機" }
+        ];
+
+        const endingsData = {
+            end_superstar: { title: "⭐ 伝説のきゅんきゅんアイドル妖精ルート", desc: "可愛さとシュールさを極め、人間界と妖精界の双方で大人気アイドルに！毎日みんなから愛されるスーパースターになりました。" },
+            end_sloth: { title: "💤 のんびりまったり仙人妖精ルート", desc: "お仕事もそこそこに、お部屋の居心地の良さと美味しいおやつを満喫。マイペースにのんびり暮らす仙人のような妖精になりました。" },
+            end_tidy: { title: "✨ ピカピカお掃除マスター妖精ルート", desc: "お部屋をいつもピカピカに磨き上げ、お掃除の楽しさを世界に広めた妖精の鏡！みんなから尊敬される存在になりました。" }
+        };
+
+        const stagesData = [
+            { level: 1, title: "たまごおじさん妖精", avatar: "🥚", quote: "「ぷるる〜☆ まだ殻の中で寝ていたいおじさんだよ！」" },
+            { level: 3, title: "ひよっこぷるるおじさん", avatar: "🧚‍♂️", quote: "「おやつを食べると羽が生える気がするきゅん！」" },
+            { level: 6, title: "まほうのきゅんきゅんおじさん", avatar: "✨🧙‍♂️", quote: "「ワイの魔法でみんなを笑顔にするぞい☆」" }
+        ];
+
+        const randomQuotes = [
+            "「おひさまがぽかぽかして眠くなってきたきゅん…」",
+            "「今夜のおやつは何にしようかなあ♪」",
+            "「すね毛じゃないよ、妖精のきらめきパウダーだよ！」",
+            "「今日も元気にぷるぷるしてるかい？」",
+            "「きゅんきゅんパワー全開だぜ☆」"
+        ];
+
+        window.onload = function() {
+            const saved = localStorage.getItem("ojisan_pet_game_save_v1");
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                } catch(e) { console.error(e); }
+            }
+            updateUI();
+
+            // Periodic Status Decay / Day progression loop
+            setInterval(() => {
+                gameState.food = Math.max(0, gameState.food - 3);
+                gameState.clean = Math.max(0, gameState.clean - 2);
+                gameState.love = Math.max(0, gameState.love - 2);
+                
+                gameState.days += 0.25;
+                if (gameState.days % 1 === 0) {
+                    showToast(`🌟 ${Math.floor(gameState.days)}日目がスタートしたきゅん！`);
+                }
+
+                checkEndings();
+                updateUI();
+                saveGame();
+            }, 10000);
+
+            // Speech bubble changer
+            setInterval(() => {
+                const bubble = document.getElementById("speech-bubble");
+                const quote = randomQuotes[Math.floor(Math.random() * randomQuotes.length)];
+                bubble.innerText = quote;
+            }, 6000);
+        };
+
+        function saveGame() {
+            localStorage.setItem("ojisan_pet_game_save_v1", JSON.stringify(gameState));
+        }
+
+        function updateUI() {
+            document.getElementById("ojisan-name").innerText = gameState.name;
+            document.getElementById("ojisan-level").innerText = gameState.level;
+            document.getElementById("coin-count").innerText = gameState.coins;
+            document.getElementById("day-count").innerText = Math.floor(gameState.days);
+
+            // Meters
+            document.getElementById("food-meter-text").innerText = `${Math.floor(gameState.food)}/100`;
+            document.getElementById("food-bar").style.width = `${gameState.food}%`;
+            document.getElementById("clean-meter-text").innerText = `${Math.floor(gameState.clean)}/100`;
+            document.getElementById("clean-bar").style.width = `${gameState.clean}%`;
+            document.getElementById("love-meter-text").innerText = `${Math.floor(gameState.love)}/100`;
+            document.getElementById("love-bar").style.width = `${gameState.love}%`;
+
+            // Avatar & Title stage
+            let currentStage = stagesData[0];
+            for (let st of stagesData) {
+                if (gameState.level >= st.level) currentStage = st;
+            }
+            document.getElementById("ojisan-title").innerText = currentStage.title;
+            document.getElementById("ojisan-avatar").innerText = currentStage.avatar;
+
+            renderDecor();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast-message");
+            const text = document.getElementById("toast-text");
+            text.innerText = msg;
+            toast.classList.remove("opacity-0");
+            toast.classList.add("opacity-100");
+            setTimeout(() => {
+                toast.classList.remove("opacity-100");
+                toast.classList.add("opacity-0");
+            }, 2200);
+        }
+
+        // Tap & Pet Effect
+        function ojisanTapEffect(event) {
+            const stage = document.getElementById("ojisan-stage");
+            const rect = stage.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const pop = document.createElement("div");
+            pop.className = "pop-effect text-pink-500 font-black text-xl";
+            pop.innerHTML = '<i class="fa-solid fa-heart"></i>';
+            pop.style.left = `${x}px`;
+            pop.style.top = `${y}px`;
+            stage.appendChild(pop);
+            setTimeout(() => pop.remove(), 800);
+
+            gameState.love = Math.min(100, gameState.love + 3);
+            gainExp(3);
+            updateUI();
+            saveGame();
+        }
+
+        function gainExp(amount) {
+            gameState.exp += amount;
+            if (gameState.exp >= gameState.level * 45) {
+                gameState.exp = 0;
+                gameState.level += 1;
+                showToast(`🎉 ぷるるがレベルアップ！ Lv.${gameState.level}になったきゅん！`);
+            }
+        }
+
+        // Actions
+        function openFeedModal() {
+            renderFoodList();
+            document.getElementById("feed-modal").classList.remove("hidden");
+        }
+
+        function renderFoodList() {
+            const container = document.getElementById("food-list");
+            container.innerHTML = "";
+            for (let key in foodDatabase) {
+                const food = foodDatabase[key];
+                const count = gameState.inventory[key] || 0;
+                const div = document.createElement("div");
+                div.className = "flex items-center justify-between bg-pink-50/40 hover:bg-pink-50 p-3 rounded-2xl border border-pink-100 transition";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center text-base">
+                            <i class="fa-solid ${food.icon}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-stone-800">${food.name}</h4>
+                            <p class="text-[10px] text-stone-400">おなか +${food.food} / きゅん +${food.love}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2.5">
+                        <span class="text-[11px] font-bold text-stone-500">所持: ${count}</span>
+                        <button onclick="useFood('${key}')" class="bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95 ${count <= 0 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            あげる
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function useFood(key) {
+            if ((gameState.inventory[key] || 0) <= 0) {
+                showToast("在庫がないよ！ショップで買ってね！");
+                return;
+            }
+            gameState.inventory[key]--;
+            const food = foodDatabase[key];
+            gameState.food = Math.min(100, gameState.food + food.food);
+            gameState.love = Math.min(100, gameState.love + food.love);
+            gainExp(10);
+            showToast(`「うまうま〜☆ 元気がみなぎるきゅん！」 (${food.name})`);
+            renderFoodList();
+            updateUI();
+            saveGame();
+        }
+
+        function doWorkPartTime() {
+            gameState.food = Math.max(0, gameState.food - 10);
+            gameState.love = Math.min(100, gameState.love + 5);
+            const earned = 100;
+            gameState.coins += earned;
+            gainExp(12);
+            showToast(`💼 妖精カフェでアルバイトして ${earned}コイン稼いだきゅん！`);
+            checkEndings();
+            updateUI();
+            saveGame();
+        }
+
+        function doCleanRoom() {
+            gameState.clean = 100;
+            gameState.love = Math.min(100, gameState.love + 10);
+            gainExp(8);
+            showToast("✨ お部屋をピカピカにそうじしたよ！きもちいい〜！");
+            updateUI();
+            saveGame();
+        }
+
+        function doSingSong() {
+            gameState.love = Math.min(100, gameState.love + 20);
+            gameState.food = Math.max(0, gameState.food - 5);
+            gainExp(10);
+            showToast("🎶 魔法の歌をうたって、きゅんきゅん度が大アップしたよ！");
+            updateUI();
+            saveGame();
+        }
+
+        function doSleep() {
+            gameState.food = Math.min(100, gameState.food + 15);
+            gameState.love = Math.min(100, gameState.love + 10);
+            showToast("💤 すやすやおねんねして体力が回復したよ…Zzz");
+            updateUI();
+            saveGame();
+        }
+
+        // Mini-Game
+        function openMiniGame() {
+            document.getElementById("lottery-display").innerText = "✨🍀✨";
+            document.getElementById("lottery-text").innerText = "ボタンを押して幸運を引き当てよう！";
+            document.getElementById("minigame-modal").classList.remove("hidden");
+        }
+
+        function playLottery() {
+            if (gameState.coins < 60) {
+                showToast("コインが足りないよ！");
+                return;
+            }
+            gameState.coins -= 60;
+            const roll = Math.random();
+            const display = document.getElementById("lottery-display");
+            const text = document.getElementById("lottery-text");
+
+            if (roll < 0.2) {
+                display.innerText = "🌟👑🌟";
+                const prize = 350;
+                gameState.coins += prize;
+                text.innerText = `大あたり！ +${prize}コインゲット！`;
+                showToast(`大あたり！ +${prize}コイン！`);
+            } else if (roll < 0.55) {
+                display.innerText = "💖✨💖";
+                const prize = 120;
+                gameState.coins += prize;
+                text.innerText = `あたり！ +${prize}コインゲット！`;
+                showToast(`あたり！ +${prize}コイン！`);
+            } else {
+                display.innerText = "🍃💨🍃";
+                text.innerText = "ハズレ…また挑戦してね！";
+                showToast("ハズレちゃった…ざんねん！");
+            }
+            updateUI();
+            saveGame();
+        }
+
+        // Shop Modal
+        function openShopModal() {
+            const container = document.getElementById("shop-items-container");
+            container.innerHTML = "";
+            shopDatabase.forEach(item => {
+                const isOwned = (item.type === 'decor' && (gameState.inventory[item.id] > 0 || gameState.equippedItem === item.id));
+                const div = document.createElement("div");
+                div.className = "flex items-center justify-between bg-pink-50/40 p-3 rounded-2xl border border-pink-100";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center text-base">
+                            <i class="fa-solid ${item.icon}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-stone-800">${item.name}</h4>
+                            <p class="text-[10px] text-stone-400">${item.desc}</p>
+                            <p class="text-[11px] text-amber-500 font-bold"><i class="fa-solid fa-coins"></i> ${item.price} コイン</p>
+                        </div>
+                    </div>
+                    <div>
+                        ${item.type === 'decor' ? 
+                            (isOwned ? 
+                                `<button onclick="equipDecor('${item.id}')" class="bg-${gameState.equippedItem === item.id ? 'pink' : 'stone'}-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs">
+                                    ${gameState.equippedItem === item.id ? '設置中' : '飾る'}
+                                </button>` :
+                                `<button onclick="buyShopItem('${item.id}', '${item.type}')" class="bg-pink-500 hover:bg-pink-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95">購入</button>`
+                            ) :
+                            `<button onclick="buyShopItem('${item.id}', '${item.type}')" class="bg-pink-500 hover:bg-pink-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95">購入</button>`
+                        }
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById("shop-modal").classList.remove("hidden");
+        }
+
+        function buyShopItem(id, type) {
+            let item = shopDatabase.find(i => i.id === id);
+            if (gameState.coins < item.price) {
+                showToast("コインが足りないよ！");
+                return;
+            }
+            gameState.coins -= item.price;
+            if (type === 'decor') {
+                gameState.inventory[id] = 1;
+                gameState.equippedItem = id;
+                showToast(`${item.name}をお部屋に飾ったよ！`);
+            } else {
+                gameState.inventory[id] = (gameState.inventory[id] || 0) + 1;
+                showToast(`${item.name}をゲットしたよ！`);
+            }
+            openShopModal();
+            updateUI();
+            saveGame();
+        }
+
+        function equipDecor(id) {
+            if (gameState.equippedItem === id) {
+                gameState.equippedItem = null;
+                showToast("家具をしまったよ");
+            } else {
+                gameState.equippedItem = id;
+                showToast("家具を配置したよ！");
+            }
+            openShopModal();
+            updateUI();
+            saveGame();
+        }
+
+        function renderDecor() {
+            const container = document.getElementById("room-decor-layer");
+            container.innerHTML = "";
+            if (gameState.equippedItem === "decor_flower") {
+                container.innerHTML = `<div class="text-3xl">🌷</div>`;
+            } else if (gameState.equippedItem === "decor_arcade") {
+                container.innerHTML = `<div class="text-3xl">🕹️</div>`;
+            }
+        }
+
+        // Endings Check
+        function checkEndings() {
+            let endingKey = null;
+            if (gameState.level >= 5 && gameState.love >= 85 && gameState.food >= 70) {
+                endingKey = "end_superstar";
+            } else if (gameState.level >= 5 && gameState.food <= 20 && gameState.love >= 60) {
+                endingKey = "end_sloth";
+            } else if (gameState.level >= 5 && gameState.clean >= 90 && gameState.love >= 70) {
+                endingKey = "end_tidy";
+            }
+
+            if (endingKey) {
+                triggerEnding(endingKey);
+            }
+        }
+
+        function triggerEnding(key) {
+            const ending = endingsData[key];
+            if (!gameState.unlockedEndings.includes(key)) {
+                gameState.unlockedEndings.push(key);
+            }
+            document.getElementById("ending-title").innerText = ending.title;
+            document.getElementById("ending-desc").innerText = ending.desc;
+            document.getElementById("ending-modal").classList.remove("hidden");
+            saveGame();
+        }
+
+        function restartAfterEnding() {
+            document.getElementById("ending-modal").classList.add("hidden");
+            gameState = {
+                name: gameState.name,
+                level: 1,
+                exp: 0,
+                coins: 300,
+                days: 1,
+                food: 60,
+                clean: 80,
+                love: 50,
+                inventory: { snack_beer: 1, snack_edamame: 1 },
+                equippedItem: null,
+                unlockedEndings: gameState.unlockedEndings
+            };
+            updateUI();
+            saveGame();
+        }
+
+        // Encyclopedia Modal
+        function openEncyclopedia() {
+            const container = document.getElementById("encyclopedia-list");
+            container.innerHTML = "";
+            for (let key in endingsData) {
+                const ending = endingsData[key];
+                const unlocked = gameState.unlockedEndings.includes(key);
+                const div = document.createElement("div");
+                div.className = "bg-pink-50/40 border border-pink-100 p-3 rounded-2xl flex items-center justify-between";
+                div.innerHTML = `
+                    <div>
+                        <h4 class="font-bold text-xs ${unlocked ? 'text-pink-600' : 'text-stone-400'}">${unlocked ? ending.title : '？？？ (未開放)'}</h4>
+                        <p class="text-[10px] text-stone-400 mt-0.5">${unlocked ? ending.desc : '条件を満たしてエンディングを迎えよう！'}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+            document.getElementById("encyclopedia-modal").classList.remove("hidden");
+        }
+
+        // Settings Modal
+        function openSettings() {
+            document.getElementById("rename-input").value = gameState.name;
+            document.getElementById("settings-modal").classList.remove("hidden");
+        }
+
+        function saveSettings() {
+            const newName = document.getElementById("rename-input").value.trim();
+            if (newName) {
+                gameState.name = newName;
+                showToast("名前を更新したきゅん！");
+            }
+            closeModals();
+            updateUI();
+            saveGame();
+        }
+
+        function resetGameData() {
+            if (confirm("本当にデータをリセットして最初からやり直すきゅん？")) {
+                localStorage.removeItem("ojisan_pet_game_save_v1");
+                location.reload();
+            }
+        }
+
+        function closeModals() {
+            document.getElementById("feed-modal").classList.add("hidden");
+            document.getElementById("minigame-modal").classList.add("hidden");
+            document.getElementById("shop-modal").classList.add("hidden");
+            document.getElementById("encyclopedia-modal").classList.add("hidden");
+            document.getElementById("settings-modal").classList.add("hidden");
+        }
+    </script>
+</body>
+</html>
