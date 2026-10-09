@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ウサギのニンジンゲーム（モグラたたき風）</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    margin-bottom: 10px;
+  }
+  #controls {
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+  }
+  #controls button {
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #controls select {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+  #status {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  #game {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 10px;
+    touch-action: manipulation;
+  }
+  .hole {
+    width: 100px;
+    height: 100px;
+    background: #8b5a2b;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .hole-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  .carrot {
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 26px;
+  }
+  .rabbit {
+    position: absolute;
+    bottom: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 40px;
+    transition: bottom 0.15s ease-out;
+    pointer-events: none;
+  }
+  .rabbit.show {
+    bottom: 25px;
+  }
+  #scoreboard {
+    margin-top: 10px;
+    font-size: 15px;
+  }
+  #scoreboard span {
+    margin-right: 15px;
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #overlay-content {
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  #overlay-content button {
+    margin-top: 10px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>ウサギのニンジンゲーム 🐰🥕</h1>
+
+<div id="controls">
+  <button id="startBtn">スタート</button>
+  <label>
+    難易度：
+    <select id="difficulty">
+      <option value="easy">かんたん</option>
+      <option value="normal" selected>ふつう</option>
+      <option value="hard">むずかしい</option>
+    </select>
+  </label>
+  <span id="timeLabel">残り時間: <strong id="time">30</strong> 秒</span>
+</div>
+
+<div id="status">ウサギがニンジンを食べに顔を出したら、タップしてね！</div>
+
+<div id="game"></div>
+
+<div id="scoreboard">
+  <span>スコア: <strong id="score">0</strong></span>
+  <span>ミス: <strong id="miss">0</strong></span>
+  <span>コンボ: <strong id="combo">0</strong></span>
+</div>
+
+<div id="overlay">
+  <div id="overlay-content">
+    <div id="resultText"></div>
+    <button id="restartBtn">もう一度あそぶ</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const gameEl = document.getElementById('game');
+  const startBtn = document.getElementById('startBtn');
+  const difficultyEl = document.getElementById('difficulty');
+  const timeEl = document.getElementById('time');
+  const scoreEl = document.getElementById('score');
+  const missEl = document.getElementById('miss');
+  const comboEl = document.getElementById('combo');
+  const statusEl = document.getElementById('status');
+  const overlayEl = document.getElementById('overlay');
+  const resultTextEl = document.getElementById('resultText');
+  const restartBtn = document.getElementById('restartBtn');
+
+  const HOLE_COUNT = 9;
+  let holes = [];
+  let gameRunning = false;
+  let score = 0;
+  let miss = 0;
+  let combo = 0;
+  let maxCombo = 0;
+  let timeLeft = 30;
+  let timerId = null;
+  let spawnIntervalId = null;
+
+  function createHoles() {
+    gameEl.innerHTML = '';
+    holes = [];
+    for (let i = 0; i < HOLE_COUNT; i++) {
+      const hole = document.createElement('div');
+      hole.className = 'hole';
+      hole.dataset.index = i;
+
+      const inner = document.createElement('div');
+      inner.className = 'hole-inner';
+
+      const carrot = document.createElement('div');
+      carrot.className = 'carrot';
+      carrot.textContent = '🥕';
+
+      const rabbit = document.createElement('div');
+      rabbit.className = 'rabbit';
+      rabbit.textContent = '🐰';
+
+      inner.appendChild(carrot);
+      inner.appendChild(rabbit);
+      hole.appendChild(inner);
+      gameEl.appendChild(hole);
+
+      holes.push({
+        holeEl: hole,
+        rabbitEl: rabbit,
+        hasRabbit: false,
+        clickable: false
+      });
+
+      hole.addEventListener('click', () => handleHoleClick(i));
+      hole.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleHoleClick(i);
+      }, {passive: false});
+    }
+  }
+
+  function resetGameState() {
+    score = 0;
+    miss = 0;
+    combo = 0;
+    maxCombo = 0;
+    timeLeft = 30;
+    updateScoreboard();
+    timeEl.textContent = timeLeft;
+    statusEl.textContent = 'ウサギがニンジンを食べに顔を出したら、タップしてね！';
+    holes.forEach(h => {
+      h.hasRabbit = false;
+      h.clickable = false;
+      h.rabbitEl.classList.remove('show');
+    });
+  }
+
+  function getDifficultySettings() {
+    const diff = difficultyEl.value;
+    if (diff === 'easy') {
+      return {spawnInterval: 900, rabbitDuration: 900};
+    } else if (diff === 'hard') {
+      return {spawnInterval: 450, rabbitDuration: 550};
+    } else {
+      return {spawnInterval: 650, rabbitDuration: 700};
+    }
+  }
+
+  function startGame() {
+    if (gameRunning) return;
+    gameRunning = true;
+    resetGameState();
+    overlayEl.style.display = 'none';
+
+    const settings = getDifficultySettings();
+    const spawnInterval = settings.spawnInterval;
+    const rabbitDuration = settings.rabbitDuration;
+
+    timerId = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        endGame();
+      }
+    }, 1000);
+
+    spawnIntervalId = setInterval(() => {
+      if (!gameRunning) return;
+      spawnRabbit(rabbitDuration);
+    }, spawnInterval);
+  }
+
+  function endGame() {
+    gameRunning = false;
+    clearInterval(timerId);
+    clearInterval(spawnIntervalId);
+    timerId = null;
+    spawnIntervalId = null;
+
+    holes.forEach(h => {
+      h.hasRabbit = false;
+      h.clickable = false;
+      h.rabbitEl.classList.remove('show');
+    });
+
+    const resultText =
+      `ゲーム終了！<br>` +
+      `スコア: <strong>${score}</strong><br>` +
+      `ミス: <strong>${miss}</strong><br>` +
+      `最大コンボ: <strong>${maxCombo}</strong>`;
+    resultTextEl.innerHTML = resultText;
+    overlayEl.style.display = 'flex';
+    statusEl.textContent = 'おつかれさま！結果を確認してね。';
+  }
+
+  function spawnRabbit(duration) {
+    const availableIndices = holes
+      .map((h, idx) => ({h, idx}))
+      .filter(obj => !obj.h.hasRabbit);
+
+    if (availableIndices.length === 0) return;
+
+    const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)].idx;
+    const holeObj = holes[randomIndex];
+
+    holeObj.hasRabbit = true;
+    holeObj.clickable = true;
+    holeObj.rabbitEl.classList.add('show');
+
+    setTimeout(() => {
+      if (!gameRunning) return;
+      if (holeObj.hasRabbit) {
+        holeObj.hasRabbit = false;
+        holeObj.clickable = false;
+        holeObj.rabbitEl.classList.remove('show');
+        registerMiss();
+      }
+    }, duration);
+  }
+
+  function handleHoleClick(index) {
+    if (!gameRunning) return;
+    const holeObj = holes[index];
+    if (holeObj.clickable && holeObj.hasRabbit) {
+      holeObj.hasRabbit = false;
+      holeObj.clickable = false;
+      holeObj.rabbitEl.classList.remove('show');
+      registerHit();
+    } else {
+      registerMiss();
+    }
+  }
+
+  function registerHit() {
+    score += 10;
+    combo += 1;
+    if (combo > maxCombo) maxCombo = combo;
+    updateScoreboard();
+    statusEl.textContent = 'ナイス！ウサギがニンジンを食べる前にタップできた！';
+  }
+
+  function registerMiss() {
+    miss += 1;
+    combo = 0;
+    updateScoreboard();
+    statusEl.textContent = 'あっ…ウサギにニンジンを食べられちゃったかも。';
+  }
+
+  function updateScoreboard() {
+    scoreEl.textContent = score;
+    missEl.textContent = miss;
+    comboEl.textContent = combo;
+  }
+
+  startBtn.addEventListener('click', startGame);
+  restartBtn.addEventListener('click', () => {
+    overlayEl.style.display = 'none';
+    startGame();
+  });
+
+  createHoles();
+  resetGameState();
+})();
+</script>
+
+</body>
+</html>
