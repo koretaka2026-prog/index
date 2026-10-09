@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>弓の的あてゲーム</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:sans-serif;
+    background:linear-gradient(#87ceeb,#eaf8ff);
+    touch-action:manipulation;
+}
+
+#field{
+    position:relative;
+    width:100vw;
+    height:100vh;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:20;
+    color:#fff;
+    font-size:24px;
+    font-weight:bold;
+    text-shadow:2px 2px 4px #000;
+}
+
+#bonus{
+    position:absolute;
+    top:50px;
+    left:10px;
+    color:gold;
+    font-size:28px;
+    font-weight:bold;
+    text-shadow:2px 2px 4px #000;
+    z-index:20;
+}
+
+#countdown{
+    position:absolute;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    font-size:120px;
+    font-weight:bold;
+    color:white;
+    text-shadow:0 0 20px black;
+    background:rgba(0,0,0,.3);
+    z-index:90;
+}
+
+#startScreen,
+#endScreen{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.75);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    z-index:100;
+}
+
+#ruleBox{
+    max-width:700px;
+    margin:20px;
+    padding:20px;
+    background:rgba(255,255,255,.15);
+    border-radius:12px;
+    font-size:20px;
+    line-height:1.8;
+    text-align:left;
+}
+
+button{
+    padding:12px 30px;
+    font-size:24px;
+    cursor:pointer;
+}
+
+#bow{
+    position:absolute;
+    left:80px;
+    bottom:20px;
+    font-size:90px;
+    z-index:10;
+}
+
+#target{
+    position:absolute;
+    top:120px;
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    background:
+        radial-gradient(
+            circle,
+            #ff0000 0 12%,
+            #000 12% 25%,
+            #fff 25% 40%,
+            #000 40% 55%,
+            #fff 55% 70%,
+            #000 70% 85%,
+            #fff 85% 100%
+        );
+    box-shadow:0 0 12px rgba(0,0,0,.6);
+}
+
+#bird{
+    position:absolute;
+    left:-120px;
+    top:200px;
+    font-size:70px;
+    display:none;
+    z-index:8;
+}
+
+.arrow{
+    position:absolute;
+    font-size:36px;
+    pointer-events:none;
+    transform-origin:center;
+    z-index:50;
+}
+
+.hit{
+    position:absolute;
+    color:gold;
+    font-size:50px;
+    pointer-events:none;
+    z-index:60;
+}
+</style>
+</head>
+
+<body>
+
+<div id="startScreen">
+    <h1>🏹 弓の的あてゲーム</h1>
+
+    <div id="ruleBox">
+        <b>【ルール】</b><br>
+        ・画面をクリックまたはタップして矢を発射します。<br>
+        ・動く的に当てると1点獲得できます。<br>
+        ・鳥に当てると3点減点されます。<br>
+        ・ラスト5秒は得点が2倍になります。<br>
+        ・制限時間は30秒です。<br>
+        ・高得点を目指しましょう！
+    </div>
+
+    <button onclick="startCountdown()">スタート</button>
+</div>
+
+<div id="endScreen" style="display:none;">
+    <h1>ゲーム終了</h1>
+    <h2 id="finalScore"></h2>
+    <button onclick="location.reload()">もう一度遊ぶ</button>
+</div>
+
+<div id="ui">
+    得点: <span id="score">0</span>
+    &nbsp;&nbsp;
+    残り: <span id="time">30</span>秒
+</div>
+
+<div id="bonus"></div>
+
+<div id="countdown">3</div>
+
+<div id="field">
+    <div id="target"></div>
+    <div id="bird">🐦</div>
+    <div id="bow">🏹</div>
+</div>
+
+<script>
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq,duration,type="sine",volume=0.1){
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+
+    osc.type=type;
+    osc.frequency.value=freq;
+    gain.gain.value=volume;
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        audioCtx.currentTime+duration
+    );
+
+    osc.stop(audioCtx.currentTime+duration);
+}
+
+const field=document.getElementById("field");
+const target=document.getElementById("target");
+const bird=document.getElementById("bird");
+const scoreEl=document.getElementById("score");
+const timeEl=document.getElementById("time");
+const bonusEl=document.getElementById("bonus");
+
+let score=0;
+let time=30;
+let playing=false;
+
+let targetX=0;
+let targetSpeed=-4;
+
+let birdActive=false;
+let birdX=-120;
+let birdY=150;
+let birdSpeed=7;
+
+function startCountdown(){
+
+    if(audioCtx.state==="suspended"){
+        audioCtx.resume();
+    }
+
+    document.getElementById("startScreen").style.display="none";
+
+    const countdown=document.getElementById("countdown");
+
+    countdown.style.display="flex";
+    countdown.style.color="white";
+
+    let count=3;
+
+    countdown.textContent=count;
+
+    playSound(800,0.15,"square",0.12);
+
+    const timer=setInterval(()=>{
+
+        count--;
+
+        if(count>0){
+
+            countdown.textContent=count;
+            playSound(800,0.15,"square",0.12);
+
+        }else if(count===0){
+
+            countdown.textContent="GO!";
+            countdown.style.color="#00ff66";
+
+            playSound(
+                1200,
+                0.25,
+                "square",
+                0.15
+            );
+
+        }else{
+
+            clearInterval(timer);
+
+            countdown.style.display="none";
+
+            startGame();
+        }
+
+    },1000);
+}
+
+function moveTarget(){
+
+    if(!playing) return;
+
+    targetX+=targetSpeed;
+
+    if(targetX<=0) targetSpeed=4;
+    if(targetX>=window.innerWidth-100) targetSpeed=-4;
+
+    target.style.left=targetX+"px";
+
+    requestAnimationFrame(moveTarget);
+}
+
+function spawnBird(){
+
+    if(!playing || birdActive) return;
+
+    birdActive=true;
+
+    birdX=-120;
+    birdY=50+Math.random()*250;
+
+    bird.style.left=birdX+"px";
+    bird.style.top=birdY+"px";
+    bird.style.display="block";
+
+    moveBird();
+}
+
+function moveBird(){
+
+    if(!birdActive || !playing) return;
+
+    birdX+=birdSpeed;
+
+    bird.style.left=birdX+"px";
+
+    if(birdX>window.innerWidth+120){
+        bird.style.display="none";
+        birdActive=false;
+        return;
+    }
+
+    requestAnimationFrame(moveBird);
+}
+
+function showHit(x,y){
+
+    const hit=document.createElement("div");
+
+    hit.className="hit";
+    hit.textContent="✦";
+
+    hit.style.left=x+"px";
+    hit.style.top=y+"px";
+
+    field.appendChild(hit);
+
+    setTimeout(()=>{
+        hit.remove();
+    },300);
+}
+
+function shoot(x,y){
+
+    if(!playing) return;
+
+    playSound(450,0.15,"sawtooth",0.08);
+
+    const arrow=document.createElement("div");
+
+    arrow.className="arrow";
+    arrow.textContent="➜";
+
+    const startX=110;
+    const startY=window.innerHeight-80;
+
+    field.appendChild(arrow);
+
+    const dx=x-startX;
+    const dy=y-startY;
+
+    const angle=Math.atan2(dy,dx)*180/Math.PI;
+
+    arrow.style.left=startX+"px";
+    arrow.style.top=startY+"px";
+    arrow.style.transform=`rotate(${angle}deg)`;
+
+    let p=0;
+
+    const anim=setInterval(()=>{
+
+        p+=0.03;
+
+        arrow.style.left=(startX+dx*p)+"px";
+        arrow.style.top=(startY+dy*p)+"px";
+
+        if(p>=1){
+
+            clearInterval(anim);
+            arrow.remove();
+
+            const targetRect=target.getBoundingClientRect();
+
+            if(
+                x>=targetRect.left &&
+                x<=targetRect.right &&
+                y>=targetRect.top &&
+                y<=targetRect.bottom
+            ){
+
+                const addPoint=(time<=5)?2:1;
+
+                score+=addPoint;
+                scoreEl.textContent=score;
+
+                playSound(900,0.12,"square",0.15);
+
+                showHit(
+                    targetRect.left+25,
+                    targetRect.top+20
+                );
+            }
+
+            if(birdActive){
+
+                const birdRect=bird.getBoundingClientRect();
+
+                if(
+                    x>=birdRect.left &&
+                    x<=birdRect.right &&
+                    y>=birdRect.top &&
+                    y<=birdRect.bottom
+                ){
+
+                    score-=3;
+                    scoreEl.textContent=score;
+
+                    playSound(
+                        300,
+                        0.2,
+                        "sawtooth",
+                        0.15
+                    );
+
+                    showHit(
+                        birdRect.left+20,
+                        birdRect.top
+                    );
+
+                    bird.style.display="none";
+                    birdActive=false;
+                }
+            }
+        }
+
+    },16);
+}
+
+function startGame(){
+
+    playing=true;
+
+    score=0;
+    time=30;
+
+    scoreEl.textContent=score;
+    timeEl.textContent=time;
+
+    targetX=window.innerWidth-120;
+
+    requestAnimationFrame(moveTarget);
+
+    for(let i=1;i<=10;i++){
+
+        setTimeout(()=>{
+
+            if(playing){
+                spawnBird();
+            }
+
+        },i*2500);
+    }
+
+    const timer=setInterval(()=>{
+
+        time--;
+
+        timeEl.textContent=time;
+
+        if(time===5){
+
+            bonusEl.textContent=
+                "🔥 ラスト5秒！得点2倍！";
+
+            playSound(
+                1500,
+                0.4,
+                "triangle",
+                0.12
+            );
+        }
+
+        if(time<=0){
+
+            clearInterval(timer);
+
+            playing=false;
+
+            bonusEl.textContent="";
+
+            document.getElementById("finalScore").textContent=
+                "あなたのスコアは "+score+" 点でした！";
+
+            document.getElementById("endScreen").style.display="flex";
+        }
+
+    },1000);
+}
+
+field.addEventListener("click",(e)=>{
+    shoot(e.clientX,e.clientY);
+});
+
+field.addEventListener(
+    "touchstart",
+    (e)=>{
+        const t=e.touches[0];
+        shoot(t.clientX,t.clientY);
+    },
+    {passive:true}
+);
+
+</script>
+
+</body>
+</html>
