@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>お花屋さん・野菜育成・料理ゲーム</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#eef9ee;
+    text-align:center;
+}
+
+header{
+    background:#4CAF50;
+    color:white;
+    padding:15px;
+}
+
+.panel{
+    background:white;
+    margin:10px;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 0 8px rgba(0,0,0,0.2);
+}
+
+select,button{
+    padding:10px;
+    margin:5px;
+    font-size:16px;
+    border-radius:8px;
+}
+
+button{
+    border:none;
+    background:#4CAF50;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#45a049;
+}
+
+#field{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.plot{
+    width:120px;
+    height:120px;
+    border-radius:10px;
+    background:#8d6e63;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:18px;
+    font-weight:bold;
+}
+
+#message{
+    color:#e91e63;
+    font-weight:bold;
+    min-height:30px;
+}
+
+.inventory{
+    font-size:18px;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🌸 お花屋さん＆野菜育成＆料理ゲーム 🍳</h1>
+</header>
+
+<div class="panel">
+<h3>キャラクター</h3>
+<select id="character">
+<option>🌸 はなちゃん</option>
+<option>🥕 やさいくん</option>
+<option>🐱 ガーデンねこ</option>
+<option>👩‍🍳 コックさん</option>
+</select>
+
+<h3>季節</h3>
+<select id="season">
+<option>春</option>
+<option>夏</option>
+<option>秋</option>
+<option>冬</option>
+</select>
+</div>
+
+<div class="panel inventory">
+<div id="status"></div>
+</div>
+
+<div class="panel">
+<button onclick="plantFlower()">🌸 花を植える</button>
+<button onclick="plantVegetable()">🥕 野菜を植える</button>
+<button onclick="waterPlants()">💧 水やり</button>
+<button onclick="harvest()">🧺 収穫</button>
+<button onclick="cookFood()">🍳 料理する</button>
+<button onclick="sellFood()">🍽️ 料理販売</button>
+</div>
+
+<div class="panel">
+<h2>畑</h2>
+<div id="field">
+<div class="plot" id="plot0">空き</div>
+<div class="plot" id="plot1">空き</div>
+<div class="plot" id="plot2">空き</div>
+<div class="plot" id="plot3">空き</div>
+<div class="plot" id="plot4">空き</div>
+<div class="plot" id="plot5">空き</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>お知らせ</h2>
+<div id="message"></div>
+</div>
+
+<script>
+
+let money = 100;
+let flowers = 0;
+let vegetables = 0;
+let dishes = 0;
+
+let plots = [];
+
+for(let i=0;i<6;i++){
+    plots.push({
+        type:null,
+        growth:0
+    });
+}
+
+function updateStatus(){
+
+document.getElementById("status").innerHTML=
+`
+💰 お金: ${money}円<br>
+🌸 花: ${flowers}<br>
+🥕 野菜: ${vegetables}<br>
+🍳 料理: ${dishes}<br>
+👤 ${document.getElementById("character").value}<br>
+🍀 季節: ${document.getElementById("season").value}
+`;
+
+plots.forEach((plot,index)=>{
+
+const cell=document.getElementById("plot"+index);
+
+if(plot.type===null){
+    cell.innerHTML="空き";
+}
+else{
+
+    if(plot.growth<3){
+
+        cell.innerHTML=
+        plot.type==="flower"
+        ?"🌱花"
+        :"🌱野菜";
+
+    }else if(plot.growth<6){
+
+        cell.innerHTML=
+        plot.type==="flower"
+        ?"🌷成長中"
+        :"🥬成長中";
+
+    }else{
+
+        cell.innerHTML=
+        plot.type==="flower"
+        ?"🌸満開"
+        :"🥕収穫";
+
+    }
+
+}
+
+});
+
+}
+
+function message(text){
+document.getElementById("message").innerText=text;
+}
+
+function emptyPlot(){
+
+for(let i=0;i<plots.length;i++){
+    if(plots[i].type===null){
+        return i;
+    }
+}
+
+return -1;
+}
+
+function plantFlower(){
+
+let p=emptyPlot();
+
+if(p===-1){
+    message("空きの畑がありません");
+    return;
+}
+
+plots[p].type="flower";
+plots[p].growth=0;
+
+message("🌸 花の種を植えました");
+updateStatus();
+
+}
+
+function plantVegetable(){
+
+let p=emptyPlot();
+
+if(p===-1){
+    message("空きの畑がありません");
+    return;
+}
+
+plots[p].type="vegetable";
+plots[p].growth=0;
+
+message("🥕 野菜の種を植えました");
+updateStatus();
+
+}
+
+function waterPlants(){
+
+let season=document.getElementById("season").value;
+let grow=1;
+
+if(season==="春") grow=2;
+if(season==="夏") grow=3;
+if(season==="秋") grow=2;
+if(season==="冬") grow=1;
+
+plots.forEach(plot=>{
+    if(plot.type){
+        plot.growth += grow;
+    }
+});
+
+message("💧 水やりをしました");
+updateStatus();
+
+}
+
+function harvest(){
+
+let gotFlower=0;
+let gotVegetable=0;
+
+plots.forEach(plot=>{
+
+if(plot.type && plot.growth>=6){
+
+    if(plot.type==="flower"){
+        flowers++;
+        gotFlower++;
+    }
+
+    if(plot.type==="vegetable"){
+        vegetables++;
+        gotVegetable++;
+    }
+
+    plot.type=null;
+    plot.growth=0;
+
+}
+
+});
+
+if(gotFlower===0 && gotVegetable===0){
+    message("まだ収穫できるものがありません");
+}
+else{
+
+    let profit=gotFlower*50;
+    money += profit;
+
+    message(
+    `🌸花${gotFlower}個収穫して販売(+${profit}円) ` +
+    `🥕野菜${gotVegetable}個収穫しました`
+    );
+}
+
+updateStatus();
+
+}
+
+function cookFood(){
+
+if(vegetables<=0){
+    message("🥕 野菜が足りません");
+    return;
+}
+
+vegetables--;
+dishes++;
+
+message("🍳 野菜料理を作りました");
+
+updateStatus();
+
+}
+
+function sellFood(){
+
+if(dishes<=0){
+    message("料理がありません");
+    return;
+}
+
+let price=100;
+
+if(document.getElementById("character").value.includes("コック")){
+    price=150;
+}
+
+money += price;
+dishes--;
+
+message(`🍽️ 料理が売れました！ +${price}円`);
+
+updateStatus();
+
+}
+
+updateStatus();
+
+</script>
+
+</body>
+</html>
