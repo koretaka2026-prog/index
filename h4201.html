@@ -2,476 +2,494 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>クリスマスリバーシ 6×6 四隅なし</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ジャンプアクションゲーム</title>
 
 <style>
 body{
     margin:0;
+    overflow:hidden;
+    background:#87ceeb;
     font-family:sans-serif;
-    background:linear-gradient(#0b2f5a,#124a8c);
-    color:white;
-    text-align:center;
-}
-
-h1{
-    margin:10px;
-}
-
-#menu{
-    margin:10px;
-}
-
-select,button{
-    padding:8px;
-    margin:5px;
-    border-radius:8px;
-    border:none;
-    font-size:16px;
-}
-
-#info{
-    margin:10px;
-    font-size:20px;
-}
-
-#board{
-    display:grid;
-    grid-template-columns:repeat(6,80px);
-    grid-template-rows:repeat(6,80px);
-    width:max-content;
-    margin:auto;
-    border:4px solid white;
-    touch-action:manipulation;
-}
-
-.cell{
-    width:80px;
-    height:80px;
-    background:#11823b;
-    border:1px solid #0b5727;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:42px;
-    cursor:pointer;
     user-select:none;
 }
 
-.cell.valid{
-    box-shadow:inset 0 0 20px gold;
+canvas{
+    display:block;
+    margin:auto;
+    background:#87ceeb;
 }
 
-.block{
-    background:#d0d0d0;
+#score{
+    position:fixed;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:24px;
+    font-weight:bold;
+    text-shadow:2px 2px 4px black;
 }
 
-@media(max-width:600px){
-
-#board{
-    grid-template-columns:repeat(6,15vw);
-    grid-template-rows:repeat(6,15vw);
+#ui{
+    position:fixed;
+    bottom:10px;
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:center;
+    gap:12px;
 }
 
-.cell{
-    width:15vw;
-    height:15vw;
-    font-size:8vw;
-}
+.btn{
+    width:90px;
+    height:90px;
+    border:none;
+    border-radius:50%;
+    font-size:32px;
+    background:white;
+    box-shadow:0 4px 10px rgba(0,0,0,.3);
 }
 </style>
 </head>
 <body>
 
-<h1>🎄クリスマスリバーシ🎅</h1>
+<div id="score">スコア: 0</div>
 
-<div id="menu">
+<canvas id="game" width="960" height="540"></canvas>
 
-<select id="mode">
-    <option value="pvp">人対人</option>
-    <option value="cpu">人対コンピュータ</option>
-</select>
-
-<select id="playerSide">
-    <option value="1">先攻(🎅)</option>
-    <option value="2">後攻(🎄)</option>
-</select>
-
-<select id="level">
-    <option value="1">CPU 弱い</option>
-    <option value="2">CPU 普通</option>
-    <option value="3">CPU 強い</option>
-</select>
-
-<button onclick="init()">ゲーム開始</button>
-
+<div id="ui">
+    <button class="btn" id="left">◀</button>
+    <button class="btn" id="right">▶</button>
+    <button class="btn" id="jump">▲</button>
 </div>
-
-<div id="info"></div>
-
-<div id="board"></div>
 
 <script>
 
-const SIZE=6;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const EMPTY=0;
-const SANTA=1;
-const TREE=2;
-const BLOCK=-1;
+let score = 0;
+let gameClear = false;
 
-let board;
-let turn;
+const gravity = 0.7;
 
-let gameMode="pvp";
-let humanPlayer=SANTA;
-let cpuPlayer=TREE;
-let cpuLevel=1;
+const player = {
+    x:100,
+    y:300,
+    w:40,
+    h:50,
+    vx:0,
+    vy:0,
+    onGround:false
+};
 
-const boardEl=document.getElementById("board");
-const info=document.getElementById("info");
+let cameraX = 0;
 
-const dirs=[
-[-1,-1],[-1,0],[-1,1],
-[0,-1],[0,1],
-[1,-1],[1,0],[1,1]
+const control = {
+    left:false,
+    right:false
+};
+
+const platforms = [
+    {x:0,y:470,w:3200,h:70},
+
+    {x:250,y:380,w:160,h:20},
+    {x:500,y:320,w:160,h:20},
+    {x:800,y:260,w:160,h:20},
+
+    {x:1100,y:380,w:180,h:20},
+    {x:1400,y:300,w:180,h:20},
+    {x:1700,y:220,w:180,h:20},
+
+    {x:2100,y:350,w:180,h:20},
+    {x:2450,y:280,w:180,h:20}
 ];
 
-function enemy(p){
-    return p===SANTA ? TREE : SANTA;
+const coins = [
+    {x:300,y:330,taken:false},
+    {x:550,y:270,taken:false},
+    {x:850,y:210,taken:false},
+    {x:1180,y:330,taken:false},
+    {x:1480,y:250,taken:false},
+    {x:1780,y:170,taken:false},
+    {x:2180,y:300,taken:false},
+    {x:2530,y:230,taken:false}
+];
+
+const enemies = [
+    {
+        x:650,
+        y:430,
+        w:40,
+        h:40,
+        dir:1,
+        minX:550,
+        maxX:850
+    },
+    {
+        x:1500,
+        y:260,
+        w:40,
+        h:40,
+        dir:1,
+        minX:1400,
+        maxX:1580
+    },
+    {
+        x:2200,
+        y:310,
+        w:40,
+        h:40,
+        dir:-1,
+        minX:2100,
+        maxX:2250
+    }
+];
+
+function respawn(){
+
+    player.x = 100;
+    player.y = 300;
+    player.vx = 0;
+    player.vy = 0;
 }
 
-function init(){
+function jump(){
 
-    gameMode=document.getElementById("mode").value;
-
-    humanPlayer=
-        Number(
-            document.getElementById("playerSide").value
-        );
-
-    cpuPlayer=enemy(humanPlayer);
-
-    cpuLevel=
-        Number(
-            document.getElementById("level").value
-        );
-
-    board=Array.from(
-        {length:SIZE},
-        ()=>Array(SIZE).fill(EMPTY)
-    );
-
-    board[0][0]=BLOCK;
-    board[0][5]=BLOCK;
-    board[5][0]=BLOCK;
-    board[5][5]=BLOCK;
-
-    board[2][2]=TREE;
-    board[2][3]=SANTA;
-    board[3][2]=SANTA;
-    board[3][3]=TREE;
-
-    turn=SANTA;
-
-    draw();
-
-    if(
-        gameMode==="cpu" &&
-        turn===cpuPlayer
-    ){
-        setTimeout(cpuMove,500);
+    if(player.onGround){
+        player.vy = -14;
+        player.onGround = false;
     }
 }
 
-function inside(r,c){
-    return r>=0 &&
-           r<SIZE &&
-           c>=0 &&
-           c<SIZE;
-}
+function update(){
 
-function flips(r,c,p){
+    if(gameClear){
+        return;
+    }
 
-    if(board[r][c]!==EMPTY) return [];
+    if(control.left){
+        player.vx = -5;
+    }
+    else if(control.right){
+        player.vx = 5;
+    }
+    else{
+        player.vx = 0;
+    }
 
-    let result=[];
+    player.x += player.vx;
 
-    for(const [dr,dc] of dirs){
+    const oldY = player.y;
 
-        let rr=r+dr;
-        let cc=c+dc;
+    player.vy += gravity;
+    player.y += player.vy;
 
-        let tmp=[];
+    player.onGround = false;
 
-        while(
-            inside(rr,cc) &&
-            board[rr][cc]===enemy(p)
-        ){
-            tmp.push([rr,cc]);
-            rr+=dr;
-            cc+=dc;
-        }
+    for(const p of platforms){
+
+        const overlapX =
+            player.x + player.w > p.x &&
+            player.x < p.x + p.w;
+
+        const wasAbove =
+            oldY + player.h <= p.y;
+
+        const crossed =
+            player.y + player.h >= p.y;
 
         if(
-            tmp.length &&
-            inside(rr,cc) &&
-            board[rr][cc]===p
+            overlapX &&
+            wasAbove &&
+            crossed &&
+            player.vy >= 0
         ){
-            result.push(...tmp);
+            player.y = p.y - player.h;
+            player.vy = 0;
+            player.onGround = true;
         }
     }
 
-    return result;
-}
+    for(const coin of coins){
 
-function validMoves(player){
+        if(coin.taken) continue;
 
-    let moves=[];
+        const dx =
+            player.x + player.w/2 - coin.x;
 
-    for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
+        const dy =
+            player.y + player.h/2 - coin.y;
 
-            if(
-                board[r][c]===EMPTY &&
-                flips(r,c,player).length
-            ){
-                moves.push([r,c]);
+        if(Math.sqrt(dx*dx + dy*dy) < 28){
+
+            coin.taken = true;
+            score += 1;
+
+            document.getElementById("score")
+            .textContent = "スコア: " + score;
+        }
+    }
+
+    for(let i=enemies.length-1;i>=0;i--){
+
+        const e = enemies[i];
+
+        e.x += e.dir * 2;
+
+        if(e.x < e.minX){
+            e.dir = 1;
+        }
+
+        if(e.x > e.maxX){
+            e.dir = -1;
+        }
+
+        const hit =
+            player.x < e.x + e.w &&
+            player.x + player.w > e.x &&
+            player.y < e.y + e.h &&
+            player.y + player.h > e.y;
+
+        if(hit){
+
+            const stomp =
+                player.vy > 0 &&
+                player.y + player.h <
+                e.y + 18;
+
+            if(stomp){
+
+                enemies.splice(i,1);
+
+                player.vy = -10;
+
+                score += 5;
+
+                document.getElementById("score")
+                .textContent =
+                "スコア: " + score;
+
+            }else{
+
+                respawn();
             }
         }
     }
 
-    return moves;
-}
-
-function play(r,c){
-
-    if(
-        gameMode==="cpu" &&
-        turn!==humanPlayer
-    ){
-        return;
+    if(player.y > 700){
+        respawn();
     }
 
-    doMove(r,c);
-}
-
-function doMove(r,c){
-
-    const f=flips(r,c,turn);
-
-    if(f.length===0) return;
-
-    board[r][c]=turn;
-
-    f.forEach(([rr,cc])=>{
-        board[rr][cc]=turn;
-    });
-
-    nextTurn();
-}
-
-function nextTurn(){
-
-    turn=enemy(turn);
-
-    if(validMoves(turn).length===0){
-
-        turn=enemy(turn);
-
-        if(validMoves(turn).length===0){
-            gameOver();
-            return;
-        }
-
-        alert("パスです！");
+    if(player.x > 2850){
+        gameClear = true;
     }
 
-    draw();
+    cameraX = player.x - 250;
 
-    if(
-        gameMode==="cpu" &&
-        turn===cpuPlayer
-    ){
-        setTimeout(cpuMove,500);
+    if(cameraX < 0){
+        cameraX = 0;
     }
 }
 
-function cpuMove(){
+function drawBackground(){
 
-    const moves=validMoves(cpuPlayer);
+    ctx.fillStyle = "#87ceeb";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    if(moves.length===0){
-        nextTurn();
-        return;
-    }
+    ctx.fillStyle = "white";
 
-    let move;
+    ctx.beginPath();
+    ctx.arc(120,100,40,0,Math.PI*2);
+    ctx.arc(160,90,35,0,Math.PI*2);
+    ctx.arc(200,100,40,0,Math.PI*2);
+    ctx.fill();
 
-    if(cpuLevel===1){
-
-        move=
-            moves[
-                Math.floor(
-                    Math.random()*moves.length
-                )
-            ];
-
-    }
-    else if(cpuLevel===2){
-
-        let best=-1;
-
-        moves.forEach(m=>{
-
-            let score=
-                flips(
-                    m[0],
-                    m[1],
-                    cpuPlayer
-                ).length;
-
-            if(score>best){
-                best=score;
-                move=m;
-            }
-        });
-
-    }
-    else{
-
-        const weight=[
-        [0,4,4,4,4,0],
-        [4,2,2,2,2,4],
-        [4,2,1,1,2,4],
-        [4,2,1,1,2,4],
-        [4,2,2,2,2,4],
-        [0,4,4,4,4,0]
-        ];
-
-        let best=-999;
-
-        moves.forEach(m=>{
-
-            let score=
-                weight[m[0]][m[1]]
-                +
-                flips(
-                    m[0],
-                    m[1],
-                    cpuPlayer
-                ).length;
-
-            if(score>best){
-                best=score;
-                move=m;
-            }
-
-        });
-
-    }
-
-    doMove(move[0],move[1]);
-}
-
-function gameOver(){
-
-    let santa=0;
-    let tree=0;
-
-    for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-
-            if(board[r][c]===SANTA) santa++;
-            if(board[r][c]===TREE) tree++;
-
-        }
-    }
-
-    draw();
-
-    let msg;
-
-    if(santa>tree){
-        msg="🎅 サンタの勝ち！";
-    }
-    else if(tree>santa){
-        msg="🎄 ツリーの勝ち！";
-    }
-    else{
-        msg="引き分け！";
-    }
-
-    setTimeout(()=>{
-        alert(
-            msg+
-            "\n\n🎅 "+santa+
-            "\n🎄 "+tree
-        );
-    },100);
+    ctx.beginPath();
+    ctx.arc(600,140,30,0,Math.PI*2);
+    ctx.arc(640,130,25,0,Math.PI*2);
+    ctx.arc(680,140,30,0,Math.PI*2);
+    ctx.fill();
 }
 
 function draw(){
 
-    boardEl.innerHTML="";
+    drawBackground();
 
-    const moves=validMoves(turn);
+    ctx.fillStyle = "#6dbb4f";
 
-    let santa=0;
-    let tree=0;
+    for(const p of platforms){
 
-    for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-
-            const cell=document.createElement("div");
-            cell.className="cell";
-
-            if(board[r][c]===BLOCK){
-
-                cell.classList.add("block");
-                cell.textContent="⛄";
-
-            }
-            else if(board[r][c]===SANTA){
-
-                cell.textContent="🎅";
-                santa++;
-
-            }
-            else if(board[r][c]===TREE){
-
-                cell.textContent="🎄";
-                tree++;
-
-            }
-
-            if(
-                moves.some(
-                    ([mr,mc])=>
-                    mr===r && mc===c
-                )
-            ){
-                cell.classList.add("valid");
-            }
-
-            cell.onclick=()=>play(r,c);
-
-            boardEl.appendChild(cell);
-        }
+        ctx.fillRect(
+            p.x-cameraX,
+            p.y,
+            p.w,
+            p.h
+        );
     }
 
-    let turnText=
-        turn===SANTA
-        ?"🎅 サンタの番"
-        :"🎄 ツリーの番";
+    for(const coin of coins){
 
-    info.innerHTML=
-        turnText+
-        "<br>🎅 "+santa+
-        "　🎄 "+tree;
+        if(coin.taken) continue;
+
+        ctx.fillStyle = "gold";
+
+        ctx.beginPath();
+        ctx.arc(
+            coin.x-cameraX,
+            coin.y,
+            10,
+            0,
+            Math.PI*2
+        );
+        ctx.fill();
+    }
+
+    for(const e of enemies){
+
+        ctx.fillStyle = "#8B4513";
+
+        ctx.fillRect(
+            e.x-cameraX,
+            e.y,
+            e.w,
+            e.h
+        );
+
+        ctx.fillStyle = "white";
+
+        ctx.fillRect(
+            e.x-cameraX+8,
+            e.y+10,
+            6,
+            6
+        );
+
+        ctx.fillRect(
+            e.x-cameraX+26,
+            e.y+10,
+            6,
+            6
+        );
+    }
+
+    ctx.fillStyle = "#e53935";
+
+    ctx.fillRect(
+        player.x-cameraX,
+        player.y,
+        player.w,
+        player.h
+    );
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(
+        player.x-cameraX+10,
+        player.y+10,
+        20,
+        10
+    );
+
+    const goalX = 2900;
+
+    ctx.fillStyle = "#666";
+
+    ctx.fillRect(
+        goalX-cameraX,
+        150,
+        10,
+        320
+    );
+
+    ctx.fillStyle="red";
+
+    ctx.fillRect(
+        goalX-cameraX,
+        160,
+        80,
+        40
+    );
+
+    if(gameClear){
+
+        ctx.fillStyle = "rgba(0,0,0,.7)";
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+
+        ctx.font = "60px sans-serif";
+        ctx.fillText(
+            "CLEAR!",
+            canvas.width/2,
+            220
+        );
+
+        ctx.font = "30px sans-serif";
+        ctx.fillText(
+            "最終スコア: " + score,
+            canvas.width/2,
+            300
+        );
+    }
 }
 
-init();
+function gameLoop(){
+
+    update();
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function bindHold(id, on, off){
+
+    const btn =
+        document.getElementById(id);
+
+    btn.addEventListener(
+        "pointerdown", on
+    );
+
+    btn.addEventListener(
+        "pointerup", off
+    );
+
+    btn.addEventListener(
+        "pointerleave", off
+    );
+
+    btn.addEventListener(
+        "pointercancel", off
+    );
+}
+
+bindHold(
+    "left",
+    ()=>control.left=true,
+    ()=>control.left=false
+);
+
+bindHold(
+    "right",
+    ()=>control.right=true,
+    ()=>control.right=false
+);
+
+document
+.getElementById("jump")
+.addEventListener(
+    "pointerdown",
+    jump
+);
+
+gameLoop();
 
 </script>
 
