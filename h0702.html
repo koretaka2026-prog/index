@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>動物スライドパズル</title>
+
+<style>
+body{
+    margin:0;
+    padding:20px;
+    background:#f0f7ff;
+    font-family:sans-serif;
+    text-align:center;
+}
+
+h1{
+    color:#333;
+}
+
+#controls{
+    margin:10px 0;
+}
+
+button{
+    padding:8px 14px;
+    margin:3px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#4a90e2;
+    color:white;
+    font-size:16px;
+}
+
+button:hover{
+    background:#3578c7;
+}
+
+#stats{
+    font-size:18px;
+    margin:10px;
+}
+
+#preview{
+    width:120px;
+    height:120px;
+    border:3px solid #444;
+    border-radius:10px;
+    margin:auto;
+    background-size:cover;
+    background-position:center;
+}
+
+#board{
+    width:min(90vw,500px);
+    height:min(90vw,500px);
+    margin:20px auto;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    grid-template-rows:repeat(4,1fr);
+    gap:2px;
+    background:#333;
+}
+
+.tile{
+    background-size:400% 400%;
+    cursor:pointer;
+}
+
+.empty{
+    background:none;
+}
+
+#message{
+    font-size:28px;
+    font-weight:bold;
+    color:#e67e22;
+    min-height:40px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🐾 動物スライドパズル 🐾</h1>
+
+<div id="controls">
+    <button onclick="changeAnimal('cat')">🐱 猫</button>
+    <button onclick="changeAnimal('dog')">🐶 犬</button>
+    <button onclick="changeAnimal('panda')">🐼 パンダ</button>
+    <button onclick="changeAnimal('fox')">🦊 キツネ</button>
+    <button onclick="changeAnimal('lion')">🦁 ライオン</button>
+</div>
+
+<h3>完成見本</h3>
+<div id="preview"></div>
+
+<div id="stats">
+    手数: <span id="moves">0</span>
+    |
+    時間: <span id="timer">0</span>秒
+</div>
+
+<button onclick="shuffle()">🔀 シャッフル</button>
+
+<div id="board"></div>
+
+<div id="message"></div>
+
+<script>
+
+const animals = {
+cat:"https://placecats.com/800/800",
+dog:"https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800",
+panda:"https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=800",
+fox:"https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=800",
+lion:"https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=800"
+};
+
+const SIZE = 4;
+
+let imageUrl = animals.cat;
+let tiles = [];
+let moves = 0;
+let seconds = 0;
+let timerId;
+
+const board = document.getElementById("board");
+const movesEl = document.getElementById("moves");
+const timerEl = document.getElementById("timer");
+const preview = document.getElementById("preview");
+const message = document.getElementById("message");
+
+function init(){
+
+    tiles=[];
+
+    for(let i=1;i<16;i++){
+        tiles.push(i);
+    }
+
+    tiles.push(0);
+
+    preview.style.backgroundImage=`url(${imageUrl})`;
+}
+
+function startTimer(){
+
+    clearInterval(timerId);
+
+    seconds=0;
+
+    timerEl.textContent=seconds;
+
+    timerId=setInterval(()=>{
+        seconds++;
+        timerEl.textContent=seconds;
+    },1000);
+}
+
+function draw(){
+
+    board.innerHTML="";
+
+    tiles.forEach((num,index)=>{
+
+        const tile=document.createElement("div");
+
+        if(num===0){
+
+            tile.className="tile empty";
+
+        }else{
+
+            tile.className="tile";
+
+            const p=num-1;
+
+            const row=Math.floor(p/4);
+            const col=p%4;
+
+            tile.style.backgroundImage=
+            `url(${imageUrl})`;
+
+            tile.style.backgroundPosition=
+            `${col*100/3}% ${row*100/3}%`;
+
+            tile.addEventListener("click",
+            ()=>move(index));
+
+        }
+
+        board.appendChild(tile);
+    });
+}
+
+function move(index){
+
+    const empty=tiles.indexOf(0);
+
+    const r1=Math.floor(index/4);
+    const c1=index%4;
+
+    const r2=Math.floor(empty/4);
+    const c2=empty%4;
+
+    if(Math.abs(r1-r2)+Math.abs(c1-c2)!==1){
+        return;
+    }
+
+    [tiles[index],tiles[empty]]=
+    [tiles[empty],tiles[index]];
+
+    moves++;
+    movesEl.textContent=moves;
+
+    draw();
+
+    if(checkWin()){
+
+        clearInterval(timerId);
+
+        message.textContent=
+        `🎉クリア！ ${moves}手 / ${seconds}秒`;
+    }
+}
+
+function shuffle(){
+
+    init();
+
+    for(let i=0;i<500;i++){
+
+        const empty=tiles.indexOf(0);
+
+        const list=[];
+
+        const row=Math.floor(empty/4);
+        const col=empty%4;
+
+        if(row>0) list.push(empty-4);
+        if(row<3) list.push(empty+4);
+        if(col>0) list.push(empty-1);
+        if(col<3) list.push(empty+1);
+
+        const target=
+        list[Math.floor(Math.random()*list.length)];
+
+        [tiles[target],tiles[empty]]=
+        [tiles[empty],tiles[target]];
+    }
+
+    moves=0;
+    movesEl.textContent=0;
+
+    message.textContent="";
+
+    startTimer();
+    draw();
+}
+
+function checkWin(){
+
+    for(let i=0;i<15;i++){
+
+        if(tiles[i]!==i+1){
+            return false;
+        }
+    }
+
+    return tiles[15]===0;
+}
+
+function changeAnimal(animal){
+
+    imageUrl=animals[animal];
+
+    preview.style.backgroundImage=
+    `url(${imageUrl})`;
+
+    shuffle();
+}
+
+init();
+shuffle();
+
+</script>
+
+</body>
+</html>
