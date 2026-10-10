@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ブロックゲーム</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:#fff;
+    font-family:sans-serif;
+    text-align:center;
+}
+
+h1{
+    margin:10px;
+}
+
+#info{
+    font-size:22px;
+    font-weight:bold;
+    margin:10px;
+}
+
+.warning{
+    color:#ff4444;
+    animation:blink 0.5s infinite;
+}
+
+@keyframes blink{
+    50%{
+        opacity:0.2;
+    }
+}
+
+#menu{
+    margin:10px;
+}
+
+select{
+    padding:5px;
+    font-size:18px;
+}
+
+canvas{
+    background:#000;
+    border:3px solid #fff;
+    touch-action:none;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+}
+
+#startBtn{
+    background:#27ae60;
+    padding:8px 20px;
+    font-size:18px;
+    margin-left:10px;
+}
+
+#controls{
+    margin:10px auto;
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.ctrl{
+    width:80px;
+    height:60px;
+    font-size:28px;
+    background:#3498db;
+}
+
+button:active{
+    transform:scale(0.95);
+}
+</style>
+</head>
+<body>
+
+<h1>ブロックゲーム</h1>
+
+<div id="info">
+Score: 0　Level: 1　Time: 60
+</div>
+
+<div id="menu">
+<select id="timeSelect">
+    <option value="60">1分</option>
+    <option value="300">5分</option>
+    <option value="-1">無限</option>
+</select>
+
+<button id="startBtn">
+開始
+</button>
+</div>
+
+<canvas id="game" width="300" height="600"></canvas>
+
+<div id="controls">
+    <button class="ctrl" id="left">◀</button>
+    <button class="ctrl" id="rotate">↻</button>
+    <button class="ctrl" id="right">▶</button>
+    <button class="ctrl" id="down">▼</button>
+    <button class="ctrl" id="pause">⏸</button>
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const COLS = 10;
+const ROWS = 20;
+const BLOCK = 30;
+
+let board;
+let piece;
+
+let score = 0;
+let level = 1;
+let timeLeft = 60;
+
+let gameStarted = false;
+let gameOver = false;
+let paused = false;
+
+const COLORS = [
+null,
+"#00ffff",
+"#ffff00",
+"#aa00ff",
+"#00ff00",
+"#ff4444",
+"#4444ff",
+"#ff9900"
+];
+
+const SHAPES = [
+[],
+[[1,1,1,1]],
+[[2,2],[2,2]],
+[[0,3,0],[3,3,3]],
+[[0,4,4],[4,4,0]],
+[[5,5,0],[0,5,5]],
+[[6,0,0],[6,6,6]],
+[[0,0,7],[7,7,7]]
+];
+
+function createBoard(){
+    return Array.from(
+        {length:ROWS},
+        ()=>Array(COLS).fill(0)
+    );
+}
+
+function randomPiece(){
+
+    const type =
+        Math.floor(Math.random()*7)+1;
+
+    return{
+        shape:SHAPES[type],
+        color:type,
+        x:Math.floor(COLS/2)-1,
+        y:0
+    };
+}
+
+function updateInfo(){
+
+    const info =
+        document.getElementById("info");
+
+    const timeText =
+        timeLeft===-1 ? "∞" : timeLeft;
+
+    info.textContent =
+        "Score: " + score +
+        "　Level: " + level +
+        "　Time: " + timeText;
+
+    if(
+        timeLeft !== -1 &&
+        timeLeft <= 10 &&
+        timeLeft > 0
+    ){
+        info.classList.add("warning");
+    }
+    else{
+        info.classList.remove("warning");
+    }
+}
+
+function drawCell(x,y,color){
+
+    ctx.fillStyle=color;
+
+    ctx.fillRect(
+        x*BLOCK,
+        y*BLOCK,
+        BLOCK-1,
+        BLOCK-1
+    );
+}
+
+function draw(){
+
+    ctx.fillStyle="#000";
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    if(board){
+
+        for(let y=0;y<ROWS;y++){
+
+            for(let x=0;x<COLS;x++){
+
+                if(board[y][x]){
+
+                    drawCell(
+                        x,
+                        y,
+                        COLORS[board[y][x]]
+                    );
+
+                }
+            }
+        }
+
+        if(piece){
+
+            piece.shape.forEach((row,dy)=>{
+
+                row.forEach((value,dx)=>{
+
+                    if(value){
+
+                        drawCell(
+                            piece.x+dx,
+                            piece.y+dy,
+                            COLORS[piece.color]
+                        );
+
+                    }
+
+                });
+
+            });
+
+        }
+
+    }
+
+    if(!gameStarted){
+
+        ctx.fillStyle="white";
+        ctx.font="24px sans-serif";
+        ctx.textAlign="center";
+
+        ctx.fillText(
+            "開始ボタンを押してください",
+            canvas.width/2,
+            canvas.height/2
+        );
+    }
+
+    if(paused){
+
+        ctx.fillStyle=
+            "rgba(0,0,0,0.6)";
+
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        ctx.fillStyle="yellow";
+        ctx.font="40px sans-serif";
+        ctx.textAlign="center";
+
+        ctx.fillText(
+            "PAUSE",
+            canvas.width/2,
+            canvas.height/2
+        );
+    }
+
+}
+
+function collision(
+    px=piece.x,
+    py=piece.y,
+    shape=piece.shape
+){
+
+    for(let y=0;y<shape.length;y++){
+
+        for(let x=0;x<shape[y].length;x++){
+
+            if(shape[y][x]){
+
+                const nx = px+x;
+                const ny = py+y;
+
+                if(
+                    nx<0 ||
+                    nx>=COLS ||
+                    ny>=ROWS ||
+                    (ny>=0 && board[ny][nx])
+                ){
+                    return true;
+                }
+
+            }
+
+        }
+
+    }
+
+    return false;
+}
+
+function merge(){
+
+    piece.shape.forEach((row,y)=>{
+
+        row.forEach((value,x)=>{
+
+            if(value){
+
+                board[piece.y+y][piece.x+x]
+                = piece.color;
+
+            }
+
+        });
+
+    });
+
+}
+
+function clearLines(){
+
+    let lines = 0;
+
+    outer:
+    for(let y=ROWS-1;y>=0;y--){
+
+        for(let x=0;x<COLS;x++){
+
+            if(board[y][x]===0){
+
+                continue outer;
+
+            }
+
+        }
+
+        board.splice(y,1);
+        board.unshift(
+            Array(COLS).fill(0)
+        );
+
+        lines++;
+        y++;
+
+    }
+
+    if(lines){
+
+        score += lines * 100;
+
+        level =
+            Math.floor(score/500)+1;
+
+        updateInfo();
+
+    }
+
+}
+
+function rotate(shape){
+
+    const result=[];
+
+    for(
+        let x=0;
+        x<shape[0].length;
+        x++
+    ){
+
+        result[x]=[];
+
+        for(
+            let y=shape.length-1;
+            y>=0;
+            y--
+        ){
+
+            result[x].push(
+                shape[y][x]
+            );
+
+        }
+
+    }
+
+    return result;
+
+}
+
+function rotatePiece(){
+
+    if(!gameStarted) return;
+    if(gameOver) return;
+    if(paused) return;
+
+    const rotated =
+        rotate(piece.shape);
+
+    if(
+        !collision(
+            piece.x,
+            piece.y,
+            rotated
+        )
+    ){
+        piece.shape = rotated;
+    }
+
+}
+
+function move(dir){
+
+    if(!gameStarted) return;
+    if(gameOver) return;
+    if(paused) return;
+
+    piece.x += dir;
+
+    if(collision()){
+
+        piece.x -= dir;
+
+    }
+
+}
+
+function drop(){
+
+    if(!gameStarted) return;
+    if(gameOver) return;
+    if(paused) return;
+
+    piece.y++;
+
+    if(collision()){
+
+        piece.y--;
+
+        merge();
+
+        clearLines();
+
+        piece =
+            randomPiece();
+
+        if(collision()){
+
+            alert(
+                "ゲームオーバー\n最終スコア: "
+                + score
+            );
+
+            gameStarted=false;
+
+        }
+
+    }
+
+}
+
+function getDropInterval(){
+
+    return Math.max(
+        80,
+        600 - (level-1)*50
+    );
+
+}
+
+function startGame(){
+
+    board = createBoard();
+    piece = randomPiece();
+
+    score = 0;
+    level = 1;
+
+    timeLeft = Number(
+        document.getElementById(
+            "timeSelect"
+        ).value
+    );
+
+    gameOver = false;
+    paused = false;
+    gameStarted = true;
+
+    document.getElementById("pause")
+        .textContent = "⏸";
+
+    updateInfo();
+
+}
+
+document
+.getElementById("startBtn")
+.addEventListener(
+    "click",
+    startGame
+);
+
+document
+.getElementById("pause")
+.addEventListener(
+    "click",
+    ()=>{
+
+        if(!gameStarted) return;
+
+        paused = !paused;
+
+        document
+        .getElementById("pause")
+        .textContent =
+        paused ? "▶" : "⏸";
+
+    }
+);
+
+let dropCounter = 0;
+let lastTime = 0;
+
+function update(time=0){
+
+    if(
+        gameStarted &&
+        !gameOver &&
+        !paused
+    ){
+
+        const delta =
+            time-lastTime;
+
+        lastTime=time;
+
+        dropCounter += delta;
+
+        if(
+            dropCounter >
+            getDropInterval()
+        ){
+
+            drop();
+
+            dropCounter = 0;
+
+        }
+
+    }
+
+    draw();
+
+    requestAnimationFrame(update);
+
+}
+
+setInterval(()=>{
+
+    if(!gameStarted) return;
+    if(gameOver) return;
+    if(paused) return;
+    if(timeLeft===-1) return;
+
+    timeLeft--;
+
+    updateInfo();
+
+    if(timeLeft<=0){
+
+        gameOver=true;
+
+        alert(
+            "時間切れ！\n最終スコア: "
+            + score
+        );
+
+        gameStarted=false;
+
+    }
+
+},1000);
+
+document
+.getElementById("left")
+.addEventListener(
+    "click",
+    ()=>move(-1)
+);
+
+document
+.getElementById("right")
+.addEventListener(
+    "click",
+    ()=>move(1)
+);
+
+document
+.getElementById("rotate")
+.addEventListener(
+    "click",
+    rotatePiece
+);
+
+document
+.getElementById("down")
+.addEventListener(
+    "click",
+    drop
+);
+
+["left","right","rotate","down","pause"]
+.forEach(id=>{
+
+    document
+    .getElementById(id)
+    .addEventListener(
+        "touchstart",
+        e=>{
+
+            e.preventDefault();
+
+            if(id==="left") move(-1);
+            if(id==="right") move(1);
+            if(id==="rotate") rotatePiece();
+            if(id==="down") drop();
+
+            if(id==="pause"){
+
+                if(!gameStarted) return;
+
+                paused=!paused;
+
+                document
+                .getElementById("pause")
+                .textContent=
+                paused ? "▶" : "⏸";
+
+            }
+
+        }
+    );
+
+});
+
+draw();
+update();
+
+</script>
+
+</body>
+</html>
