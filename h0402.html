@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Family Restaurant</title>
+
+<style>
+body{
+margin:0;
+font-family:monospace;
+background:#222;
+color:#fff;
+overflow:hidden;
+touch-action:manipulation;
+}
+
+#ui{
+height:60px;
+background:#111;
+display:flex;
+align-items:center;
+gap:20px;
+padding:10px;
+font-size:18px;
+}
+
+#game{
+position:relative;
+width:100vw;
+height:calc(100vh - 60px);
+background:#5fa85f;
+overflow:hidden;
+image-rendering:pixelated;
+}
+
+#hall{
+position:absolute;
+left:0;
+top:0;
+width:100%;
+height:70%;
+background:#6dbd6d;
+}
+
+#kitchen{
+position:absolute;
+left:0;
+bottom:0;
+width:100%;
+height:30%;
+background:#777;
+border-top:8px solid #333;
+}
+
+#counter{
+position:absolute;
+left:50%;
+top:10px;
+transform:translateX(-50%);
+width:180px;
+height:60px;
+background:#ddd;
+border:4px solid #444;
+}
+
+#stove{
+position:absolute;
+left:120px;
+top:40px;
+width:100px;
+height:80px;
+background:#e53935;
+border:4px solid #000;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:40px;
+}
+
+.table{
+position:absolute;
+width:90px;
+height:90px;
+background:#8d6e63;
+border:5px solid #4e342e;
+border-radius:8px;
+}
+
+.character{
+position:absolute;
+width:32px;
+height:32px;
+}
+
+.head{
+position:absolute;
+left:8px;
+top:0;
+width:16px;
+height:12px;
+background:#ffdbb0;
+}
+
+.body{
+position:absolute;
+left:7px;
+top:12px;
+width:18px;
+height:12px;
+}
+
+.waiter .body{
+background:#2196f3;
+}
+
+.cook .body{
+background:#ff9800;
+}
+
+.customer .body{
+background:#4caf50;
+}
+
+.leg1,.leg2{
+position:absolute;
+bottom:0;
+width:4px;
+height:8px;
+background:#000;
+}
+
+.leg1{left:10px;}
+.leg2{right:10px;}
+
+.selected{
+outline:3px solid yellow;
+}
+
+.bubble{
+position:absolute;
+top:-20px;
+left:-5px;
+font-size:18px;
+}
+
+.gauge{
+position:absolute;
+left:-8px;
+top:-32px;
+width:50px;
+height:7px;
+border:1px solid #000;
+background:#333;
+}
+
+.fill{
+height:100%;
+width:100%;
+background:#00ff00;
+}
+
+#help{
+position:absolute;
+right:10px;
+top:10px;
+background:rgba(0,0,0,.7);
+padding:10px;
+font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+<div>💰売上: <span id="money">0</span></div>
+<div>😊接客数: <span id="served">0</span></div>
+</div>
+
+<div id="game">
+
+<div id="hall">
+
+<div class="table" style="left:15%;top:60px"></div>
+<div class="table" style="left:40%;top:60px"></div>
+<div class="table" style="left:65%;top:60px"></div>
+<div class="table" style="left:40%;top:220px"></div>
+
+</div>
+
+<div id="kitchen">
+<div id="counter"></div>
+<div id="stove">🔥</div>
+</div>
+
+<div id="help">
+店員(青)を選択→移動<br>
+客に近づき注文取得<br>
+コック(橙)を選択→コンロへ<br>
+調理後、店員で配膳
+</div>
+
+</div>
+
+<script>
+
+const game=document.getElementById("game");
+
+let money=0;
+let served=0;
+let selected=null;
+let customers=[];
+
+const tables=[
+{x:window.innerWidth*0.15,y:80},
+{x:window.innerWidth*0.40,y:80},
+{x:window.innerWidth*0.65,y:80},
+{x:window.innerWidth*0.40,y:240}
+];
+
+function makeChar(type,x,y){
+
+const el=document.createElement("div");
+el.className="character "+type;
+
+el.innerHTML=`
+<div class="head"></div>
+<div class="body"></div>
+<div class="leg1"></div>
+<div class="leg2"></div>
+`;
+
+game.appendChild(el);
+
+el.style.left=x+"px";
+el.style.top=y+"px";
+
+return{
+type:type,
+x:x,
+y:y,
+tx:x,
+ty:y,
+speed:2,
+el:el
+};
+}
+
+const waiter=makeChar(
+"waiter",70,
+window.innerHeight-220
+);
+
+const cook=makeChar(
+"cook",250,
+window.innerHeight-180
+);
+
+function selectChar(ch){
+
+document
+.querySelectorAll(".selected")
+.forEach(v=>v.classList.remove("selected"));
+
+selected=ch;
+ch.el.classList.add("selected");
+}
+
+waiter.el.onclick=e=>{
+e.stopPropagation();
+selectChar(waiter);
+};
+
+cook.el.onclick=e=>{
+e.stopPropagation();
+selectChar(cook);
+};
+
+game.addEventListener("click",e=>{
+
+if(!selected) return;
+
+const rect=game.getBoundingClientRect();
+
+selected.tx=e.clientX-16;
+selected.ty=e.clientY-16;
+});
+
+function spawnCustomer(){
+
+if(customers.length>=4)return;
+
+let seat=tables.find(t=>
+!customers.some(c=>c.table===t));
+
+if(!seat)return;
+
+const c=makeChar("customer",20,40);
+
+c.table=seat;
+
+c.tx=seat.x;
+c.ty=seat.y;
+
+c.state="walking";
+c.satisfaction=100;
+
+c.menu=Math.random()<0.5 ? "🍔":"🍝";
+
+let bubble=document.createElement("div");
+bubble.className="bubble";
+bubble.textContent=c.menu;
+c.el.appendChild(bubble);
+
+let gauge=document.createElement("div");
+gauge.className="gauge";
+
+let fill=document.createElement("div");
+fill.className="fill";
+
+gauge.appendChild(fill);
+c.el.appendChild(gauge);
+
+c.fill=fill;
+c.bubble=bubble;
+
+customers.push(c);
+}
+
+setInterval(spawnCustomer,5000);
+
+function move(ch){
+
+const dx=ch.tx-ch.x;
+const dy=ch.ty-ch.y;
+const d=Math.hypot(dx,dy);
+
+if(d>1){
+
+ch.x+=dx/d*ch.speed;
+ch.y+=dy/d*ch.speed;
+
+ch.el.style.left=ch.x+"px";
+ch.el.style.top=ch.y+"px";
+
+let t=Date.now()/120;
+
+const l1=ch.el.querySelector(".leg1");
+const l2=ch.el.querySelector(".leg2");
+
+l1.style.height=(6+Math.sin(t)*2)+"px";
+l2.style.height=(6+Math.cos(t)*2)+"px";
+}
+}
+
+let cookingCustomer=null;
+
+function updateCustomers(){
+
+customers.slice().forEach(c=>{
+
+move(c);
+
+if(c.state==="walking"){
+
+if(Math.hypot(
+c.x-c.table.x,
+c.y-c.table.y)<5){
+
+c.state="waiting";
+}
+}
+
+if(
+c.state==="waiting" ||
+c.state==="ordered" ||
+c.state==="ready"
+){
+
+c.satisfaction-=0.03;
+
+if(c.satisfaction<0)
+c.satisfaction=0;
+
+c.fill.style.width=
+c.satisfaction+"%";
+
+if(c.satisfaction>60)
+c.fill.style.background="#00ff00";
+else if(c.satisfaction>30)
+c.fill.style.background="#ffff00";
+else
+c.fill.style.background="#ff0000";
+}
+
+if(c.state==="waiting"){
+
+if(Math.hypot(
+waiter.x-c.x,
+waiter.y-c.y)<45){
+
+c.state="ordered";
+c.bubble.textContent="📝";
+}
+}
+
+if(c.state==="ordered"){
+
+if(
+Math.hypot(
+cook.x-170,
+cook.y-(window.innerHeight-140)
+)<70 &&
+!cookingCustomer){
+
+cookingCustomer=c;
+c.bubble.textContent="🍳";
+
+setTimeout(()=>{
+
+c.state="ready";
+c.bubble.textContent="✅";
+cookingCustomer=null;
+
+},3000);
+}
+}
+
+if(c.state==="ready"){
+
+if(Math.hypot(
+waiter.x-c.x,
+waiter.y-c.y)<45){
+
+const base=
+c.menu==="🍝"
+?180:120;
+
+const reward=
+Math.floor(
+base+c.satisfaction
+);
+
+money+=reward;
+served++;
+
+document.getElementById("money")
+.textContent=money;
+
+document.getElementById("served")
+.textContent=served;
+
+c.el.remove();
+
+customers=
+customers.filter(v=>v!==c);
+}
+}
+});
+}
+
+function loop(){
+
+move(waiter);
+move(cook);
+
+updateCustomers();
+
+requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+
+</body>
+</html>
