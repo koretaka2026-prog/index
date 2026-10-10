@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+<title>リバーシ</title>
+
+<style>
+:root {
+  --bg: #071b14;
+  --panel: #102d22;
+  --green: #168c57;
+  --green2: #0b7144;
+  --text: #f4fff7;
+  --muted: #b9d2c3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background:
+    radial-gradient(
+      circle at 20% 0,
+      #19573c 0,
+      transparent 35%
+    ),
+    linear-gradient(
+      145deg,
+      #06130e,
+      #123525
+    );
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Noto Sans JP",
+    sans-serif;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  width: min(96vw, 720px);
+  padding: clamp(14px, 3vw, 25px);
+  border: 1px solid #ffffff20;
+  border-radius: 26px;
+  background: #ffffff0d;
+  box-shadow: 0 24px 70px #0008;
+  backdrop-filter: blur(12px);
+}
+
+h1 {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: clamp(28px, 7vw, 44px);
+  letter-spacing: 0.08em;
+}
+
+.settings {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+}
+
+.field label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+select,
+button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #ffffff24;
+  border-radius: 13px;
+  background: #ffffff12;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+select option {
+  color: #111;
+  background: #fff;
+}
+
+button:hover,
+select:hover {
+  background: #ffffff1d;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.score {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.score-card {
+  min-height: 60px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #ffffff20;
+  border-radius: 15px;
+  background: #0003;
+  text-align: center;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.large {
+  font-size: clamp(16px, 4vw, 21px);
+  font-weight: 900;
+}
+
+.mini {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: -3px;
+}
+
+.mini.black {
+  background: #111;
+  box-shadow: inset 2px 2px 3px #777;
+}
+
+.mini.white {
+  background: #f7f6ee;
+  box-shadow: inset -2px -2px 3px #999;
+}
+
+#message {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  color: #eafff0;
+  font-weight: 800;
+  text-align: center;
+}
+
+.board-frame {
+  padding: 6px;
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      #c79a55,
+      #74501f
+    );
+  box-shadow: 0 15px 35px #0007;
+}
+
+#board {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  overflow: hidden;
+  border: 2px solid #0008;
+  background: var(--green);
+  touch-action: manipulation;
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 8%;
+  border: 0;
+  border-right: 1px solid #0006;
+  border-bottom: 1px solid #0006;
+  border-radius: 0;
+  background:
+    linear-gradient(
+      145deg,
+      var(--green),
+      var(--green2)
+    );
+  cursor: default;
+}
+
+.cell:nth-child(8n) {
+  border-right: 0;
+}
+
+.cell:nth-child(n + 57) {
+  border-bottom: 0;
+}
+
+.cell.playable {
+  cursor: pointer;
+}
+
+.cell.playable::after {
+  content: "";
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff7abcc;
+  box-shadow:
+    0 0 0 5px #ffffff13,
+    0 0 12px #fff58a99;
+}
+
+.cell.playable:hover {
+  filter: brightness(1.13);
+}
+
+.stone {
+  width: 88%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: put 0.2s ease-out;
+}
+
+.stone.black {
+  background:
+    radial-gradient(
+      circle at 32% 25%,
+      #555,
+      #111 48%,
+      #000 80%
+    );
+  box-shadow:
+    inset -3px -4px 7px #ffffff12,
+    0 3px 6px #0009;
+}
+
+.stone.white {
+  background:
+    radial-gradient(
+      circle at 32% 25%,
+      #fff,
+      #e5e3da 62%,
+      #aaa69b
+    );
+  box-shadow:
+    inset -3px -4px 7px #0002,
+    0 3px 6px #0008;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.note {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@keyframes put {
+  from {
+    transform: scale(0.5) rotateY(90deg);
+    opacity: 0.3;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  body {
+    padding: 7px;
+  }
+
+  .app {
+    width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .settings {
+    grid-template-columns: 1fr;
+  }
+
+  .field {
+    grid-template-columns: 95px 1fr;
+    align-items: center;
+  }
+
+  .score-card {
+    min-height: 54px;
+  }
+
+  .board-frame {
+    padding: 4px;
+  }
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+  <h1>REVERSI</h1>
+
+  <section class="settings" aria-label="ゲーム設定">
+    <div class="field">
+      <label for="mode">対戦方法</label>
+      <select id="mode">
+        <option value="cpu">人 対 コンピュータ</option>
+        <option value="pvp">人 対 人</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="humanColor">あなたの手番</label>
+      <select id="humanColor">
+        <option value="1">先攻（黒）</option>
+        <option value="2">後攻（白）</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="level">CPUの強さ</label>
+      <select id="level">
+        <option value="easy">弱い</option>
+        <option value="normal" selected>普通</option>
+        <option value="hard">強い</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="score" aria-label="対局情報">
+    <div class="score-card">
+      <div>
+        <div class="small">黒</div>
+        <div class="large">
+          <span class="mini black"></span>
+          <span id="blackCount">2</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="score-card">
+      <div>
+        <div class="small">現在の手番</div>
+        <div class="large" id="turnLabel">黒</div>
+      </div>
+    </div>
+
+    <div class="score-card">
+      <div>
+        <div class="small">白</div>
+        <div class="large">
+          <span class="mini white"></span>
+          <span id="whiteCount">2</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="message" aria-live="polite">
+    黒の番です
+  </div>
+
+  <div class="board-frame">
+    <div
+      id="board"
+      role="grid"
+      aria-label="リバーシ盤"
+    ></div>
+  </div>
+
+  <div class="controls">
+    <button id="undo" type="button">
+      1手戻す
+    </button>
+
+    <button id="newGame" type="button">
+      設定を反映して開始
+    </button>
+  </div>
+
+  <p class="note">
+    黄色い点をクリックまたはタップして石を置きます。
+    設定を変更した後は「設定を反映して開始」を押してください。
+  </p>
+</main>
+
+<script>
+"use strict";
+
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = 2;
+const BOARD_SIZE = 8;
+
+const DIRECTIONS = [
+  [-1, -1],
+  [-1,  0],
+  [-1,  1],
+  [ 0, -1],
+  [ 0,  1],
+  [ 1, -1],
+  [ 1,  0],
+  [ 1,  1]
+];
+
+const POSITION_WEIGHT = [
+  [120, -35,  20,  5,  5,  20, -35, 120],
+  [-35, -55,  -5, -5, -5,  -5, -55, -35],
+  [ 20,  -5,  15,  3,  3,  15,  -5,  20],
+  [  5,  -5,   3,  3,  3,   3,  -5,   5],
+  [  5,  -5,   3,  3,  3,   3,  -5,   5],
+  [ 20,  -5,  15,  3,  3,  15,  -5,  20],
+  [-35, -55,  -5, -5, -5,  -5, -55, -35],
+  [120, -35,  20,  5,  5,  20, -35, 120]
+];
+
+const boardElement =
+  document.getElementById("board");
+
+const modeElement =
+  document.getElementById("mode");
+
+const colorElement =
+  document.getElementById("humanColor");
+
+const levelElement =
+  document.getElementById("level");
+
+const messageElement =
+  document.getElementById("message");
+
+const turnElement =
+  document.getElementById("turnLabel");
+
+const blackCountElement =
+  document.getElementById("blackCount");
+
+const whiteCountElement =
+  document.getElementById("whiteCount");
+
+const undoButton =
+  document.getElementById("undo");
+
+const newGameButton =
+  document.getElementById("newGame");
+
+let board;
+let currentPlayer = BLACK;
+let gameMode = "cpu";
+let humanPlayer = BLACK;
+let computerLevel = "normal";
+let history = [];
+let gameOver = false;
+let computerThinking = false;
+let computerTimer = null;
+
+/**
+ * 相手プレイヤーを取得する
+ */
+function getOpponent(player) {
+  return player === BLACK ? WHITE : BLACK;
+}
+
+/**
+ * プレイヤー名を取得する
+ */
+function getPlayerName(player) {
+  return player === BLACK ? "黒" : "白";
+}
+
+/**
+ * 座標が盤面内か判定する
+ */
+function isInsideBoard(row, column) {
+  return (
+    row >= 0 &&
+    row < BOARD_SIZE &&
+    column >= 0 &&
+    column < BOARD_SIZE
+  );
+}
+
+/**
+ * 盤面を複製する
+ */
+function cloneBoard(targetBoard) {
+  return targetBoard.map(row => [...row]);
+}
+
+/**
+ * 裏返せる石を取得する
+ */
+function getFlippableStones(
+  targetBoard,
+  row,
+  column,
+  player
+) {
+  if (
+    !isInsideBoard(row, column) ||
+    targetBoard[row][column] !== EMPTY
+  ) {
+    return [];
+  }
+
+  const opponent = getOpponent(player);
+  const allFlippableStones = [];
+
+  for (const [rowDirection, columnDirection]
+    of DIRECTIONS) {
+    const stonesInDirection = [];
+
+    let targetRow = row + rowDirection;
+    let targetColumn = column + columnDirection;
+
+    while (
+      isInsideBoard(targetRow, targetColumn) &&
+      targetBoard[targetRow][targetColumn] === opponent
+    ) {
+      stonesInDirection.push([
+        targetRow,
+        targetColumn
+      ]);
+
+      targetRow += rowDirection;
+      targetColumn += columnDirection;
+    }
+
+    const isSandwiched =
+      stonesInDirection.length > 0 &&
+      isInsideBoard(targetRow, targetColumn) &&
+      targetBoard[targetRow][targetColumn] === player;
+
+    if (isSandwiched) {
+      allFlippableStones.push(
+        ...stonesInDirection
+      );
+    }
+  }
+
+  return allFlippableStones;
+}
+
+/**
+ * 指定プレイヤーの合法手を取得する
+ */
+function getValidMoves(targetBoard, player) {
+  const validMoves = [];
+
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (
+      let column = 0;
+      column < BOARD_SIZE;
+      column++
+    ) {
+      const flippableStones =
+        getFlippableStones(
+          targetBoard,
+          row,
+          column,
+          player
+        );
+
+      if (flippableStones.length > 0) {
+        validMoves.push({
+          row,
+          column,
+          flippableStones
+        });
+      }
+    }
+  }
+
+  return validMoves;
+}
+
+/**
+ * 指定した手を適用した新しい盤面を返す
+ */
+function applyMove(targetBoard, move, player) {
+  const newBoard = cloneBoard(targetBoard);
+
+  newBoard[move.row][move.column] = player;
+
+  for (const [row, column]
+    of move.flippableStones) {
+    newBoard[row][column] = player;
+  }
+
+  return newBoard;
+}
+
+/**
+ * 石の数を数える
+ */
+function countStones(targetBoard) {
+  let black = 0;
+  let white = 0;
+
+  for (const row of targetBoard) {
+    for (const cell of row) {
+      if (cell === BLACK) {
+        black++;
+      } else if (cell === WHITE) {
+        white++;
+      }
+    }
+  }
+
+  return { black, white };
+}
+
+/**
+ * 新しいゲームを開始する
+ */
+function startGame() {
+  clearTimeout(computerTimer);
+
+  gameMode = modeElement.value;
+  humanPlayer = Number(colorElement.value);
+  computerLevel = levelElement.value;
+
+  const isPlayerVersusPlayer =
+    gameMode === "pvp";
+
+  colorElement.disabled =
+    isPlayerVersusPlayer;
+
+  levelElement.disabled =
+    isPlayerVersusPlayer;
+
+  board = Array.from(
+    { length: BOARD_SIZE },
+    () => Array(BOARD_SIZE).fill(EMPTY)
+  );
+
+  board[3][3] = WHITE;
+  board[3][4] = BLACK;
+  board[4][3] = BLACK;
+  board[4][4] = WHITE;
+
+  currentPlayer = BLACK;
+  history = [];
+  gameOver = false;
+  computerThinking = false;
+
+  setMessage("黒の番です");
+  render();
+  startComputerTurnIfNeeded();
+}
+
+/**
+ * 現在の状態を履歴に保存する
+ */
+function saveHistory() {
+  history.push({
+    board: cloneBoard(board),
+    currentPlayer,
+    gameOver
+  });
+
+  if (history.length > 80) {
+    history.shift();
+  }
+}
+
+/**
+ * 人間が石を置く
+ */
+function placeStone(row, column) {
+  if (
+    gameOver ||
+    computerThinking
+  ) {
+    return;
+  }
+
+  if (
+    gameMode === "cpu" &&
+    currentPlayer !== humanPlayer
+  ) {
+    return;
+  }
+
+  const flippableStones =
+    getFlippableStones(
+      board,
+      row,
+      column,
+      currentPlayer
+    );
+
+  if (flippableStones.length === 0) {
+    return;
+  }
+
+  saveHistory();
+
+  board = applyMove(
+    board,
+    {
+      row,
+      column,
+      flippableStones
+    },
+    currentPlayer
+  );
+
+  currentPlayer =
+    getOpponent(currentPlayer);
+
+  processNextTurn();
+}
+
+/**
+ * 次の手番を処理する
+ */
+function processNextTurn() {
+  let validMoves =
+    getValidMoves(
+      board,
+      currentPlayer
+    );
+
+  if (validMoves.length > 0) {
+    setMessage(
+      `${getPlayerName(currentPlayer)}の番です`
+    );
+
+    render();
+    startComputerTurnIfNeeded();
+    return;
+  }
+
+  const passedPlayer = currentPlayer;
+
+  currentPlayer =
+    getOpponent(currentPlayer);
+
+  validMoves =
+    getValidMoves(
+      board,
+      currentPlayer
+    );
+
+  if (validMoves.length > 0) {
+    setMessage(
+      `${getPlayerName(passedPlayer)}は` +
+      `置けないためパス。` +
+      `${getPlayerName(currentPlayer)}の番です`
+    );
+
+    render();
+    startComputerTurnIfNeeded();
+  } else {
+    finishGame();
+  }
+}
+
+/**
+ * ゲームを終了する
+ */
+function finishGame() {
+  gameOver = true;
+  computerThinking = false;
+
+  const { black, white } =
+    countStones(board);
+
+  let result;
+
+  if (black === white) {
+    result =
+      `引き分けです（${black}対${white}）`;
+  } else if (black > white) {
+    result =
+      `黒の勝ちです（${black}対${white}）`;
+  } else {
+    result =
+      `白の勝ちです（${white}対${black}）`;
+  }
+
+  setMessage(
+    `ゲーム終了。${result}`
+  );
+
+  render();
+}
+
+/**
+ * 必要であればコンピュータの手番を開始する
+ */
+function startComputerTurnIfNeeded() {
+  if (
+    gameMode !== "cpu" ||
+    gameOver ||
+    currentPlayer === humanPlayer
+  ) {
+    return;
+  }
+
+  computerThinking = true;
+
+  setMessage(
+    `コンピュータ（${getPlayerName(currentPlayer)}）` +
+    `が考えています…`
+  );
+
+  render();
+
+  computerTimer = setTimeout(() => {
+    const validMoves =
+      getValidMoves(
+        board,
+        currentPlayer
+      );
+
+    if (validMoves.length === 0) {
+      computerThinking = false;
+      processNextTurn();
+      return;
+    }
+
+    saveHistory();
+
+    const selectedMove =
+      selectComputerMove(
+        validMoves,
+        currentPlayer
+      );
+
+    board = applyMove(
+      board,
+      selectedMove,
+      currentPlayer
+    );
+
+    currentPlayer =
+      getOpponent(currentPlayer);
+
+    computerThinking = false;
+    processNextTurn();
+  }, 350);
+}
+
+/**
+ * CPUレベルに応じて手を選択する
+ */
+function selectComputerMove(validMoves, player) {
+  if (computerLevel === "easy") {
+    const randomIndex =
+      Math.floor(
+        Math.random() * validMoves.length
+      );
+
+    return validMoves[randomIndex];
+  }
+
+  if (computerLevel === "normal") {
+    const scoredMoves =
+      validMoves.map(move => ({
+        move,
+        score:
+          getQuickMoveScore(
+            board,
+            move,
+            player
+          ) +
+          Math.random() * 8
+      }));
+
+    scoredMoves.sort(
+      (a, b) => b.score - a.score
+    );
+
+    return scoredMoves[0].move;
+  }
+
+  const stoneCounts =
+    countStones(board);
+
+  const occupiedCount =
+    stoneCounts.black +
+    stoneCounts.white;
+
+  let searchDepth;
+
+  if (occupiedCount > 50) {
+    searchDepth = 3;
+  } else if (occupiedCount > 38) {
+    searchDepth = 4;
+  } else {
+    searchDepth = 5;
+  }
+
+  let bestMove = validMoves[0];
+  let bestScore = -Infinity;
+
+  for (const move of validMoves) {
+    const nextBoard =
+      applyMove(
+        board,
+        move,
+        player
+      );
+
+    const score = minimax(
+      nextBoard,
+      getOpponent(player),
+      player,
+      searchDepth - 1,
+      -Infinity,
+      Infinity
+    );
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+  }
+
+  return bestMove;
+}
+
+/**
+ * 「普通」レベル用の簡易評価
+ */
+function getQuickMoveScore(
+  targetBoard,
+  move,
+  player
+) {
+  let score =
+    POSITION_WEIGHT[move.row][move.column];
+
+  score +=
+    move.flippableStones.length * 3;
+
+  const nextBoard =
+    applyMove(
+      targetBoard,
+      move,
+      player
+    );
+
+  const opponentMoveCount =
+    getValidMoves(
+      nextBoard,
+      getOpponent(player)
+    ).length;
+
+  score -= opponentMoveCount * 2;
+
+  return score;
+}
+
+/**
+ * 盤面を評価する
+ */
+function evaluateBoard(targetBoard, rootPlayer) {
+  let score = 0;
+  let rootStoneCount = 0;
+  let opponentStoneCount = 0;
+
+  const opponent =
+    getOpponent(rootPlayer);
+
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (
+      let column = 0;
+      column < BOARD_SIZE;
+      column++
+    ) {
+      const cell =
+        targetBoard[row][column];
+
+      if (cell === rootPlayer) {
+        score +=
+          POSITION_WEIGHT[row][column];
+
+        rootStoneCount++;
+      } else if (cell === opponent) {
+        score -=
+          POSITION_WEIGHT[row][column];
+
+        opponentStoneCount++;
+      }
+    }
+  }
+
+  const rootMoveCount =
+    getValidMoves(
+      targetBoard,
+      rootPlayer
+    ).length;
+
+  const opponentMoveCount =
+    getValidMoves(
+      targetBoard,
+      opponent
+    ).length;
+
+  score +=
+    (rootMoveCount - opponentMoveCount) * 7;
+
+  const occupiedCount =
+    rootStoneCount +
+    opponentStoneCount;
+
+  if (occupiedCount > 52) {
+    score +=
+      (rootStoneCount - opponentStoneCount) * 9;
+  }
+
+  return score;
+}
+
+/**
+ * ミニマックス法とαβ枝刈り
+ */
+function minimax(
+  targetBoard,
+  turnPlayer,
+  rootPlayer,
+  depth,
+  alpha,
+  beta
+) {
+  const validMoves =
+    getValidMoves(
+      targetBoard,
+      turnPlayer
+    );
+
+  const opponentMoves =
+    getValidMoves(
+      targetBoard,
+      getOpponent(turnPlayer)
+    );
+
+  const noPlayerCanMove =
+    validMoves.length === 0 &&
+    opponentMoves.length === 0;
+
+  if (
+    depth <= 0 ||
+    noPlayerCanMove
+  ) {
+    return evaluateBoard(
+      targetBoard,
+      rootPlayer
+    );
+  }
+
+  if (validMoves.length === 0) {
+    return minimax(
+      targetBoard,
+      getOpponent(turnPlayer),
+      rootPlayer,
+      depth - 1,
+      alpha,
+      beta
+    );
+  }
+
+  if (turnPlayer === rootPlayer) {
+    let bestValue = -Infinity;
+
+    for (const move of validMoves) {
+      const nextBoard =
+        applyMove(
+          targetBoard,
+          move,
+          turnPlayer
+        );
+
+      bestValue = Math.max(
+        bestValue,
+        minimax(
+          nextBoard,
+          getOpponent(turnPlayer),
+          rootPlayer,
+          depth - 1,
+          alpha,
+          beta
+        )
+      );
+
+      alpha =
+        Math.max(alpha, bestValue);
+
+      if (beta <= alpha) {
+        break;
+      }
+    }
+
+    return bestValue;
+  }
+
+  let bestValue = Infinity;
+
+  for (const move of validMoves) {
+    const nextBoard =
+      applyMove(
+        targetBoard,
+        move,
+        turnPlayer
+      );
+
+    bestValue = Math.min(
+      bestValue,
+      minimax(
+        nextBoard,
+        getOpponent(turnPlayer),
+        rootPlayer,
+        depth - 1,
+        alpha,
+        beta
+      )
+    );
+
+    beta =
+      Math.min(beta, bestValue);
+
+    if (beta <= alpha) {
+      break;
+    }
+  }
+
+  return bestValue;
+}
+
+/**
+ * メッセージを設定する
+ */
+function setMessage(message) {
+  messageElement.textContent = message;
+}
+
+/**
+ * 盤面を描画する
+ */
+function render() {
+  boardElement.replaceChildren();
+
+  const humanCanOperate =
+    !gameOver &&
+    !computerThinking &&
+    (
+      gameMode === "pvp" ||
+      currentPlayer === humanPlayer
+    );
+
+  const validMoveSet =
+    new Set(
+      humanCanOperate
+        ? getValidMoves(
+            board,
+            currentPlayer
+          ).map(
+            move =>
+              `${move.row},${move.column}`
+          )
+        : []
+    );
+
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (
+      let column = 0;
+      column < BOARD_SIZE;
+      column++
+    ) {
+      const cellButton =
+        document.createElement("button");
+
+      cellButton.type = "button";
+      cellButton.className = "cell";
+
+      cellButton.setAttribute(
+        "role",
+        "gridcell"
+      );
+
+      cellButton.setAttribute(
+        "aria-label",
+        `${row + 1}行${column + 1}列`
+      );
+
+      const cellValue =
+        board[row][column];
+
+      if (cellValue !== EMPTY) {
+        const stone =
+          document.createElement("span");
+
+        stone.className =
+          `stone ${
+            cellValue === BLACK
+              ? "black"
+              : "white"
+          }`;
+
+        cellButton.appendChild(stone);
+        cellButton.disabled = true;
+      } else if (
+        validMoveSet.has(
+          `${row},${column}`
+        )
+      ) {
+        cellButton.classList.add(
+          "playable"
+        );
+
+        cellButton.setAttribute(
+          "aria-label",
+          `${row + 1}行${column + 1}列、置けます`
+        );
+
+        cellButton.addEventListener(
+          "click",
+          () => placeStone(row, column)
+        );
+      } else {
+        cellButton.disabled = true;
+      }
+
+      boardElement.appendChild(
+        cellButton
+      );
+    }
+  }
+
+  const { black, white } =
+    countStones(board);
+
+  blackCountElement.textContent =
+    black;
+
+  whiteCountElement.textContent =
+    white;
+
+  if (gameOver) {
+    turnElement.textContent = "終了";
+  } else if (computerThinking) {
+    turnElement.textContent = "思考中";
+  } else {
+    turnElement.textContent =
+      getPlayerName(currentPlayer);
+  }
+
+  undoButton.disabled =
+    history.length === 0 ||
+    computerThinking;
+}
+
+/**
+ * 1手前に戻す
+ *
+ * CPU対戦では、基本的に人間が操作できる状態まで戻す
+ */
+function undoMove() {
+  if (
+    computerThinking ||
+    history.length === 0
+  ) {
+    return;
+  }
+
+  clearTimeout(computerTimer);
+
+  let previousState =
+    history.pop();
+
+  if (
+    gameMode === "cpu" &&
+    previousState.currentPlayer !== humanPlayer &&
+    history.length > 0
+  ) {
+    previousState =
+      history.pop();
+  }
+
+  board =
+    cloneBoard(previousState.board);
+
+  currentPlayer =
+    previousState.currentPlayer;
+
+  gameOver =
+    previousState.gameOver;
+
+  computerThinking = false;
+
+  setMessage(
+    `${getPlayerName(currentPlayer)}の番です`
+  );
+
+  render();
+  startComputerTurnIfNeeded();
+}
+
+/**
+ * 対戦方法が変わったら、
+ * 使用しない項目を無効化する
+ */
+modeElement.addEventListener(
+  "change",
+  () => {
+    const isPlayerVersusPlayer =
+      modeElement.value === "pvp";
+
+    colorElement.disabled =
+      isPlayerVersusPlayer;
+
+    levelElement.disabled =
+      isPlayerVersusPlayer;
+  }
+);
+
+undoButton.addEventListener(
+  "click",
+  undoMove
+);
+
+newGameButton.addEventListener(
+  "click",
+  startGame
+);
+
+startGame();
+</script>
+</body>
+</html>
