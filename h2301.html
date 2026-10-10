@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>ブロックバトル</title>
+
+<style>
+
+/* =========================
+   全体
+========================= */
+
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    min-height:100%;
+}
+
+body{
+    min-height:100vh;
+
+    font-family:
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        sans-serif;
+
+    color:white;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #312e81,
+            #111827 55%,
+            #020617
+        );
+
+    overscroll-behavior:none;
+}
+
+
+/* =========================
+   タイトル
+========================= */
+
+header{
+    text-align:center;
+    padding:18px 10px 5px;
+}
+
+h1{
+    margin:0;
+
+    font-size:clamp(28px,7vw,46px);
+
+    color:white;
+
+    text-shadow:
+        0 0 10px #22d3ee,
+        0 0 25px #a855f7;
+}
+
+.subtitle{
+    margin-top:6px;
+
+    color:#c7d2fe;
+
+    font-weight:bold;
+}
+
+
+/* =========================
+   設定画面
+========================= */
+
+#settings{
+    width:calc(100% - 20px);
+    max-width:750px;
+
+    margin:15px auto;
+
+    padding:18px;
+
+    background:
+        rgba(255,255,255,.10);
+
+    border:
+        1px solid
+        rgba(255,255,255,.18);
+
+    border-radius:24px;
+
+    box-shadow:
+        0 15px 40px
+        rgba(0,0,0,.25);
+}
+
+.setting-grid{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:12px;
+}
+
+label{
+    font-weight:900;
+}
+
+select{
+    display:block;
+
+    width:100%;
+
+    margin-top:7px;
+
+    padding:14px 10px;
+
+    border:none;
+    border-radius:13px;
+
+    background:white;
+    color:#111827;
+
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+}
+
+select:disabled{
+    opacity:.45;
+}
+
+.start-area{
+    text-align:center;
+    margin-top:20px;
+}
+
+.bigButton{
+    width:min(100%,400px);
+
+    min-height:65px;
+
+    border:none;
+    border-radius:999px;
+
+    padding:14px 25px;
+
+    color:white;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ec4899,
+            #8b5cf6
+        );
+
+    font-size:21px;
+    font-weight:900;
+
+    box-shadow:
+        0 8px 0 #581c87,
+        0 15px 30px
+        rgba(236,72,153,.3);
+
+    cursor:pointer;
+
+    touch-action:manipulation;
+}
+
+.bigButton:active{
+    transform:
+        translateY(5px);
+
+    box-shadow:
+        0 3px 0 #581c87;
+}
+
+
+/* =========================
+   ゲーム画面
+========================= */
+
+#game{
+    display:none;
+
+    width:100%;
+    max-width:760px;
+
+    margin:auto;
+
+    padding:
+        5px 10px 130px;
+}
+
+.status{
+    text-align:center;
+
+    min-height:34px;
+
+    margin:8px 0 12px;
+
+    font-size:20px;
+    font-weight:900;
+
+    color:#fef3c7;
+}
+
+
+/* =========================
+   盤面
+========================= */
+
+.playerArea{
+    display:grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:12px;
+}
+
+.player{
+    min-width:0;
+
+    padding:8px;
+
+    text-align:center;
+
+    border-radius:17px;
+
+    border:
+        3px solid
+        transparent;
+
+    transition:.2s;
+}
+
+.player.active{
+    border-color:#22d3ee;
+
+    background:
+        rgba(34,211,238,.11);
+
+    box-shadow:
+        0 0 25px
+        rgba(34,211,238,.45);
+}
+
+.player.cpuActive{
+    border-color:#f472b6;
+
+    background:
+        rgba(244,114,182,.11);
+
+    box-shadow:
+        0 0 25px
+        rgba(244,114,182,.45);
+}
+
+.player-title{
+    font-size:17px;
+    font-weight:900;
+
+    margin-bottom:7px;
+}
+
+canvas{
+    display:block;
+
+    width:100%;
+    max-width:240px;
+
+    height:auto;
+
+    margin:auto;
+
+    background:#06101d;
+
+    border-radius:10px;
+
+    box-shadow:
+        inset 0 0 20px #000,
+        0 8px 20px rgba(0,0,0,.5);
+}
+
+.score{
+    margin-top:7px;
+
+    font-size:18px;
+    font-weight:900;
+
+    color:#fde047;
+}
+
+
+/* =========================
+   操作説明
+========================= */
+
+.info{
+    text-align:center;
+
+    margin:12px auto;
+
+    color:#c7d2fe;
+
+    font-size:13px;
+}
+
+
+/* =========================
+   大きい操作ボタン
+========================= */
+
+.controls-wrap{
+    position:fixed;
+
+    left:0;
+    right:0;
+    bottom:0;
+
+    z-index:1000;
+
+    padding:
+        8px
+        max(8px, env(safe-area-inset-right))
+        calc(8px + env(safe-area-inset-bottom))
+        max(8px, env(safe-area-inset-left));
+
+    background:
+        linear-gradient(
+            transparent,
+            rgba(2,6,23,.96) 25%
+        );
+}
+
+.controls{
+    width:100%;
+    max-width:680px;
+
+    margin:auto;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:10px;
+
+    padding:9px;
+
+    background:
+        rgba(15,23,42,.94);
+
+    border:
+        2px solid
+        rgba(255,255,255,.15);
+
+    border-radius:24px;
+
+    box-shadow:
+        0 0 30px
+        rgba(0,0,0,.50);
+}
+
+.control{
+    width:100%;
+
+    min-height:82px;
+
+    padding:7px 2px;
+
+    border:none;
+
+    border-radius:20px;
+
+    color:white;
+
+    font-size:35px;
+    font-weight:900;
+
+    cursor:pointer;
+
+    user-select:none;
+
+    touch-action:manipulation;
+
+    box-shadow:
+        0 7px 0
+        rgba(0,0,0,.42),
+        0 10px 16px
+        rgba(0,0,0,.25);
+
+    transition:
+        transform .06s,
+        box-shadow .06s;
+}
+
+.control:active{
+    transform:
+        translateY(6px)
+        scale(.97);
+
+    box-shadow:
+        0 1px 0
+        rgba(0,0,0,.45);
+}
+
+.control small{
+    display:block;
+
+    margin-top:2px;
+
+    font-size:13px;
+
+    font-weight:900;
+}
+
+
+/* 左右 */
+
+.left,
+.right{
+    background:
+        linear-gradient(
+            #22d3ee,
+            #0284c7
+        );
+}
+
+
+/* 回転 */
+
+.rotate{
+    background:
+        linear-gradient(
+            #c084fc,
+            #7c3aed
+        );
+}
+
+
+/* 落とす */
+
+.drop{
+    background:
+        linear-gradient(
+            #fb7185,
+            #db2777
+        );
+
+    box-shadow:
+        0 7px 0 #831843,
+        0 0 20px
+        rgba(236,72,153,.45);
+}
+
+
+/* =========================
+   終了ボタン
+========================= */
+
+.endButton{
+    display:block;
+
+    width:min(90%,300px);
+
+    min-height:50px;
+
+    margin:18px auto;
+
+    border:none;
+    border-radius:999px;
+
+    background:#334155;
+
+    color:white;
+
+    font-size:16px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+    touch-action:manipulation;
+}
+
+.endButton:active{
+    transform:scale(.96);
+}
+
+
+/* =========================
+   スマホ
+========================= */
+
+@media(max-width:600px){
+
+    header{
+        padding-top:10px;
+    }
+
+    h1{
+        font-size:29px;
+    }
+
+    .subtitle{
+        font-size:13px;
+    }
+
+    .setting-grid{
+        grid-template-columns:1fr;
+    }
+
+    #game{
+        padding-left:5px;
+        padding-right:5px;
+        padding-bottom:125px;
+    }
+
+    .playerArea{
+        gap:2px;
+    }
+
+    .player{
+        padding:4px;
+    }
+
+    .player-title{
+        font-size:13px;
+    }
+
+    .score{
+        font-size:15px;
+    }
+
+    .controls{
+        gap:6px;
+        padding:7px;
+        border-radius:20px;
+    }
+
+    .control{
+        min-height:80px;
+
+        font-size:32px;
+
+        border-radius:17px;
+    }
+
+    .control small{
+        font-size:12px;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>
+        🧱 ブロックバトル 🧱
+    </h1>
+
+    <div class="subtitle">
+        ブロックをそろえてラインを消そう！
+    </div>
+
+</header>
+
+
+
+<!-- =========================
+     設定
+========================= -->
+
+<div id="settings">
+
+    <div class="setting-grid">
+
+
+        <label>
+
+            👥 対戦モード
+
+            <select id="mode">
+
+                <option value="cpu">
+                    人 対 コンピュータ
+                </option>
+
+                <option value="human">
+                    人 対 人
+                </option>
+
+            </select>
+
+        </label>
+
+
+
+        <label>
+
+            🔄 先攻
+
+            <select id="first">
+
+                <option value="0">
+                    プレイヤー1
+                </option>
+
+                <option
+                    value="1"
+                    id="secondOption">
+
+                    コンピュータ
+
+                </option>
+
+            </select>
+
+        </label>
+
+
+
+        <label>
+
+            🤖 CPUの強さ
+
+            <select id="level">
+
+                <option value="easy">
+                    やさしい
+                </option>
+
+                <option
+                    value="normal"
+                    selected>
+
+                    ふつう
+
+                </option>
+
+                <option value="hard">
+                    つよい
+                </option>
+
+            </select>
+
+        </label>
+
+
+    </div>
+
+
+    <div class="start-area">
+
+        <button
+            id="startButton"
+            class="bigButton">
+
+            🎮 ゲームスタート
+
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================
+     ゲーム
+========================= -->
+
+<div id="game">
+
+
+    <div
+        id="status"
+        class="status">
+    </div>
+
+
+
+    <div class="playerArea">
+
+
+        <!-- プレイヤー1 -->
+
+        <div
+            id="playerBox0"
+            class="player">
+
+            <div class="player-title">
+                👤 プレイヤー1
+            </div>
+
+            <canvas
+                id="board0"
+                width="240"
+                height="432">
+            </canvas>
+
+            <div class="score">
+                ⭐
+                <span id="score0">
+                    0
+                </span>
+                点
+            </div>
+
+        </div>
+
+
+
+        <!-- プレイヤー2 -->
+
+        <div
+            id="playerBox1"
+            class="player">
+
+            <div
+                id="player2Name"
+                class="player-title">
+
+                🤖 コンピュータ
+
+            </div>
+
+            <canvas
+                id="board1"
+                width="240"
+                height="432">
+            </canvas>
+
+            <div class="score">
+                ⭐
+                <span id="score1">
+                    0
+                </span>
+                点
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="info">
+        ブロックを移動・回転して、
+        「⬇ 落とす」を押すと相手のターンです。
+    </div>
+
+
+
+    <button
+        id="endButton"
+        class="endButton">
+
+        ゲームを終了
+
+    </button>
+
+
+
+    <!-- 操作ボタン -->
+
+    <div class="controls-wrap">
+
+        <div class="controls">
+
+
+            <button
+                id="leftButton"
+                class="control left">
+
+                ◀
+                <small>
+                    左へ
+                </small>
+
+            </button>
+
+
+
+            <button
+                id="rotateButton"
+                class="control rotate">
+
+                🔄
+                <small>
+                    回転
+                </small>
+
+            </button>
+
+
+
+            <button
+                id="rightButton"
+                class="control right">
+
+                ▶
+                <small>
+                    右へ
+                </small>
+
+            </button>
+
+
+
+            <button
+                id="dropButton"
+                class="control drop">
+
+                ⬇
+                <small>
+                    落とす
+                </small>
+
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+"use strict";
+
+
+/* =========================
+   基本設定
+========================= */
+
+const COLS = 10;
+const ROWS = 18;
+const CELL = 24;
+
+
+/* =========================
+   ブロック7種類
+========================= */
+
+const SHAPES = [
+
+    [
+        [1,1,1,1]
+    ],
+
+    [
+        [1,1],
+        [1,1]
+    ],
+
+    [
+        [0,1,0],
+        [1,1,1]
+    ],
+
+    [
+        [1,0,0],
+        [1,1,1]
+    ],
+
+    [
+        [0,0,1],
+        [1,1,1]
+    ],
+
+    [
+        [0,1,1],
+        [1,1,0]
+    ],
+
+    [
+        [1,1,0],
+        [0,1,1]
+    ]
+
+];
+
+
+const COLORS = [
+
+    "#22d3ee",
+    "#fde047",
+    "#c084fc",
+    "#fb923c",
+    "#60a5fa",
+    "#4ade80",
+    "#fb7185"
+
+];
+
+
+/* =========================
+   HTML取得
+========================= */
+
+const settings =
+    document.getElementById(
+        "settings"
+    );
+
+const game =
+    document.getElementById(
+        "game"
+    );
+
+const modeSelect =
+    document.getElementById(
+        "mode"
+    );
+
+const firstSelect =
+    document.getElementById(
+        "first"
+    );
+
+const levelSelect =
+    document.getElementById(
+        "level"
+    );
+
+const secondOption =
+    document.getElementById(
+        "secondOption"
+    );
+
+const statusText =
+    document.getElementById(
+        "status"
+    );
+
+const player2Name =
+    document.getElementById(
+        "player2Name"
+    );
+
+
+const canvases = [
+
+    document.getElementById(
+        "board0"
+    ),
+
+    document.getElementById(
+        "board1"
+    )
+
+];
+
+
+const ctx = [
+
+    canvases[0]
+        .getContext("2d"),
+
+    canvases[1]
+        .getContext("2d")
+
+];
+
+
+const scoreElements = [
+
+    document.getElementById(
+        "score0"
+    ),
+
+    document.getElementById(
+        "score1"
+    )
+
+];
+
+
+const playerBoxes = [
+
+    document.getElementById(
+        "playerBox0"
+    ),
+
+    document.getElementById(
+        "playerBox1"
+    )
+
+];
+
+
+/* =========================
+   ゲーム状態
+========================= */
+
+let boards = [];
+let pieces = [];
+let scores = [0,0];
+
+let turn = 0;
+
+let running = false;
+
+let mode = "cpu";
+let level = "normal";
+
+let cpuTimer = null;
+
+
+/* =========================
+   新しい盤面
+========================= */
+
+function createBoard(){
+
+    return Array.from(
+        {length:ROWS},
+        () =>
+            Array(COLS).fill(0)
+    );
+
+}
+
+
+/* =========================
+   新しいブロック
+========================= */
+
+function createPiece(){
+
+    const type =
+        Math.floor(
+            Math.random()
+            *
+            SHAPES.length
+        );
+
+
+    const shape =
+        SHAPES[type].map(
+            row => [...row]
+        );
+
+
+    return {
+
+        x:
+            Math.floor(
+                (COLS -
+                shape[0].length)
+                / 2
+            ),
+
+        y:0,
+
+        shape:shape,
+
+        color:
+            type + 1
+
+    };
+
+}
+
+
+/* =========================
+   ブロックコピー
+========================= */
+
+function clonePiece(piece){
+
+    return {
+
+        x:piece.x,
+        y:piece.y,
+
+        shape:
+            piece.shape.map(
+                row => [...row]
+            ),
+
+        color:
+            piece.color
+
+    };
+
+}
+
+
+/* =========================
+   回転
+========================= */
+
+function rotateMatrix(matrix){
+
+    return matrix[0].map(
+        (_,index) =>
+
+            matrix
+                .map(
+                    row =>
+                        row[index]
+                )
+                .reverse()
+
+    );
+
+}
+
+
+/* =========================
+   移動可能か
+========================= */
+
+function valid(
+    board,
+    piece
+){
+
+    for(
+        let y=0;
+        y<piece.shape.length;
+        y++
+    ){
+
+        for(
+            let x=0;
+            x<piece.shape[y].length;
+            x++
+        ){
+
+            if(
+                !piece.shape[y][x]
+            ){
+                continue;
+            }
+
+
+            const boardX =
+                piece.x + x;
+
+            const boardY =
+                piece.y + y;
+
+
+            if(
+                boardX < 0 ||
+                boardX >= COLS ||
+                boardY >= ROWS
+            ){
+
+                return false;
+
+            }
+
+
+            if(
+                boardY >= 0 &&
+                board[boardY][boardX]
+            ){
+
+                return false;
+
+            }
+
+        }
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================
+   ブロック固定
+========================= */
+
+function lockPiece(
+    board,
+    piece
+){
+
+    piece.shape.forEach(
+        (row,y) => {
+
+            row.forEach(
+                (value,x) => {
+
+                    if(
+                        value &&
+                        piece.y+y >= 0
+                    ){
+
+                        board[
+                            piece.y+y
+                        ][
+                            piece.x+x
+                        ] =
+                            piece.color;
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================
+   ライン消去
+========================= */
+
+function clearLines(board){
+
+    let lines = 0;
+
+
+    for(
+        let y=ROWS-1;
+        y>=0;
+        y--
+    ){
+
+        if(
+            board[y].every(
+                value =>
+                    value !== 0
+            )
+        ){
+
+            board.splice(
+                y,
+                1
+            );
+
+
+            board.unshift(
+                Array(COLS)
+                    .fill(0)
+            );
+
+
+            lines++;
+
+            y++;
+
+        }
+
+    }
+
+
+    return lines;
+
+}
+
+
+/* =========================
+   1マス描画
+========================= */
+
+function drawCell(
+    context,
+    x,
+    y,
+    color
+){
+
+    context.fillStyle =
+        color;
+
+
+    context.fillRect(
+
+        x*CELL+1,
+        y*CELL+1,
+
+        CELL-2,
+        CELL-2
+
+    );
+
+
+    /* 光沢 */
+
+    context.fillStyle =
+        "rgba(255,255,255,.27)";
+
+
+    context.fillRect(
+
+        x*CELL+3,
+        y*CELL+3,
+
+        CELL-7,
+        4
+
+    );
+
+
+    /* 下側の影 */
+
+    context.fillStyle =
+        "rgba(0,0,0,.15)";
+
+
+    context.fillRect(
+
+        x*CELL+3,
+        y*CELL+CELL-6,
+
+        CELL-6,
+        3
+
+    );
+
+}
+
+
+/* =========================
+   盤面描画
+========================= */
+
+function drawBoard(index){
+
+    const context =
+        ctx[index];
+
+
+    /* 背景 */
+
+    context.fillStyle =
+        "#06101d";
+
+
+    context.fillRect(
+
+        0,
+        0,
+
+        COLS*CELL,
+        ROWS*CELL
+
+    );
+
+
+    /* グリッド */
+
+    context.strokeStyle =
+        "rgba(255,255,255,.045)";
+
+    context.lineWidth = 1;
+
+
+    for(
+        let x=0;
+        x<=COLS;
+        x++
+    ){
+
+        context.beginPath();
+
+        context.moveTo(
+            x*CELL,
+            0
+        );
+
+        context.lineTo(
+            x*CELL,
+            ROWS*CELL
+        );
+
+        context.stroke();
+
+    }
+
+
+    for(
+        let y=0;
+        y<=ROWS;
+        y++
+    ){
+
+        context.beginPath();
+
+        context.moveTo(
+            0,
+            y*CELL
+        );
+
+        context.lineTo(
+            COLS*CELL,
+            y*CELL
+        );
+
+        context.stroke();
+
+    }
+
+
+    /* 固定されたブロック */
+
+    boards[index]
+        .forEach(
+            (row,y) => {
+
+                row.forEach(
+                    (value,x) => {
+
+                        if(value){
+
+                            drawCell(
+
+                                context,
+                                x,
+                                y,
+
+                                COLORS[
+                                    value-1
+                                ]
+
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+    /* 操作中ブロック */
+
+    const piece =
+        pieces[index];
+
+
+    if(piece){
+
+        piece.shape.forEach(
+            (row,y) => {
+
+                row.forEach(
+                    (value,x) => {
+
+                        if(
+                            value &&
+                            piece.y+y >= 0
+                        ){
+
+                            drawCell(
+
+                                context,
+
+                                piece.x+x,
+                                piece.y+y,
+
+                                COLORS[
+                                    piece.color-1
+                                ]
+
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================
+   全部描画
+========================= */
+
+function render(){
+
+    drawBoard(0);
+    drawBoard(1);
+
+
+    scoreElements[0]
+        .textContent =
+        scores[0];
+
+    scoreElements[1]
+        .textContent =
+        scores[1];
+
+
+    playerBoxes.forEach(
+        box => {
+
+            box.classList.remove(
+                "active",
+                "cpuActive"
+            );
+
+        }
+    );
+
+
+    if(running){
+
+        if(
+            mode === "cpu" &&
+            turn === 1
+        ){
+
+            playerBoxes[1]
+                .classList
+                .add(
+                    "cpuActive"
+                );
+
+        }
+        else{
+
+            playerBoxes[turn]
+                .classList
+                .add(
+                    "active"
+                );
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   名前
+========================= */
+
+function getPlayerName(index){
+
+    if(index === 0){
+
+        return "プレイヤー1";
+
+    }
+
+
+    if(mode === "cpu"){
+
+        return "コンピュータ";
+
+    }
+
+
+    return "プレイヤー2";
+
+}
+
+
+/* =========================
+   プレイヤー操作できるか
+========================= */
+
+function canHumanControl(){
+
+    if(!running){
+
+        return false;
+
+    }
+
+
+    if(
+        mode === "cpu" &&
+        turn === 1
+    ){
+
+        return false;
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================
+   左右移動
+========================= */
+
+function movePiece(dx){
+
+    if(
+        !canHumanControl()
+    ){
+
+        return;
+
+    }
+
+
+    const test =
+        clonePiece(
+            pieces[turn]
+        );
+
+
+    test.x += dx;
+
+
+    if(
+        valid(
+            boards[turn],
+            test
+        )
+    ){
+
+        pieces[turn] =
+            test;
+
+        render();
+
+    }
+
+}
+
+
+/* =========================
+   回転
+========================= */
+
+function rotatePiece(){
+
+    if(
+        !canHumanControl()
+    ){
+
+        return;
+
+    }
+
+
+    const rotated =
+        clonePiece(
+            pieces[turn]
+        );
+
+
+    rotated.shape =
+        rotateMatrix(
+            rotated.shape
+        );
+
+
+    /*
+       壁際の回転補正
+    */
+
+    const offsets = [
+        0,
+        -1,
+        1,
+        -2,
+        2
+    ];
+
+
+    for(
+        const offset of offsets
+    ){
+
+        const candidate =
+            clonePiece(
+                rotated
+            );
+
+
+        candidate.x +=
+            offset;
+
+
+        if(
+            valid(
+                boards[turn],
+                candidate
+            )
+        ){
+
+            pieces[turn] =
+                candidate;
+
+            render();
+
+            return;
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   一番下まで落とす
+========================= */
+
+function findDropPosition(
+    board,
+    piece
+){
+
+    let result =
+        clonePiece(piece);
+
+
+    while(true){
+
+        const next =
+            clonePiece(
+                result
+            );
+
+
+        next.y++;
+
+
+        if(
+            valid(
+                board,
+                next
+            )
+        ){
+
+            result =
+                next;
+
+        }
+        else{
+
+            break;
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================
+   プレイヤー落下
+========================= */
+
+function hardDrop(){
+
+    if(
+        !canHumanControl()
+    ){
+
+        return;
+
+    }
+
+
+    placeCurrentPiece();
+
+}
+
+
+/* =========================
+   配置
+========================= */
+
+function placeCurrentPiece(){
+
+    if(!running){
+
+        return;
+
+    }
+
+
+    const currentPlayer =
+        turn;
+
+
+    const landed =
+        findDropPosition(
+
+            boards[currentPlayer],
+
+            pieces[currentPlayer]
+
+        );
+
+
+    lockPiece(
+
+        boards[currentPlayer],
+
+        landed
+
+    );
+
+
+    const lines =
+        clearLines(
+            boards[currentPlayer]
+        );
+
+
+    /* 得点 */
+
+    const points = [
+        0,
+        100,
+        300,
+        500,
+        800
+    ];
+
+
+    if(
+        lines <
+        points.length
+    ){
+
+        scores[currentPlayer] +=
+            points[lines];
+
+    }
+    else{
+
+        scores[currentPlayer] +=
+            lines * 250;
+
+    }
+
+
+    /* 新ブロック */
+
+    pieces[currentPlayer] =
+        createPiece();
+
+
+    /* ゲームオーバー */
+
+    if(
+        !valid(
+
+            boards[currentPlayer],
+
+            pieces[currentPlayer]
+
+        )
+    ){
+
+        gameOver(
+            currentPlayer
+        );
+
+        return;
+
+    }
+
+
+    /* 交代 */
+
+    turn =
+        turn === 0
+            ? 1
+            : 0;
+
+
+    statusText.textContent =
+        "🎮 " +
+        getPlayerName(turn) +
+        " の番！";
+
+
+    render();
+
+
+    /* CPUターン */
+
+    if(
+        running &&
+        mode === "cpu" &&
+        turn === 1
+    ){
+
+        startCPU();
+
+    }
+
+}
+
+
+/* =========================
+   CPU開始
+========================= */
+
+function startCPU(){
+
+    clearTimeout(
+        cpuTimer
+    );
+
+
+    let delay = 550;
+
+
+    if(
+        level === "easy"
+    ){
+
+        delay = 900;
+
+    }
+
+
+    if(
+        level === "hard"
+    ){
+
+        delay = 300;
+
+    }
+
+
+    statusText.textContent =
+        "🤖 コンピュータが考えています…";
+
+
+    cpuTimer =
+        setTimeout(
+            cpuPlay,
+            delay
+        );
+
+}
+
+
+/* =========================
+   CPU用盤面評価
+========================= */
+
+function evaluateBoard(board){
+
+    let holes = 0;
+
+    let totalHeight = 0;
+
+    let bumpiness = 0;
+
+
+    const heights =
+        Array(COLS).fill(0);
+
+
+    for(
+        let x=0;
+        x<COLS;
+        x++
+    ){
+
+        let blockFound =
+            false;
+
+
+        for(
+            let y=0;
+            y<ROWS;
+            y++
+        ){
+
+            if(
+                board[y][x]
+            ){
+
+                if(
+                    !blockFound
+                ){
+
+                    heights[x] =
+                        ROWS-y;
+
+                    blockFound =
+                        true;
+
+                }
+
+            }
+            else if(
+                blockFound
+            ){
+
+                holes++;
+
+            }
+
+        }
+
+    }
+
+
+    totalHeight =
+        heights.reduce(
+            (sum,value) =>
+                sum + value,
+            0
+        );
+
+
+    for(
+        let x=0;
+        x<COLS-1;
+        x++
+    ){
+
+        bumpiness +=
+            Math.abs(
+
+                heights[x] -
+                heights[x+1]
+
+            );
+
+    }
+
+
+    return (
+
+        holes * 115 +
+
+        totalHeight * 7 +
+
+        bumpiness * 5
+
+    );
+
+}
+
+
+/* =========================
+   CPU候補決定
+========================= */
+
+function findCPUMove(){
+
+    const original =
+        pieces[1];
+
+
+    const candidates = [];
+
+
+    /*
+       難易度で考える回転数を変更
+    */
+
+    let rotationCount;
+
+
+    if(
+        level === "easy"
+    ){
+
+        rotationCount = 2;
+
+    }
+    else{
+
+        rotationCount = 4;
+
+    }
+
+
+    let shape =
+        original.shape.map(
+            row => [...row]
+        );
+
+
+    for(
+        let rotation=0;
+        rotation<rotationCount;
+        rotation++
+    ){
+
+        for(
+            let x=-3;
+            x<COLS+3;
+            x++
+        ){
+
+            let candidate = {
+
+                x:x,
+                y:0,
+
+                shape:
+                    shape.map(
+                        row => [...row]
+                    ),
+
+                color:
+                    original.color
+
+            };
+
+
+            if(
+                !valid(
+                    boards[1],
+                    candidate
+                )
+            ){
+
+                continue;
+
+            }
+
+
+            candidate =
+                findDropPosition(
+                    boards[1],
+                    candidate
+                );
+
+
+            const tempBoard =
+                boards[1].map(
+                    row => [...row]
+                );
+
+
+            lockPiece(
+                tempBoard,
+                candidate
+            );
+
+
+            const cleared =
+                clearLines(
+                    tempBoard
+                );
+
+
+            const rating =
+                evaluateBoard(
+                    tempBoard
+                )
+                -
+                cleared * 150;
+
+
+            candidates.push({
+
+                piece:
+                    candidate,
+
+                rating:
+                    rating
+
+            });
+
+        }
+
+
+        shape =
+            rotateMatrix(
+                shape
+            );
+
+    }
+
+
+    if(
+        candidates.length === 0
+    ){
+
+        return clonePiece(
+            original
+        );
+
+    }
+
+
+    candidates.sort(
+        (a,b) =>
+            a.rating -
+            b.rating
+    );
+
+
+    /* やさしい */
+
+    if(
+        level === "easy"
+    ){
+
+        return candidates[
+            Math.floor(
+                Math.random()
+                *
+                candidates.length
+            )
+        ].piece;
+
+    }
+
+
+    /* ふつう */
+
+    if(
+        level === "normal"
+    ){
+
+        if(
+            Math.random() < .28
+        ){
+
+            const range =
+                Math.min(
+                    5,
+                    candidates.length
+                );
+
+
+            return candidates[
+                Math.floor(
+                    Math.random()
+                    *
+                    range
+                )
+            ].piece;
+
+        }
+
+    }
+
+
+    /* つよい */
+
+    return candidates[0].piece;
+
+}
+
+
+/* =========================
+   CPUがプレイ
+========================= */
+
+function cpuPlay(){
+
+    if(
+        !running ||
+        mode !== "cpu" ||
+        turn !== 1
+    ){
+
+        return;
+
+    }
+
+
+    const move =
+        findCPUMove();
+
+
+    /*
+       CPUの選んだ位置を設定
+    */
+
+    pieces[1].shape =
+        move.shape.map(
+            row => [...row]
+        );
+
+
+    pieces[1].x =
+        move.x;
+
+
+    render();
+
+
+    /*
+       少し待って落とす
+    */
+
+    cpuTimer =
+        setTimeout(
+
+            function(){
+
+                if(
+                    running &&
+                    turn === 1
+                ){
+
+                    placeCurrentPiece();
+
+                }
+
+            },
+
+            350
+
+        );
+
+}
+
+
+/* =========================
+   ゲームオーバー
+========================= */
+
+function gameOver(
+    loser
+){
+
+    running = false;
+
+
+    clearTimeout(
+        cpuTimer
+    );
+
+
+    const winner =
+        loser === 0
+            ? 1
+            : 0;
+
+
+    statusText.textContent =
+        "🏆 " +
+        getPlayerName(winner) +
+        " の勝ち！！";
+
+
+    render();
+
+}
+
+
+/* =========================
+   ゲーム開始
+========================= */
+
+function startGame(){
+
+    clearTimeout(
+        cpuTimer
+    );
+
+
+    mode =
+        modeSelect.value;
+
+
+    level =
+        levelSelect.value;
+
+
+    boards = [
+
+        createBoard(),
+
+        createBoard()
+
+    ];
+
+
+    pieces = [
+
+        createPiece(),
+
+        createPiece()
+
+    ];
+
+
+    scores = [
+        0,
+        0
+    ];
+
+
+    turn =
+        Number(
+            firstSelect.value
+        );
+
+
+    running = true;
+
+
+    settings.style.display =
+        "none";
+
+
+    game.style.display =
+        "block";
+
+
+    player2Name.textContent =
+        mode === "cpu"
+            ? "🤖 コンピュータ"
+            : "👤 プレイヤー2";
+
+
+    statusText.textContent =
+        "🎮 " +
+        getPlayerName(turn) +
+        " の番！";
+
+
+    render();
+
+
+    if(
+        mode === "cpu" &&
+        turn === 1
+    ){
+
+        startCPU();
+
+    }
+
+}
+
+
+/* =========================
+   ゲーム終了
+========================= */
+
+function endGame(){
+
+    running = false;
+
+
+    clearTimeout(
+        cpuTimer
+    );
+
+
+    game.style.display =
+        "none";
+
+
+    settings.style.display =
+        "block";
+
+}
+
+
+/* =========================
+   モード変更
+========================= */
+
+modeSelect.addEventListener(
+
+    "change",
+
+    function(){
+
+        const isCPU =
+            modeSelect.value
+            ===
+            "cpu";
+
+
+        secondOption.textContent =
+            isCPU
+                ? "コンピュータ"
+                : "プレイヤー2";
+
+
+        levelSelect.disabled =
+            !isCPU;
+
+    }
+
+);
+
+
+/* =========================
+   操作ボタン登録
+========================= */
+
+document
+    .getElementById(
+        "startButton"
+    )
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+
+document
+    .getElementById(
+        "endButton"
+    )
+    .addEventListener(
+        "click",
+        endGame
+    );
+
+
+document
+    .getElementById(
+        "leftButton"
+    )
+    .addEventListener(
+        "click",
+        function(){
+
+            movePiece(-1);
+
+        }
+    );
+
+
+document
+    .getElementById(
+        "rightButton"
+    )
+    .addEventListener(
+        "click",
+        function(){
+
+            movePiece(1);
+
+        }
+    );
+
+
+document
+    .getElementById(
+        "rotateButton"
+    )
+    .addEventListener(
+        "click",
+        rotatePiece
+    );
+
+
+document
+    .getElementById(
+        "dropButton"
+    )
+    .addEventListener(
+        "click",
+        hardDrop
+    );
+
+
+/* =========================
+   初期設定
+========================= */
+
+levelSelect.disabled =
+    modeSelect.value !==
+    "cpu";
+
+</script>
+
+</body>
+</html>
