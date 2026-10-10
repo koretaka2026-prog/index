@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>かわいいおみくじ占い</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Yu Gothic",sans-serif;
+}
+
+body{
+height:100vh;
+overflow:hidden;
+background:linear-gradient(#ffd9eb,#fff8d8);
+text-align:center;
+}
+
+h1{
+margin-top:15px;
+color:#ff4f98;
+animation:bounce 2s infinite;
+}
+
+@keyframes bounce{
+50%{transform:translateY(-8px);}
+}
+
+#message{
+margin-top:10px;
+color:#555;
+font-weight:bold;
+}
+
+.omikuji-area{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+margin-top:25px;
+}
+
+.omikuji{
+width:120px;
+height:170px;
+background:white;
+border:4px solid pink;
+border-radius:15px;
+cursor:pointer;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:22px;
+font-weight:bold;
+position:relative;
+transition:.3s;
+box-shadow:0 5px 12px rgba(0,0,0,.15);
+}
+
+.omikuji:hover,
+.omikuji:active{
+transform:translateY(-10px) scale(1.05);
+}
+
+.omikuji::before{
+content:"🎀";
+position:absolute;
+top:8px;
+font-size:28px;
+}
+
+#paper{
+width:340px;
+background:white;
+margin:30px auto;
+border-radius:15px;
+padding:20px;
+box-shadow:0 0 25px rgba(0,0,0,.2);
+
+transform:scaleY(0);
+transform-origin:top center;
+opacity:0;
+
+min-height:280px;
+}
+
+.open{
+animation:openPaper 1.2s forwards;
+}
+
+@keyframes openPaper{
+0%{
+transform:scaleY(0);
+opacity:0;
+}
+60%{
+transform:scaleY(1.05);
+}
+100%{
+transform:scaleY(1);
+opacity:1;
+}
+}
+
+.rank{
+font-size:48px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.text{
+font-size:18px;
+line-height:1.8;
+}
+
+.status{
+margin-top:15px;
+text-align:left;
+font-size:17px;
+}
+
+.advice{
+margin-top:15px;
+color:#ff5a89;
+font-weight:bold;
+}
+
+button{
+padding:12px 28px;
+margin-top:10px;
+border:none;
+font-size:18px;
+border-radius:30px;
+background:#ff72b2;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.effect{
+position:fixed;
+pointer-events:none;
+}
+
+.confetti{
+width:12px;
+height:12px;
+position:fixed;
+top:-20px;
+animation:fall linear forwards;
+}
+
+@keyframes fall{
+to{
+transform:translateY(110vh) rotate(720deg);
+}
+}
+
+.spark{
+position:fixed;
+font-size:25px;
+animation:spark 2s linear forwards;
+}
+
+@keyframes spark{
+from{
+opacity:1;
+transform:scale(.3);
+}
+to{
+opacity:0;
+transform:scale(2);
+}
+}
+
+.clover{
+position:fixed;
+font-size:30px;
+animation:cloverMove 6s linear forwards;
+}
+
+@keyframes cloverMove{
+from{
+transform:translateY(100vh) rotate(0deg);
+}
+to{
+transform:translateY(-120vh) rotate(720deg);
+}
+}
+
+.cloud{
+position:fixed;
+font-size:60px;
+animation:cloudMove 12s linear forwards;
+}
+
+@keyframes cloudMove{
+from{
+left:-100px;
+}
+to{
+left:110%;
+}
+}
+
+.rain{
+position:fixed;
+width:2px;
+height:25px;
+background:#7db8ff;
+animation:rain 1s linear forwards;
+}
+
+@keyframes rain{
+to{
+transform:translateY(110vh);
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🌸 かわいいおみくじ占い 🌸</h1>
+
+<div id="message">
+好きなおみくじを選んでね♪
+</div>
+
+<div class="omikuji-area">
+
+<div class="omikuji" onclick="openOmikuji(0)">おみくじ①</div>
+<div class="omikuji" onclick="openOmikuji(1)">おみくじ②</div>
+<div class="omikuji" onclick="openOmikuji(2)">おみくじ③</div>
+<div class="omikuji" onclick="openOmikuji(3)">おみくじ④</div>
+
+</div>
+
+<div id="paper">
+
+<div class="rank"></div>
+
+<div class="text"></div>
+
+<div class="status"></div>
+
+<div class="advice"></div>
+
+</div>
+
+<button onclick="location.reload()">
+🔄 もう一度引く
+</button>
+
+<script>
+
+const fortunes=[
+
+{
+rank:"🌟大吉",
+type:"daikichi",
+text:"今日は最高の運勢です！新しいことに挑戦すると大成功の予感♪",
+love:"★★★★★",
+money:"★★★★★",
+health:"★★★★★",
+study:"★★★★★"
+},
+
+{
+rank:"🍀中吉",
+type:"chukichi",
+text:"穏やかで良い一日になりそうです。周りへの感謝を忘れずに♪",
+love:"★★★★☆",
+money:"★★★★☆",
+health:"★★★★☆",
+study:"★★★★☆"
+},
+
+{
+rank:"☁️小吉",
+type:"shokichi",
+text:"焦らず行動すると良い結果に近づけます。",
+love:"★★★☆☆",
+money:"★★★☆☆",
+health:"★★★★☆",
+study:"★★★☆☆"
+},
+
+{
+rank:"😢凶",
+type:"kyo",
+text:"今日は無理をせず慎重に過ごしましょう。",
+love:"★☆☆☆☆",
+money:"★☆☆☆☆",
+health:"★★☆☆☆",
+study:"★★☆☆☆",
+advice:"落ち込まなくて大丈夫！好きなことをしてリラックスすると運気回復♪"
+}
+
+];
+
+function openOmikuji(){
+
+removeEffects();
+
+let result=
+fortunes[Math.floor(Math.random()*fortunes.length)];
+
+let paper=document.getElementById("paper");
+
+paper.classList.remove("open");
+void paper.offsetWidth;
+paper.classList.add("open");
+
+document.querySelector(".rank").innerHTML=result.rank;
+
+document.querySelector(".text").innerHTML=result.text;
+
+document.querySelector(".status").innerHTML=
+`
+💖 恋愛運 ${result.love}<br>
+💰 金運 ${result.money}<br>
+💊 健康運 ${result.health}<br>
+📚 勉強運 ${result.study}
+`;
+
+document.querySelector(".advice").innerHTML=
+result.advice || "";
+
+if(result.type==="daikichi"){
+daikichi();
+}
+
+if(result.type==="chukichi"){
+chukichi();
+}
+
+if(result.type==="shokichi"){
+shokichi();
+}
+
+if(result.type==="kyo"){
+kyo();
+}
+
+}
+
+function daikichi(){
+
+for(let i=0;i<150;i++){
+
+let c=document.createElement("div");
+
+c.className="confetti";
+
+c.style.left=Math.random()*100+"vw";
+
+c.style.background=
+`hsl(${Math.random()*360},100%,60%)`;
+
+c.style.animationDuration=
+Math.random()*3+2+"s";
+
+document.body.appendChild(c);
+
+setTimeout(()=>c.remove(),5000);
+
+}
+
+for(let i=0;i<40;i++){
+
+let s=document.createElement("div");
+
+s.className="spark";
+
+s.innerHTML="✨";
+
+s.style.left=Math.random()*100+"vw";
+s.style.top=Math.random()*100+"vh";
+
+document.body.appendChild(s);
+
+setTimeout(()=>s.remove(),2000);
+}
+}
+
+function chukichi(){
+
+for(let i=0;i<30;i++){
+
+let c=document.createElement("div");
+
+c.className="clover";
+
+c.innerHTML="🍀";
+
+c.style.left=Math.random()*100+"vw";
+
+document.body.appendChild(c);
+
+setTimeout(()=>c.remove(),6000);
+}
+}
+
+function shokichi(){
+
+for(let i=0;i<8;i++){
+
+let c=document.createElement("div");
+
+c.className="cloud";
+
+c.innerHTML="☁️";
+
+c.style.top=(50+i*50)+"px";
+
+document.body.appendChild(c);
+
+setTimeout(()=>c.remove(),12000);
+
+}
+}
+
+function kyo(){
+
+for(let i=0;i<150;i++){
+
+let r=document.createElement("div");
+
+r.className="rain";
+
+r.style.left=Math.random()*100+"vw";
+
+r.style.top="-30px";
+
+r.style.animationDuration=
+(Math.random()*0.5+0.8)+"s";
+
+document.body.appendChild(r);
+
+setTimeout(()=>r.remove(),2000);
+}
+
+for(let i=0;i<20;i++){
+
+let s=document.createElement("div");
+
+s.className="spark";
+
+s.innerHTML="💧";
+
+s.style.left=Math.random()*100+"vw";
+s.style.top=Math.random()*40+"vh";
+
+document.body.appendChild(s);
+
+setTimeout(()=>s.remove(),2000);
+}
+
+document.body.style.background=
+"linear-gradient(#cfd8dc,#eceff1)";
+
+setTimeout(()=>{
+document.body.style.background=
+"linear-gradient(#ffd9eb,#fff8d8)";
+},4000);
+}
+
+function removeEffects(){
+
+document
+.querySelectorAll(
+".confetti,.spark,.clover,.cloud,.rain"
+)
+.forEach(e=>e.remove());
+
+document.body.style.background=
+"linear-gradient(#ffd9eb,#fff8d8)";
+}
+
+</script>
+
+</body>
+</html>
