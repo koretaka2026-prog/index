@@ -227,7 +227,7 @@
       margin-top: 4px;
     }
     .emotion-detail { 
-      font-size: 0.75rem; 
+      font-size: 0.7rem; 
       color: #ccc; 
       flex-grow: 1;
       text-align: left;
@@ -492,9 +492,61 @@
       return captureCanvas.toDataURL('image/jpeg', 0.85);
     }
 
-    // 👁️ 目・眉の動きを盛り込んだ高精度な好感度計算ロジック
-    function calculateFavorability(scores) {
-      // --- 👄 口元の要素 ---
+    // 📐 顔の角度（向き）とガイド枠へのフィット感を評価する関数
+    function evaluateFacePositionAndAngle(landmarks, canvasWidth, canvasHeight) {
+      // 1. ガイド枠の基準（画面中央、幅58%、高さ58%の楕円を想定）
+      const guideCenterX = canvasWidth * 0.5;
+      const guideCenterY = canvasHeight * 0.45; // .face-guide の top: 45% に対応
+      const guideRadiusX = (canvasWidth * 0.58) / 2;
+      const guideRadiusY = (canvasHeight * 0.58) / 2;
+
+      // 鼻の先端 (index: 1) を用いて顔の中心をチェック
+      const nose = landmarks[1];
+      const noseX = nose.x * canvasWidth;
+      const noseY = nose.y * canvasHeight;
+
+      // 楕円の内側に入っているか判定 ( (dx/rx)^2 + (dy/ry)^2 <= 1.2 程度で判定にゆとりを持たせる )
+      const dx = noseX - guideCenterX;
+      const dy = noseY - guideCenterY;
+      const ellipseVal = (dx * dx) / (guideRadiusX * guideRadiusX) + (dy * dy) / (guideRadiusY * guideRadiusY);
+      const isFit = ellipseVal <= 1.2;
+
+      // 2. 顔の向き（ロール・ヨー）の推定
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      
+      // 目の高さの差（ロール角：傾き）
+      const eyeDy = (rightEye.y - leftEye.y) * canvasHeight;
+      const rollAngle = Math.abs(eyeDy);
+
+      // 左右の向き（ヨー角）：両目の中点と鼻のX座標のズレ
+      const eyeCenterX = (leftEye.x + rightEye.x) / 2;
+      const yawOffset = Math.abs(nose.x - eyeCenterX);
+
+      let positionMessage = "";
+      let penalty = 0;
+
+      if (!isFit) {
+        positionMessage = "⚠️ 顔を枠の中心に合わせてください";
+        penalty = 25;
+      } else if (rollAngle > 18) {
+        positionMessage = "⚠️ 顔の傾きをまっすぐにしてください";
+        penalty = 15;
+      } else if (yawOffset > 0.05) {
+        positionMessage = "⚠️ 正面を向いてください";
+        penalty = 20;
+      } else {
+        positionMessage = "✨ ポジション良好";
+      }
+
+      return {
+        penalty: penalty,
+        message: positionMessage
+      };
+    }
+
+    // 👁️ 好感度計算ロジック（位置・角度のペタリも含める）
+    function calculateFavorability(scores, landmarks, canvasWidth, canvasHeight) {
       const smileL = scores["mouthSmileLeft"] || 0;
       const smileR = scores["mouthSmileRight"] || 0;
       const smileAvg = (smileL + smileR) / 2;
@@ -503,7 +555,6 @@
       const frownR = scores["mouthFrownRight"] || 0;
       const frownAvg = (frownL + frownR) / 2;
 
-      // --- 🤨 眉毛の要素 ---
       const browDownL = scores["browDownLeft"] || 0;
       const browDownR = scores["browDownRight"] || 0;
       const browDownAvg = (browDownL + browDownR) / 2;
@@ -513,7 +564,6 @@
       const browOuterUpR = scores["browOuterUpRight"] || 0;
       const browOuterUpAvg = (browOuterUpL + browOuterUpR) / 2;
 
-      // --- 👁️ 目の要素 ---
       const eyeWideL = scores["eyeWideLeft"] || 0;
       const eyeWideR = scores["eyeWideRight"] || 0;
       const eyeWideAvg = (eyeWideL + eyeWideR) / 2;
@@ -544,13 +594,16 @@
       baseScore -= browDownAvg * 35;
       baseScore -= frownAvg * 20;
 
+      // 📐 位置・角度チェックによる減点を反映
+      const posEval = evaluateFacePositionAndAngle(landmarks, canvasWidth, canvasHeight);
+      baseScore -= posEval.penalty;
+
       const finalScore = Math.min(100, Math.max(0, Math.round(baseScore)));
 
       return {
         score: finalScore,
         angerPercent: Math.round(angerAvg * 100),
-        eyeWide: eyeWideAvg,
-        browDown: browDownAvg
+        positionMsg: posEval.message
       };
     }
 
@@ -564,7 +617,7 @@
 
       if (anger > 28) {
         rank = "RANK D";
-        status = "眉間や目元に力が入っています。リラックスしましょう！";
+        status = "眉間や目元に力が入っています。リラックス！";
         title = "😡 険しい表情・不快感";
         color = "#FF3B30";
       } else if (score >= 85) {
@@ -579,12 +632,12 @@
         color = "#34C759";
       } else if (score >= 45) {
         rank = "RANK B";
-        status = "やや真顔に近いです。目元と口元をもう少し柔らかく！";
+        status = "やや真顔に近いです。もう少し柔らかい表情を！";
         title = "😐 中立・やや真面目";
         color = "#FF9500";
       } else {
         rank = "RANK C";
-        status = "目元や表情が硬くなっています。笑顔を作ってみましょう";
+        status = "表情が硬くなっています。笑顔を作ってみましょう";
         title = "😟 硬い表情・警戒";
         color = "#FF3B30";
       }
@@ -615,13 +668,17 @@
             scores[shape.categoryName] = shape.score;
           }
 
-          const fav = calculateFavorability(scores);
+          // ランドマーク情報を渡して位置・角度も含めたスコアを算出
+          const landmarks = results.faceLandmarks[0];
+          const fav = calculateFavorability(scores, landmarks, canvas.width, canvas.height);
           const favInfo = getFavorabilityText(fav);
 
           favScore.innerText = `${fav.score}%`;
           favMeter.style.width = `${fav.score}%`;
           favRank.innerText = favInfo.rank;
-          favStatus.innerText = favInfo.status;
+          
+          // ステータス欄に「位置・角度のアドバイス」と「表情のフィードバック」を併記
+          favStatus.innerText = `${fav.positionMsg} / ${favInfo.status}`;
 
           emotionTitle.innerText = favInfo.title;
           emotionTitle.style.color = favInfo.color;
@@ -643,8 +700,8 @@
             worstBox.style.display = 'block';
           }
 
-          if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-            drawLandmarks(results.faceLandmarks[0]);
+          if (landmarks) {
+            drawLandmarks(landmarks);
           }
         } else {
           resetAllParams();
