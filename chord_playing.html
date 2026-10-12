@@ -544,7 +544,7 @@
             <h4>⌨️ 操作方法</h4>
             <ul>
                 <li><b>スマホ・タブレット:</b> 画面上のコードパッドをタッチしている間音が鳴り、指を離すと自然な余韻（リリース）とともに音が消えます。</li>
-                <li><b>パソコン:</b> キーボードの <b>[1]〜[0], [Q], [W]</b> キーで上から順に各パッドを演奏できます。<b>[スペースキー]</b> でリズムの再生・停止が可能です。</li>
+                <li><b>パソコン:</b> キーボードの左側に配置された <b>[Q, W, E, R]（1行目）, [A, S, D, F]（2行目）, [Z, X, C, V]（3行目）</b> キーで、4列×3行のパッドを左上から右下へ対応させて演奏できます。<b>[スペースキー]</b> でリズムの再生・停止が可能です。</li>
             </ul>
 
             <h4>⚠️ 使用上の注意・トラブルシューティング</h4>
@@ -633,7 +633,11 @@
         "synth": "シンセサイザー (Lead Synth)"
     };
 
-    const KEY_MAPPINGS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w'];
+    // パソコンのキーボード対応表（左上から右下へ 4列×3行 に対応）
+    // 1行目: Q, W, E, R
+    // 2行目: A, S, D, F
+    // 3行目: Z, X, C, V
+    const KEY_MAPPINGS = ['q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'z', 'x', 'c', 'v'];
 
     let audioCtx = null;
     let selectedInstrument = "grand-piano";
@@ -1286,6 +1290,7 @@
         noise.buffer = buffer;
 
         const filter = audioCtx.createBiquadFilter();
+        filter.type = "highside"; // (safe highpass)
         filter.type = "highpass";
         filter.frequency.value = 5000;
 
