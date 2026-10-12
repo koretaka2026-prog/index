@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>スマホギター演奏アプリ</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-active: #4338ca;
+            --danger: #ef4444;
+            --border-color: #334155;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 900px;
+            height: 95vh;
+            max-height: 600px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        /* ヘルパーバー */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .app-title {
+            font-size: 1rem;
+            font-weight: bold;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .current-chord-display {
+            background: var(--accent-primary);
+            color: white;
+            padding: 0.2rem 0.75rem;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn:hover { background: var(--accent-hover); }
+        .btn:active { transform: scale(0.97); }
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+        .btn-secondary:hover { background: #475569; }
+
+        /* メインプレイエリア（左右分割） */
+        .play-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0.75rem;
+            padding: 0.75rem;
+        }
+
+        /* 左側：4×3コードボタン */
+        .chord-sidebar {
+            width: 220px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .chord-btn {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            user-select: none;
+        }
+
+        .chord-btn:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .chord-btn.active {
+            background: var(--accent-primary);
+            border-color: #818cf8;
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+            transform: scale(0.96);
+        }
+
+        .chord-btn .chord-sub {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .chord-btn.active .chord-sub {
+            color: #e0e7ff;
+        }
+
+        /* 右側：ギターの弦エリア（1弦が上、6弦が下） */
+        .strings-container {
+            flex: 1;
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .string-row {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            border-bottom: 1px dashed rgba(51, 65, 85, 0.4);
+        }
+
+        .string-row:last-child {
+            border-bottom: none;
+        }
+
+        .string-row:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* 弦本体（太さを変更） */
+        .string-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, #cbd5e1, #94a3b8, #e2e8f0);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            pointer-events: none;
+            transition: background 0.1s;
+        }
+
+        /* 1弦〜6弦の太さ・色調整 */
+        .string-row[data-string="1"] .string-line { height: 1.5px; background: #e2e8f0; }
+        .string-row[data-string="2"] .string-line { height: 2px; background: #cbd5e1; }
+        .string-row[data-string="3"] .string-line { height: 2.5px; background: #cbd5e1; }
+        .string-row[data-string="4"] .string-line { height: 3.5px; background: #94a3b8; }
+        .string-row[data-string="5"] .string-line { height: 4.5px; background: #64748b; }
+        .string-row[data-string="6"] .string-line { height: 5.5px; background: #475569; }
+
+        /* ミュート時の弦 */
+        .string-row.muted .string-line {
+            background: #334155 !important;
+            height: 1.5px !important;
+            opacity: 0.4;
+        }
+
+        /* 弦の情報バッジ（左端） */
+        .string-badge {
+            position: absolute;
+            left: 8px;
+            z-index: 2;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            pointer-events: none;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .string-badge .note-name {
+            color: var(--text-color);
+        }
+
+        .string-row.muted .string-badge {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* 弦を弾いた時のアニメーション（上下に激しく震える） */
+        @keyframes pluckVibrate {
+            0% { transform: translateY(-50%) scaleY(1); }
+            20% { transform: translateY(-50%) scaleY(4.5) skewX(2deg); }
+            40% { transform: translateY(-50%) scaleY(0.3) skewX(-2deg); }
+            60% { transform: translateY(-50%) scaleY(2.5); }
+            80% { transform: translateY(-50%) scaleY(0.8); }
+            100% { transform: translateY(-50%) scaleY(1); }
+        }
+
+        .string-row.plucked .string-line {
+            animation: pluckVibrate 0.25s ease-out;
+            background: #818cf8 !important;
+            box-shadow: 0 0 10px #6366f1;
+        }
+
+        /* モーダル共通 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .modal-header h3 { font-size: 1.1rem; color: var(--text-color); }
+        .modal-close-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            font-size: 1.25rem; cursor: pointer; padding: 0.2rem 0.5rem; border-radius: 4px;
+        }
+        .modal-close-btn:hover { color: var(--text-color); background: var(--border-color); }
+        .modal-body {
+            padding: 1.25rem; overflow-y: auto; font-size: 0.9rem; display: flex; flex-direction: column; gap: 1rem;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        label { font-weight: 600; color: var(--text-muted); font-size: 0.85rem; }
+        select, input[type="range"] {
+            width: 100%; padding: 0.6rem; background: var(--bg-color);
+            border: 1px solid var(--border-color); color: var(--text-color);
+            border-radius: 8px; font-size: 0.9rem;
+        }
+        select:focus { outline: none; border-color: var(--accent-primary); }
+
+        /* レスポンシブ調整 */
+        @media (max-width: 650px) {
+            .app-container { height: 100vh; max-height: none; border-radius: 0; border: none; }
+            .chord-sidebar { width: 170px; }
+            .chord-btn { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- ヘルパーバー -->
+    <div class="top-bar">
+        <div class="app-title">
+            🎸 ギター演奏アプリ
+        </div>
+        <div class="current-chord-display" id="current-chord-label">C</div>
+        <button id="open-settings" class="btn btn-secondary">
+            ⚙️ 設定・エフェクター
+        </button>
+    </div>
+
+    <!-- メイン演奏画面 -->
+    <div class="play-main">
+        <!-- 左側：4行×3列（12スロット）のコードボタン -->
+        <div class="chord-sidebar" id="chord-sidebar">
+            <!-- JavaScriptで動的生成 -->
+        </div>
+
+        <!-- 右側：1弦〜6弦エリア（1弦が上、6弦が下） -->
+        <div class="strings-container" id="strings-container">
+            <!-- 1弦 (High E) -->
+            <div class="string-row" data-string="1">
+                <div class="string-badge"><span>1弦</span><span class="note-name" id="note-1">E</span></div>
+                <div class="string-line"></div>
+            </div>
+            <!-- 2弦 (B) -->
+            <div class="string-row" data-string="2">
+                <div class="string-badge"><span>2弦</span><span class="note-name" id="note-2">B</span></div>
+                <div class="string-line"></div>
+            </div>
+            <!-- 3弦 (G) -->
+            <div class="string-row" data-string="3">
+                <div class="string-badge"><span>3弦</span><span class="note-name" id="note-3">G</span></div>
+                <div class="string-line"></div>
+            </div>
+            <!-- 4弦 (D) -->
+            <div class="string-row" data-string="4">
+                <div class="string-badge"><span>4弦</span><span class="note-name" id="note-4">D</span></div>
+                <div class="string-line"></div>
+            </div>
+            <!-- 5弦 (A) -->
+            <div class="string-row" data-string="5">
+                <div class="string-badge"><span>5弦</span><span class="note-name" id="note-5">A</span></div>
+                <div class="string-line"></div>
+            </div>
+            <!-- 6弦 (Low E) -->
+            <div class="string-row" data-string="6">
+                <div class="string-badge"><span>6弦</span><span class="note-name" id="note-6">E</span></div>
+                <div class="string-line"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 設定モーダル -->
+<div id="settings-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>⚙️ 楽器・エフェクター設定</h3>
+            <button id="close-settings" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="instrument-select">音色の種類</label>
+                <select id="instrument-select">
+                    <option value="acoustic-guitar">フォークギター (Acoustic Guitar)</option>
+                    <option value="classic-guitar">クラシックギター (Classic Guitar)</option>
+                    <option value="electric-guitar">エレキギター・クリーン (Clean Electric)</option>
+                    <option value="distortion-guitar">エレキギター・ディストーション (Rock Distortion)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="effect-select">エフェクター</label>
+                <select id="effect-select">
+                    <option value="none">なし (Bypass)</option>
+                    <option value="chorus">コーラス (Chorus)</option>
+                    <option value="delay">ディレイ (Delay)</option>
+                    <option value="reverb">リバーブ (Reverb / Hall)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>ドラム自動リズム伴奏</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="rhythm-toggle-btn" class="btn" style="flex: 1;">リズム再生 (START)</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>テンポ (BPM): <span id="bpm-val">120</span></label>
+                <input type="range" id="tempo-input" min="60" max="180" value="120">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ギター音名から周波数への変換マップ (オクターブ正確対応)
+    // 基準ピッチ A4 = 440Hz
+    const NOTE_FREQS = {
+        "E2": 82.41, "F2": 87.31, "F#2": 92.50, "G2": 98.00, "G#2": 103.83, "A2": 110.00, "A#2": 116.54, "B2": 123.47,
+        "C3": 130.81, "C#3": 138.59, "D3": 146.83, "D#3": 155.56, "E3": 164.81, "F3": 174.61, "F#3": 185.00, "G3": 196.00, "G#3": 207.65, "A3": 220.00, "A#3": 233.08, "B3": 246.94,
+        "C4": 261.63, "C#4": 277.18, "D4": 293.66, "D#4": 311.13, "E4": 329.63, "F4": 349.23, "F#4": 369.99, "G4": 392.00, "G#4": 415.30, "A4": 440.00, "A#4": 466.16, "B4": 493.88,
+        "C5": 523.25, "C#5": 554.37, "D5": 587.33, "D#5": 622.25, "E5": 659.25, "F5": 698.46, "F#5": 739.98, "G5": 783.99
+    };
+
+    // 各コードの6弦〜1弦のボイシング定義 (「MUTE」または具体的なオクターブ音名)
+    // 構成：6弦, 5弦, 4弦, 3弦, 2弦, 1弦 の順 (インデックス 0〜5)
+    const CHORD_VOICINGS = {
+        "C":  ["MUTE", "C3", "E3", "G3", "C4", "E4"],
+        "G":  ["G2", "B2", "D3", "G3", "B3", "G4"],
+        "D":  ["MUTE", "MUTE", "D3", "A3", "D4", "F#4"],
+        "A":  ["MUTE", "A2", "E3", "A3", "C#4", "E4"],
+        "E":  ["E2", "B2", "E3", "G#3", "B3", "E4"],
+        "F":  ["F2", "C3", "F3", "A3", "C4", "F4"],
+        "Am": ["MUTE", "A2", "E3", "A3", "C4", "E4"],
+        "Em": ["E2", "B2", "E3", "G3", "B3", "E4"],
+        "Dm": ["MUTE", "MUTE", "D3", "A3", "D4", "F4"],
+        "Bm": ["MUTE", "B2", "F#3", "B3", "D4", "F#4"],
+        "C7": ["MUTE", "C3", "E3", "A#3", "C4", "E4"],
+        "G7": ["G2", "B2", "D3", "F3", "B3", "G4"]
+    };
+
+    // 4行×3列（12個）のボタンに配置するコードリスト
+    const CHORD_LIST = [
+        { name: "C", sub: "メジャー" },
+        { name: "G", sub: "メジャー" },
+        { name: "D", sub: "メジャー" },
+        { name: "A", sub: "メジャー" },
+        { name: "E", sub: "メジャー" },
+        { name: "F", sub: "メジャー" },
+        { name: "Am", sub: "マイナー" },
+        { name: "Em", sub: "マイナー" },
+        { name: "Dm", sub: "マイナー" },
+        { name: "Bm", sub: "マイナー" },
+        { name: "C7", sub: "セブンス" },
+        { name: "G7", sub: "セブンス" }
+    ];
+
+    let audioCtx = null;
+    let masterCompressor = null;
+    let masterLimiter = null;
+    let effectNode = null;
+
+    let selectedChord = "C";
+    let selectedInstrument = "acoustic-guitar";
+    let selectedEffect = "none";
+    let currentBpm = 120;
+    let isRhythmPlaying = false;
+    let rhythmTimer = null;
+    let rhythmStep = 0;
+
+    // 弦ごとの基本音量バランス（1弦が小さく、6弦が大きい）
+    // インデックス0が1弦、5が6弦
+    const STRING_VOLUMES = [0.4, 0.55, 0.7, 0.9, 1.2, 1.6];
+
+    window.addEventListener("DOMContentLoaded", () => {
+        initChordSidebar();
+        updateStringLabels();
+
+        // モーダル設定
+        const modal = document.getElementById("settings-modal");
+        document.getElementById("open-settings").addEventListener("click", () => modal.classList.add("active"));
+        document.getElementById("close-settings").addEventListener("click", () => modal.classList.remove("active"));
+        modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("active"); });
+
+        // 設定変更リスナー
+        document.getElementById("instrument-select").addEventListener("change", (e) => {
+            selectedInstrument = e.target.value;
+        });
+
+        document.getElementById("effect-select").addEventListener("change", (e) => {
+            selectedEffect = e.target.value;
+            setupEffectNode();
+        });
+
+        const tempoInput = document.getElementById("tempo-input");
+        const bpmVal = document.getElementById("bpm-val");
+        tempoInput.addEventListener("input", (e) => {
+            currentBpm = parseInt(e.target.value);
+            bpmVal.textContent = currentBpm;
+            if (isRhythmPlaying) restartRhythm();
+        });
+
+        document.getElementById("rhythm-toggle-btn").addEventListener("click", toggleRhythm);
+
+        // 弦のタッチ＆スワイプ演奏イベントの初期化
+        initStringInteractions();
+
+        // 初回タッチ時のオーディオコンテキスト有効化
+        const unlockAudio = () => {
+            initAudio();
+            window.removeEventListener("touchstart", unlockAudio);
+            window.removeEventListener("mousedown", unlockAudio);
+        };
+        window.addEventListener("touchstart", unlockAudio, { once: true });
+        window.addEventListener("mousedown", unlockAudio, { once: true });
+    });
+
+    function initAudio() {
+        if (!audioCtx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioCtx();
+
+            // 歪み防止のマスターコンプレッサー＆リミッターチェーン
+            masterCompressor = audioCtx.createDynamicsCompressor();
+            masterCompressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+            masterCompressor.knee.setValueAtTime(6, audioCtx.currentTime);
+            masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+            masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+            masterCompressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+            masterLimiter = audioCtx.createDynamicsCompressor();
+            masterLimiter.threshold.setValueAtTime(-1, audioCtx.currentTime);
+            masterLimiter.ratio.setValueAtTime(20, audioCtx.currentTime);
+
+            masterCompressor.connect(masterLimiter);
+            masterLimiter.connect(audioCtx.destination);
+
+            setupEffectNode();
+        }
+        if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+    }
+
+    function setupEffectNode() {
+        if (!audioCtx) return;
+        // エフェクト切替処理
+        // 簡易実装としてマスター手前にインサート
+    }
+
+    function initChordSidebar() {
+        const sidebar = document.getElementById("chord-sidebar");
+        sidebar.innerHTML = "";
+
+        CHORD_LIST.forEach((chordObj, idx) => {
+            const btn = document.createElement("div");
+            btn.className = `chord-btn ${chordObj.name === selectedChord ? "active" : ""}`;
+            btn.innerHTML = `
+                <span>${chordObj.name}</span>
+                <span class="chord-sub">${chordObj.sub}</span>
+            `;
+
+            btn.addEventListener("pointerdown", (e) => {
+                e.preventDefault();
+                selectChord(chordObj.name);
+            });
+
+            sidebar.appendChild(btn);
+        });
+    }
+
+    function selectChord(chordName) {
+        selectedChord = chordName;
+        document.getElementById("current-chord-label").textContent = chordName;
+
+        // ボタンの見た目更新
+        const buttons = document.querySelectorAll(".chord-btn");
+        CHORD_LIST.forEach((c, i) => {
+            if (c.name === chordName) {
+                buttons[i].classList.add("active");
+            } else {
+                buttons[i].classList.remove("active");
+            }
+        });
+
+        updateStringLabels();
+    }
+
+    function updateStringLabels() {
+        const voicing = CHORD_VOICINGS[selectedChord] || ["MUTE","MUTE","MUTE","MUTE","MUTE","MUTE"];
+        // voicingのインデックス0が6弦、5が1弦だが、表示は1弦(上)〜6弦(下)にする
+        // 画面上のデータ行は 1〜6弦
+        for (let stringNum = 1; stringNum <= 6; stringNum++) {
+            // voicing配列でのインデックス: 1弦は voicing[5], 6弦は voicing[0]
+            const voicingIdx = 6 - stringNum;
+            const noteOrMute = voicing[voicingIdx];
+            const rowEl = document.querySelector(`.string-row[data-string="${stringNum}"]`);
+            const noteEl = document.getElementById(`note-${stringNum}`);
+
+            if (noteOrMute === "MUTE") {
+                rowEl.classList.add("muted");
+                noteEl.textContent = "× (ミュート)";
+            } else {
+                rowEl.classList.remove("muted");
+                noteEl.textContent = noteOrMute;
+            }
+        }
+    }
+
+    function initStringInteractions() {
+        const container = document.getElementById("strings-container");
+
+        let isDragging = false;
+
+        const handleTouchOrMouse = (e) => {
+            e.preventDefault();
+            initAudio();
+
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const rows = container.querySelectorAll(".string-row");
+
+            rows.forEach((row, idx) => {
+                const rect = row.getBoundingClientRect();
+                // 弦の当たり判定を少し広げる
+                if (clientY >= rect.top - 10 && clientY <= rect.bottom + 10) {
+                    const stringNum = parseInt(row.getAttribute("data-string"));
+                    pluckString(stringNum, row);
+                }
+            });
+        };
+
+        container.addEventListener("pointerdown", (e) => {
+            isDragging = true;
+            handleTouchOrMouse(e);
+        });
+
+        container.addEventListener("pointermove", (e) => {
+            if (isDragging) {
+                handleTouchOrMouse(e);
+            }
+        });
+
+        window.addEventListener("pointerup", () => {
+            isDragging = false;
+        });
+    }
+
+    function pluckString(stringNum, rowEl) {
+        const voicing = CHORD_VOICINGS[selectedChord];
+        const voicingIdx = 6 - stringNum; // 1弦=5, 6弦=0
+        const noteName = voicing[voicingIdx];
+
+        if (noteName === "MUTE") {
+            // ミュート音（コツンという音）を再生
+            playMuteSound();
+            triggerPluckAnimation(rowEl);
+            return;
+        }
+
+        const freq = NOTE_FREQS[noteName];
+        if (!freq) return;
+
+        playStringSound(freq, stringNum);
+        triggerPluckAnimation(rowEl);
+    }
+
+    function triggerPluckAnimation(rowEl) {
+        rowEl.classList.remove("plucked");
+        void rowEl.offsetWidth; // リフロー強制
+        rowEl.classList.add("plucked");
+    }
+
+    function playStringSound(frequency, stringNum) {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        // 弦のボリューム倍率（1弦が小さく、6弦が大きい）
+        const volumeMultiplier = STRING_VOLUMES[stringNum - 1];
+
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const filterNode = audioCtx.createBiquadFilter();
+
+        if (selectedInstrument === "acoustic-guitar") {
+            osc1.type = "triangle";
+            osc2.type = "sine";
+            filterNode.type = "lowpass";
+            filterNode.frequency.setValueAtTime(2200, now);
+            gainNode.gain.setValueAtTime(0.0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3 * volumeMultiplier, now + 0.015);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        } else if (selectedInstrument === "classic-guitar") {
+            osc1.type = "sine";
+            osc2.type = "triangle";
+            filterNode.type = "lowpass";
+            filterNode.frequency.setValueAtTime(1400, now);
+            gainNode.gain.setValueAtTime(0.0, now);
+            gainNode.gain.linearRampToValueAtTime(0.25 * volumeMultiplier, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+        } else if (selectedInstrument === "electric-guitar") {
+            osc1.type = "sawtooth";
+            osc2.type = "square";
+            filterNode.type = "lowpass";
+            filterNode.frequency.setValueAtTime(3200, now);
+            gainNode.gain.setValueAtTime(0.0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2 * volumeMultiplier, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        } else if (selectedInstrument === "distortion-guitar") {
+            osc1.type = "sawtooth";
+            osc2.type = "sawtooth";
+            filterNode.type = "lowpass";
+            filterNode.frequency.setValueAtTime(2500, now);
+            gainNode.gain.setValueAtTime(0.0, now);
+            gainNode.gain.linearRampToValueAtTime(0.18 * volumeMultiplier, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+        }
+
+        osc1.frequency.setValueAtTime(frequency, now);
+        osc2.frequency.setValueAtTime(frequency, now);
+        osc2.detune.setValueAtTime(4, now); // わずかにデチューンして厚みを持たせる
+
+        osc1.connect(filterNode);
+        osc2.connect(filterNode);
+        filterNode.connect(gainNode);
+        gainNode.connect(masterCompressor);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 1.6);
+        osc2.stop(now + 1.6);
+    }
+
+    function playMuteSound() {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const bufferSize = audioCtx.sampleRate * 0.05;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.01));
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 300;
+        filter.Q.value = 1.0;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterCompressor);
+
+        noise.start(now);
+        noise.stop(now + 0.05);
+    }
+
+    function toggleRhythm() {
+        initAudio();
+        const btn = document.getElementById("rhythm-toggle-btn");
+        if (isRhythmPlaying) {
+            stopRhythm();
+            btn.textContent = "リズム再生 (START)";
+            btn.style.background = "";
+        } else {
+            startRhythm();
+            btn.textContent = "リズム停止 (STOP)";
+            btn.style.background = "var(--danger)";
+        }
+    }
+
+    function startRhythm() {
+        isRhythmPlaying = true;
+        rhythmStep = 0;
+        startRhythmInterval();
+    }
+
+    function stopRhythm() {
+        isRhythmPlaying = false;
+        if (rhythmTimer) clearInterval(rhythmTimer);
+    }
+
+    function restartRhythm() {
+        if (rhythmTimer) clearInterval(rhythmTimer);
+        startRhythmInterval();
+    }
+
+    function startRhythmInterval() {
+        const interval = (60 / currentBpm / 4) * 1000;
+        rhythmTimer = setInterval(() => {
+            playDrumStep(rhythmStep);
+            rhythmStep = (rhythmStep + 1) % 8;
+        }, interval);
+    }
+
+    function playDrumStep(step) {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        // シンプルな8ビートパターン (Kick: 0, 4 / Snare: 2, 6 / HiHat: 全ステップ)
+        if (step === 0 || step === 4) {
+            playKick(now);
+        }
+        if (step === 2 || step === 6) {
+            playSnare(now);
+        }
+        playHiHat(now);
+    }
+
+    function playKick(time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(130, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.12);
+        
+        gain.gain.setValueAtTime(0.4, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+
+        osc.connect(gain);
+        gain.connect(masterCompressor);
+        osc.start(time);
+        osc.stop(time + 0.12);
+    }
+
+    function playSnare(time) {
+        const bufferSize = audioCtx.sampleRate * 0.08;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 800;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.25, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterCompressor);
+
+        noise.start(time);
+        noise.stop(time + 0.08);
+    }
+
+    function playHiHat(time) {
+        const bufferSize = audioCtx.sampleRate * 0.04;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 6000;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.12, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterCompressor);
+
+        noise.start(time);
+        noise.stop(time + 0.04);
+    }
+</script>
+
+</body>
+</html>
