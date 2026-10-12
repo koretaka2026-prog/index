@@ -393,7 +393,7 @@
 
 <div class="container">
     <!-- 画面1: 初期設定画面 -->
-    <div id="setup-screen" class="screen active">
+    <div id="setup-screen" class="screen">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h1 style="margin: 0; flex: 1;">コード演奏ツール設定</h1>
             <button id="open-help-setup" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.8rem; width: auto;">
@@ -468,8 +468,8 @@
         <button id="back-to-setup-from-rhythm" class="btn">設定に戻る</button>
     </div>
 
-    <!-- 画面3: 演奏画面 -->
-    <div id="play-screen" class="screen">
+    <!-- 画面3: 演奏画面（初期表示） -->
+    <div id="play-screen" class="screen active">
         <!-- 第1行コントロールバー -->
         <div class="play-top-bar">
             <button id="back-to-setup" class="btn btn-secondary" title="設定に戻る">
@@ -711,6 +711,9 @@
 
         initSetupGrid();
         initRhythmSetupUI();
+        
+        // 初期画面として演奏画面を描画
+        renderPlayGrid();
 
         // モーダル開閉イベント
         const helpModal = document.getElementById("help-modal");
