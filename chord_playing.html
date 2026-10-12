@@ -381,7 +381,7 @@
         </div>
 
         <div class="info-text">
-            📱 <b>スマホ操作:</b> パッドをタッチして演奏（離すと音が止まります）<br>マナーモードがONのときは音が鳴らないことがあります。
+            📱 <b>iPhone用注意:</b> マナーモード（サイレントスイッチ）がONのときは音が鳴らないことがあります。本体横のスイッチと音量をご確認ください。
         </div>
     </div>
 </div>
@@ -463,6 +463,15 @@
         initSetupGrid();
         initRhythmSetupUI();
 
+        // 画面上の任意の最初のタッチ/クリックでiOSの音声を完全にアンロックするグローバルリスナー
+        const unlockAudio = () => {
+            initAudio();
+            window.removeEventListener('touchstart', unlockAudio);
+            window.removeEventListener('click', unlockAudio);
+        };
+        window.addEventListener('touchstart', unlockAudio, { once: true });
+        window.addEventListener('click', unlockAudio, { once: true });
+
         document.getElementById("start-btn").addEventListener("click", startPlayScreen);
         document.getElementById("back-to-setup").addEventListener("click", returnToSetup);
         document.getElementById("back-to-setup-from-rhythm").addEventListener("click", returnToSetupFromRhythm);
@@ -529,14 +538,26 @@
         });
     });
 
-    // モバイル端末対応の堅牢なオーディオコンテキスト初期化
+    // iPhone (iOS Safari) 向けの強力なオーディオコンテキスト初期化・復帰関数
     function initAudio() {
-        if (!audioCtx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContextClass();
-        }
-        if (audioCtx.state === "suspended") {
-            audioCtx.resume();
+        try {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+            // iOS向けの無音バッファ強制キック（音声出力を確実に有効化）
+            const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+            const channel = buffer.getChannelData(0);
+            channel[0] = 0;
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+        } catch (e) {
+            console.error("Audio initialization error:", e);
         }
     }
 
@@ -642,7 +663,7 @@
 
                 const startHandler = (e) => {
                     e.preventDefault();
-                    initAudio(); // タッチ時に確実に有効化
+                    initAudio(); // タッチ時に確実にオーディオを有効化
                     if (activeVoices.has(pad)) return;
                     pad.classList.add("pressed");
                     startChordNote(chord, selectedInstrument, pad);
