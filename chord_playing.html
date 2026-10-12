@@ -41,7 +41,7 @@
 
         .container {
             width: 100%;
-            max-width: 680px;
+            max-width: 720px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
@@ -215,8 +215,20 @@
             border: 1px solid var(--border-color);
             padding: 0.6rem 0.75rem;
             border-radius: 8px;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .play-sub-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
             justify-content: space-between;
         }
 
@@ -271,6 +283,7 @@
         .nav-buttons {
             display: flex;
             gap: 0.75rem;
+            margin-top: 0.75rem;
         }
 
         .info-text {
@@ -280,6 +293,100 @@
             line-height: 1.4;
             margin-top: 0.5rem;
         }
+
+        /* --- ヘルプモーダル用スタイル --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 540px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            animation: modalIn 0.2s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .modal-close-btn:hover {
+            color: var(--text-color);
+            background: var(--border-color);
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .modal-body h4 {
+            color: var(--text-color);
+            font-size: 0.95rem;
+            margin-top: 1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .modal-body h4:first-child {
+            margin-top: 0;
+        }
+
+        .modal-body ul {
+            padding-left: 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-body li {
+            margin-bottom: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -287,19 +394,26 @@
 <div class="container">
     <!-- 画面1: 初期設定画面 -->
     <div id="setup-screen" class="screen active">
-        <h1>コード演奏ツール設定</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h1 style="margin: 0; flex: 1;">コード演奏ツール設定</h1>
+            <button id="open-help-setup" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.8rem; width: auto;">
+                ❓ ヘルプ
+            </button>
+        </div>
         
         <div class="form-group">
             <label for="instrument-select">楽器の種類</label>
             <select id="instrument-select">
-                <option value="piano">ピアノ (Piano)</option>
+                <option value="grand-piano">グランドピアノ (Grand Piano)</option>
                 <option value="acoustic-guitar">フォークギター (Acoustic Guitar)</option>
-                <option value="electric-guitar">エレキギター (Electric Guitar)</option>
+                <option value="electric-guitar">エレキギター・クリーン (Clean Electric)</option>
+                <option value="distortion-guitar">エレキギター・ディストーション (Rock Distortion)</option>
                 <option value="ukulele">ウクレレ (Ukulele)</option>
-                <option value="synth">シンセサイザー (Lead Synth)</option>
-                <option value="organ">オルガン (Organ)</option>
+                <option value="vibraphone">ビブラフォン (Vibraphone)</option>
+                <option value="jazz-organ">ジャズオルガン (Jazz Organ)</option>
                 <option value="pipe-organ">パイプオルガン (Pipe Organ)</option>
                 <option value="strings">ストリングス (Warm Strings)</option>
+                <option value="synth">シンセサイザー (Lead Synth)</option>
             </select>
         </div>
 
@@ -311,11 +425,14 @@
         </div>
 
         <div class="nav-buttons">
-            <button id="to-rhythm-setup" class="btn btn-secondary" style="width: 50%;">
+            <button id="to-rhythm-setup" class="btn btn-secondary" style="flex: 1;">
                 <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 リズム設定へ
             </button>
-            <button id="start-btn" class="btn" style="width: 50%;">演奏画面へ</button>
+            <button id="start-btn" class="btn" style="flex: 1;">演奏画面へ</button>
+        </div>
+        <div style="margin-top: 0.75rem;">
+            <button id="reset-settings-btn" class="btn btn-secondary" style="width: 100%; font-size:0.8rem; background: #334155; color:#cbd5e1;">設定を初期状態にリセット</button>
         </div>
     </div>
 
@@ -353,6 +470,7 @@
 
     <!-- 画面3: 演奏画面 -->
     <div id="play-screen" class="screen">
+        <!-- 第1行コントロールバー -->
         <div class="play-top-bar">
             <button id="back-to-setup" class="btn btn-secondary" title="設定に戻る">
                 <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -374,14 +492,66 @@
                 <input type="range" id="play-tempo-input" min="60" max="180" value="120">
                 <span id="play-tempo-val" style="width: 24px; text-align: right;">120</span>
             </div>
+
+            <button id="open-help-play" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.8rem; width: auto;" title="ヘルプ">
+                ❓
+            </button>
         </div>
 
+        <!-- 第2行：演奏画面用 音色変更セレクトバー -->
+        <div class="play-sub-bar">
+            <label for="play-instrument-select" style="margin:0; font-size:0.8rem; white-space:nowrap;">音色変更:</label>
+            <select id="play-instrument-select" style="padding: 0.4rem; font-size: 0.85rem;">
+                <option value="grand-piano">グランドピアノ (Grand Piano)</option>
+                <option value="acoustic-guitar">フォークギター (Acoustic Guitar)</option>
+                <option value="electric-guitar">エレキギター・クリーン (Clean Electric)</option>
+                <option value="distortion-guitar">エレキギター・ディストーション (Rock Distortion)</option>
+                <option value="ukulele">ウクレレ (Ukulele)</option>
+                <option value="vibraphone">ビブラフォン (Vibraphone)</option>
+                <option value="jazz-organ">ジャズオルガン (Jazz Organ)</option>
+                <option value="pipe-organ">パイプオルガン (Pipe Organ)</option>
+                <option value="strings">ストリングス (Warm Strings)</option>
+                <option value="synth">シンセサイザー (Lead Synth)</option>
+            </select>
+        </div>
+
+        <!-- 4列3行のパッド -->
         <div id="play-grid" class="grid-4x3">
             <!-- JavaScriptで動的生成 -->
         </div>
 
         <div class="info-text">
-            📱 <b>iPhone用注意:</b> マナーモード（サイレントスイッチ）がONのときは音が鳴らないことがあります。本体横のスイッチと音量をご確認ください。
+            📱 <b>操作ヒント:</b> 設定内容は自動保存されます。パッドをタッチして演奏してください。
+        </div>
+    </div>
+</div>
+
+<!-- ヘルプモーダル -->
+<div id="help-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>ヘルプ & 使用上の注意</h3>
+            <button id="close-help-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <h4>🎵 このアプリの使い方</h4>
+            <ul>
+                <li><b>コード配置の設定:</b> 設定画面の12個のスロットから、お好きなコード（メジャー、マイナー、セブンス、#やb付きコードなど）を自由に配置できます。</li>
+                <li><b>楽器の変更:</b> ピアノやギター、オルガン、ストリングスなど多彩な音色を、設定画面および演奏画面からいつでも切り替えられます。</li>
+                <li><b>リズム演奏:</b> 「リズム再生」ボタンまたはスペースキーで、ドラムの自動演奏（キック・スネア・ハイハット）をON/OFFできます。「リズム設定」画面でパターンをカスタマイズ可能です。</li>
+            </ul>
+
+            <h4>⌨️ 操作方法</h4>
+            <ul>
+                <li><b>スマホ・タブレット:</b> 画面上のコードパッドをタッチしている間音が鳴り、指を離すと自然な余韻（リリース）とともに音が消えます。</li>
+                <li><b>パソコン:</b> キーボードの <b>[1]〜[0], [Q], [W]</b> キーで上から順に各パッドを演奏できます。<b>[スペースキー]</b> でリズムの再生・停止が可能です。</li>
+            </ul>
+
+            <h4>⚠️ 使用上の注意・トラブルシューティング</h4>
+            <ul>
+                <li><b>スマホで音が出ない場合:</b> iPhone等のマナーモード（サイレントスイッチ）がONになっていると音が出ないことがあります。スイッチを解除し、本体音量ボタンを上げてください。また、ブラウザの仕様により、画面を最初にタッチした瞬間に音声機能が有効化されます。</li>
+                <li><b>設定の保存について:</b> 楽器の種類、コード配置、リズムパターン、テンポ（BPM）はブラウザに自動保存（ローカルストレージ）されるため、再読み込みしても設定が維持されます。</li>
+            </ul>
         </div>
     </div>
 </div>
@@ -393,10 +563,20 @@
         "C7": [261.63, 329.63, 392.00, 466.16],
         "Cmaj7": [261.63, 329.63, 392.00, 493.88],
         
+        "C#": [277.18, 349.23, 415.30],
+        "C#m": [277.18, 329.63, 415.30],
+        "C#7": [277.18, 349.23, 415.30, 493.88],
+        "Db": [277.18, 349.23, 415.30],
+
         "D": [293.66, 369.99, 440.00],
         "Dm": [293.66, 349.23, 440.00],
         "D7": [293.66, 369.99, 440.00, 523.25],
         "Dmaj7": [293.66, 369.99, 440.00, 554.37],
+
+        "D#": [311.13, 392.00, 466.16],
+        "D#m": [311.13, 369.99, 466.16],
+        "Eb": [311.13, 392.00, 466.16],
+        "Ebm": [311.13, 369.99, 466.16],
 
         "E": [329.63, 415.30, 493.88],
         "Em": [329.63, 392.00, 493.88],
@@ -408,15 +588,31 @@
         "F7": [349.23, 440.00, 523.25, 622.25],
         "Fmaj7": [349.23, 440.00, 523.25, 659.25],
 
+        "F#": [369.99, 466.16, 554.37],
+        "F#m": [369.99, 440.00, 554.37],
+        "F#7": [369.99, 466.16, 554.37, 659.25],
+        "Gb": [369.99, 466.16, 554.37],
+
         "G": [392.00, 493.88, 587.33],
         "Gm": [392.00, 466.16, 587.33],
         "G7": [392.00, 493.88, 587.33, 698.46],
         "Gmaj7": [392.00, 493.88, 587.33, 739.99],
 
+        "G#": [415.30, 523.25, 622.25],
+        "G#m": [415.30, 493.88, 622.25],
+        "Ab": [415.30, 523.25, 622.25],
+        "Abm": [415.30, 493.88, 622.25],
+
         "A": [440.00, 554.37, 659.25],
         "Am": [440.00, 523.25, 659.25],
         "A7": [440.00, 554.37, 659.25, 783.99],
         "Amaj7": [440.00, 554.37, 659.25, 830.61],
+
+        "A#": [466.16, 587.33, 698.46],
+        "A#m": [466.16, 554.37, 698.46],
+        "Bb": [466.16, 587.33, 698.46],
+        "Bbm": [466.16, 554.37, 698.46],
+        "Bb7": [466.16, 587.33, 698.46, 830.61],
 
         "B": [493.88, 622.25, 739.99],
         "Bm": [493.88, 587.33, 739.99],
@@ -425,20 +621,22 @@
     };
 
     const INSTRUMENT_NAMES = {
-        "piano": "ピアノ (Piano)",
+        "grand-piano": "グランドピアノ (Grand Piano)",
         "acoustic-guitar": "フォークギター (Acoustic Guitar)",
-        "electric-guitar": "エレキギター (Electric Guitar)",
+        "electric-guitar": "エレキギター・クリーン (Clean Electric)",
+        "distortion-guitar": "エレキギター・ディストーション (Rock Distortion)",
         "ukulele": "ウクレレ (Ukulele)",
-        "synth": "シンセサイザー (Lead Synth)",
-        "organ": "オルガン (Organ)",
+        "vibraphone": "ビブラフォン (Vibraphone)",
+        "jazz-organ": "ジャズオルガン (Jazz Organ)",
         "pipe-organ": "パイプオルガン (Pipe Organ)",
-        "strings": "ストリングス (Warm Strings)"
+        "strings": "ストリングス (Warm Strings)",
+        "synth": "シンセサイザー (Lead Synth)"
     };
 
     const KEY_MAPPINGS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w'];
 
     let audioCtx = null;
-    let selectedInstrument = "piano";
+    let selectedInstrument = "grand-piano";
     
     let slotChords = [
         "C", "Am", "F", "G",
@@ -459,11 +657,73 @@
 
     let playPadElementsMap = new Map();
 
+    const STORAGE_KEY = "web_code_player_settings_v1";
+
+    function saveSettings() {
+        const settings = {
+            selectedInstrument,
+            slotChords,
+            currentBpm,
+            kickPattern,
+            snarePattern,
+            hihatPattern
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        } catch (e) {
+            console.error("Failed to save settings:", e);
+        }
+    }
+
+    function loadSettings() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                const settings = JSON.parse(data);
+                if (settings.selectedInstrument) selectedInstrument = settings.selectedInstrument;
+                if (Array.isArray(settings.slotChords) && settings.slotChords.length === 12) slotChords = settings.slotChords;
+                if (typeof settings.currentBpm === "number") currentBpm = settings.currentBpm;
+                if (Array.isArray(settings.kickPattern)) kickPattern = settings.kickPattern;
+                if (Array.isArray(settings.snarePattern)) snarePattern = settings.snarePattern;
+                if (Array.isArray(settings.hihatPattern)) hihatPattern = settings.hihatPattern;
+            }
+        } catch (e) {
+            console.error("Failed to load settings:", e);
+        }
+    }
+
+    function resetSettings() {
+        if (confirm("設定を初期状態にリセットしますか？")) {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
+        loadSettings();
+
+        document.getElementById("instrument-select").value = selectedInstrument;
+        document.getElementById("play-instrument-select").value = selectedInstrument;
+        document.getElementById("rhythm-tempo-input").value = currentBpm;
+        document.getElementById("play-tempo-input").value = currentBpm;
+        document.getElementById("rhythm-bpm-val").textContent = currentBpm;
+        document.getElementById("play-tempo-val").textContent = currentBpm;
+
         initSetupGrid();
         initRhythmSetupUI();
 
-        // 画面上の任意の最初のタッチ/クリックでiOSの音声を完全にアンロックするグローバルリスナー
+        // モーダル開閉イベント
+        const helpModal = document.getElementById("help-modal");
+        const openHelp = () => helpModal.classList.add("active");
+        const closeHelp = () => helpModal.classList.remove("active");
+
+        document.getElementById("open-help-setup").addEventListener("click", openHelp);
+        document.getElementById("open-help-play").addEventListener("click", openHelp);
+        document.getElementById("close-help-modal").addEventListener("click", closeHelp);
+        helpModal.addEventListener("click", (e) => {
+            if (e.target === helpModal) closeHelp();
+        });
+
         const unlockAudio = () => {
             initAudio();
             window.removeEventListener('touchstart', unlockAudio);
@@ -475,12 +735,25 @@
         document.getElementById("start-btn").addEventListener("click", startPlayScreen);
         document.getElementById("back-to-setup").addEventListener("click", returnToSetup);
         document.getElementById("back-to-setup-from-rhythm").addEventListener("click", returnToSetupFromRhythm);
+        document.getElementById("reset-settings-btn").addEventListener("click", resetSettings);
         
         document.getElementById("to-rhythm-setup").addEventListener("click", showRhythmSetup);
         document.getElementById("to-rhythm-setup-play").addEventListener("click", showRhythmSetup);
 
         document.getElementById("rhythm-toggle").addEventListener("click", toggleRhythm);
         document.getElementById("preview-rhythm-toggle").addEventListener("click", toggleRhythm);
+
+        document.getElementById("instrument-select").addEventListener("change", (e) => {
+            selectedInstrument = e.target.value;
+            document.getElementById("play-instrument-select").value = selectedInstrument;
+            saveSettings();
+        });
+
+        document.getElementById("play-instrument-select").addEventListener("change", (e) => {
+            selectedInstrument = e.target.value;
+            document.getElementById("instrument-select").value = selectedInstrument;
+            saveSettings();
+        });
 
         const rhythmTempoInput = document.getElementById("rhythm-tempo-input");
         const playTempoInput = document.getElementById("play-tempo-input");
@@ -490,6 +763,7 @@
             document.getElementById("rhythm-bpm-val").textContent = currentBpm;
             playTempoInput.value = currentBpm;
             document.getElementById("play-tempo-val").textContent = currentBpm;
+            saveSettings();
             if (isRhythmPlaying) restartRhythmInterval();
         });
 
@@ -498,6 +772,7 @@
             document.getElementById("play-tempo-val").textContent = currentBpm;
             rhythmTempoInput.value = currentBpm;
             document.getElementById("rhythm-bpm-val").textContent = currentBpm;
+            saveSettings();
             if (isRhythmPlaying) restartRhythmInterval();
         });
 
@@ -538,7 +813,6 @@
         });
     });
 
-    // iPhone (iOS Safari) 向けの強力なオーディオコンテキスト初期化・復帰関数
     function initAudio() {
         try {
             if (!audioCtx) {
@@ -548,7 +822,6 @@
             if (audioCtx.state === "suspended") {
                 audioCtx.resume();
             }
-            // iOS向けの無音バッファ強制キック（音声出力を確実に有効化）
             const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
             const channel = buffer.getChannelData(0);
             channel[0] = 0;
@@ -586,6 +859,7 @@
 
             select.addEventListener("change", (e) => {
                 slotChords[i] = e.target.value;
+                saveSettings();
             });
 
             grid.appendChild(select);
@@ -607,6 +881,7 @@
             btn.addEventListener("click", () => {
                 pattern[i] = pattern[i] === 1 ? 0 : 1;
                 btn.classList.toggle("active");
+                saveSettings();
             });
             container.appendChild(btn);
         });
@@ -627,7 +902,7 @@
 
     function startPlayScreen() {
         initAudio();
-        selectedInstrument = document.getElementById("instrument-select").value;
+        document.getElementById("play-instrument-select").value = selectedInstrument;
 
         document.getElementById("setup-screen").classList.remove("active");
         document.getElementById("play-screen").classList.add("active");
@@ -663,7 +938,7 @@
 
                 const startHandler = (e) => {
                     e.preventDefault();
-                    initAudio(); // タッチ時に確実にオーディオを有効化
+                    initAudio();
                     if (activeVoices.has(pad)) return;
                     pad.classList.add("pressed");
                     startChordNote(chord, selectedInstrument, pad);
@@ -703,54 +978,123 @@
         const gainNodes = [];
 
         freqs.forEach((freq, idx) => {
-            const osc = audioCtx.createOscillator();
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            let delayOffset = 0;
+            const filter = audioCtx.createBiquadFilter();
 
-            if (instrument === "piano") {
-                osc.type = "sine";
+            let delayOffset = 0;
+            let detuneVal = 3;
+
+            if (instrument === "grand-piano") {
+                osc1.type = "sine";
+                osc2.type = "triangle";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(2200, now);
+
                 gain.gain.setValueAtTime(0.0, now);
-                gain.gain.linearRampToValueAtTime(0.25, now + 0.03);
+                gain.gain.linearRampToValueAtTime(0.28, now + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.08, now + 0.6);
             } else if (instrument === "acoustic-guitar") {
-                delayOffset = idx * 0.025;
-                osc.type = "triangle";
-                gain.gain.setValueAtTime(0.0, now + delayOffset);
-                gain.gain.linearRampToValueAtTime(0.22, now + delayOffset + 0.02);
-            } else if (instrument === "electric-guitar") {
                 delayOffset = idx * 0.02;
-                osc.type = "sawtooth";
+                osc1.type = "triangle";
+                osc2.type = "sawtooth";
+                filter.type = "bandpass";
+                filter.frequency.setValueAtTime(1500, now);
+                filter.Q.value = 1.2;
+
+                gain.gain.setValueAtTime(0.0, now + delayOffset);
+                gain.gain.linearRampToValueAtTime(0.22, now + delayOffset + 0.015);
+            } else if (instrument === "electric-guitar") {
+                delayOffset = idx * 0.015;
+                osc1.type = "sawtooth";
+                osc2.type = "square";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(3000, now);
+
                 gain.gain.setValueAtTime(0.0, now + delayOffset);
                 gain.gain.linearRampToValueAtTime(0.18, now + delayOffset + 0.02);
+            } else if (instrument === "distortion-guitar") {
+                delayOffset = idx * 0.01;
+                osc1.type = "sawtooth";
+                osc2.type = "sawtooth";
+                detuneVal = 8;
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(1800, now);
+                filter.Q.value = 4.0;
+
+                gain.gain.setValueAtTime(0.0, now + delayOffset);
+                gain.gain.linearRampToValueAtTime(0.15, now + delayOffset + 0.01);
             } else if (instrument === "ukulele") {
                 delayOffset = idx * 0.015;
-                osc.type = "triangle";
+                osc1.type = "triangle";
+                osc2.type = "sine";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(2500, now);
+
                 gain.gain.setValueAtTime(0.0, now + delayOffset);
                 gain.gain.linearRampToValueAtTime(0.25, now + delayOffset + 0.01);
-            } else if (instrument === "synth") {
-                osc.type = "sawtooth";
+            } else if (instrument === "vibraphone") {
+                osc1.type = "sine";
+                osc2.type = "sine";
+                detuneVal = 1;
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(1200, now);
+
                 gain.gain.setValueAtTime(0.0, now);
-                gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
-            } else if (instrument === "organ") {
-                osc.type = "triangle";
+                gain.gain.linearRampToValueAtTime(0.22, now + 0.02);
+            } else if (instrument === "jazz-organ") {
+                osc1.type = "sine";
+                osc2.type = "square";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(1800, now);
+
                 gain.gain.setValueAtTime(0.0, now);
-                gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.04);
             } else if (instrument === "pipe-organ") {
-                osc.type = "square";
+                osc1.type = "square";
+                osc2.type = "sawtooth";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(2000, now);
+
                 gain.gain.setValueAtTime(0.0, now);
                 gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
             } else if (instrument === "strings") {
-                osc.type = "sawtooth";
+                osc1.type = "sawtooth";
+                osc2.type = "sawtooth";
+                detuneVal = 6;
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(1200, now);
+
                 gain.gain.setValueAtTime(0.0, now);
-                gain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+                gain.gain.linearRampToValueAtTime(0.14, now + 0.35);
+            } else if (instrument === "synth") {
+                osc1.type = "sawtooth";
+                osc2.type = "square";
+                filter.type = "lowpass";
+                filter.frequency.setValueAtTime(2500, now);
+
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
             }
 
             const startTime = now + delayOffset;
-            osc.frequency.setValueAtTime(freq * (instrument === "ukulele" ? 2 : 1), startTime);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(startTime);
+            const targetFreq = freq * (instrument === "ukulele" ? 2 : 1);
 
-            oscillators.push(osc);
+            osc1.frequency.setValueAtTime(targetFreq, startTime);
+            osc2.frequency.setValueAtTime(targetFreq, startTime);
+            osc1.detune.setValueAtTime(-detuneVal, startTime);
+            osc2.detune.setValueAtTime(detuneVal, startTime);
+
+            osc1.connect(filter);
+            osc2.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc1.start(startTime);
+            osc2.start(startTime);
+
+            oscillators.push(osc1, osc2);
             gainNodes.push(gain);
         });
 
@@ -762,7 +1106,7 @@
         if (!voice) return;
 
         const now = audioCtx.currentTime;
-        const releaseTime = 0.25;
+        const releaseTime = 0.28;
 
         voice.gainNodes.forEach(gain => {
             try {
