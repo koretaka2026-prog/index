@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>アルティメット・バーチャル・ドラム &amp; 和太鼓・パーカッション</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Sans+JP:wght@400;700;900&family=Orbitron:wght@600;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #090d16;
+            background-image: 
+                radial-gradient(circle at 50% 20%, rgba(30, 41, 59, 0.8) 0%, rgba(10, 15, 26, 0.98) 80%),
+                radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(217, 119, 6, 0.05) 0%, transparent 50%);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+
+        /* General Pad Effects & Photorealistic Details */
+        .pad-container {
+            perspective: 1000px;
+        }
+
+        .drum-pad {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.06s cubic-bezier(0.1, 0.8, 0.3, 1), filter 0.06s ease, box-shadow 0.06s ease;
+            transform-style: preserve-3d;
+        }
+
+        .drum-pad:active, .drum-pad.active {
+            transform: scale(0.94) translateY(4px);
+        }
+
+        /* 3D Cymbal Wobble Animation */
+        @keyframes cymbalWobble {
+            0% { transform: scale(0.95) rotateX(12deg) rotateY(-8deg); }
+            25% { transform: scale(0.98) rotateX(-10deg) rotateY(10deg); }
+            50% { transform: scale(0.99) rotateX(6deg) rotateY(-5deg); }
+            75% { transform: scale(1) rotateX(-3deg) rotateY(3deg); }
+            100% { transform: scale(1) rotateX(0deg) rotateY(0deg); }
+        }
+
+        .cymbal-hit {
+            animation: cymbalWobble 0.6s ease-out;
+        }
+
+        /* Animated Ripple Effect on Hit */
+        .hit-ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            pointer-events-none;
+            animation: rippleAnim 0.4s ease-out forwards;
+        }
+
+        @keyframes rippleAnim {
+            0% { width: 10px; height: 10px; opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            100% { width: 220px; height: 220px; opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+
+        /* Real Metallic & Material Styles */
+        .style-cymbal {
+            background: radial-gradient(circle at 35% 35%, #fef08a 0%, #eab308 30%, #ca8a04 65%, #713f12 95%, #451a03 100%);
+            box-shadow: 
+                0 15px 30px rgba(0,0,0,0.7),
+                inset 0 3px 10px rgba(255, 255, 255, 0.8),
+                inset 0 -6px 15px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(253, 224, 71, 0.5);
+        }
+
+        .style-cymbal-hihat {
+            background: radial-gradient(circle at 40% 40%, #fef9c3 0%, #facc15 35%, #a16207 75%, #451a03 100%);
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.6),
+                inset 0 2px 8px rgba(255, 255, 255, 0.7),
+                inset 0 -4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .style-drum-shell {
+            background: radial-gradient(circle at 30% 30%, #334155 0%, #1e293b 60%, #0f172a 100%);
+            border: 6px solid #475569;
+            box-shadow: 0 16px 35px rgba(0,0,0,0.8), inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+
+        .style-drum-head {
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f1f5f9 60%, #cbd5e1 90%, #94a3b8 100%);
+            border: 5px solid #64748b;
+            box-shadow: inset 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Wadaiko (Japanese Drums) Textures */
+        .style-wadaiko-body {
+            background: radial-gradient(circle at 35% 35%, #9a3412 0%, #7c2d12 40%, #451a03 80%, #1c0a00 100%);
+            border: 6px solid #78350f;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.9), inset 0 2px 6px rgba(254, 215, 170, 0.3);
+        }
+
+        .style-wadaiko-head {
+            background: radial-gradient(circle at 50% 50%, #fef3c7 0%, #fde68a 50%, #d97706 90%, #92400e 100%);
+            border: 6px solid #b45309;
+            box-shadow: inset 0 8px 25px rgba(120, 53, 15, 0.5);
+        }
+
+        /* Wood Clapper / Chanchiki Styles */
+        .style-wood {
+            background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+            border: 3px solid #92400e;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7), inset 0 2px 4px rgba(251, 191, 36, 0.3);
+        }
+
+        .style-brass {
+            background: radial-gradient(circle at 30% 30%, #fef08a 0%, #eab308 50%, #854d0e 100%);
+            border: 3px solid #facc15;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.7), inset 0 2px 6px rgba(255,255,255,0.8);
+        }
+
+        /* Custom Scrollbar for Settings */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="flex flex-col justify-between min-h-screen p-2 sm:p-4">
+
+    <!-- HEADER -->
+    <header class="w-full max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 p-3 sm:p-4 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl z-20">
+        <div class="flex items-center space-x-3">
+            <div id="brand-icon" class="w-11 h-11 bg-gradient-to-br from-amber-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg text-white text-xl">
+                <i class="fa-solid fa-drum"></i>
+            </div>
+            <div>
+                <h1 id="app-title" class="text-lg sm:text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-300 to-amber-500">
+                    バーチャル・スタジオドラム
+                </h1>
+                <p id="app-subtitle" class="text-xs text-slate-400">プロ仕様 Web Audio API リアルサウンド音源</p>
+            </div>
+        </div>
+
+        <!-- Controls Group -->
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full md:w-auto">
+            <!-- Kit Selection Dropdown -->
+            <div class="relative flex-1 sm:flex-initial">
+                <select id="kitSelect" class="w-full bg-slate-800 border border-amber-500/40 text-amber-200 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none cursor-pointer shadow-md">
+                    <option value="acoustic">🥁 リアル・アコースティックドラム</option>
+                    <option value="wadaiko">伝統和太鼓セット (Wadaiko)</option>
+                    <option value="world">🪘 多国籍パーカッション (World)</option>
+                    <option value="cyber">⚡ エレクトロニック 808/909</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-amber-400">
+                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center space-x-2">
+                <i class="fa-solid fa-volume-high text-xs text-slate-400"></i>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.02" value="0.85" class="w-16 sm:w-20 accent-amber-500 cursor-pointer">
+            </div>
+
+            <!-- Action Buttons -->
+            <button id="btnSettings" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white p-2.5 rounded-xl border border-slate-700 transition active:scale-95 flex items-center justify-center" title="キー割り当て設定">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </button>
+            <button id="btnHelp" class="bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white p-2.5 rounded-xl border border-slate-700 transition active:scale-95 flex items-center justify-center" title="ヘルプ">
+                <i class="fa-solid fa-circle-question text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN PERFORMANCE STAGE -->
+    <main class="w-full max-w-6xl mx-auto my-auto py-4 sm:py-6 flex flex-col items-center justify-center relative">
+        
+        <!-- Audio Unlock Overlay Notice -->
+        <div id="unlockOverlay" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md rounded-3xl p-6 text-center border border-amber-500/30 shadow-2xl transition-opacity duration-300">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-3xl text-white shadow-xl mb-4 animate-pulse">
+                <i class="fa-solid fa-play ml-1"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-white mb-2">タップまたはクリックで演奏を開始</h2>
+            <p class="text-xs sm:text-sm text-slate-300 max-w-md">ブラウザの音声制限を解除し、高品質なWeb Audio APIリアルタイムサウンドを読み込みます。</p>
+            <button id="unlockBtn" class="mt-5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black px-8 py-3 rounded-2xl shadow-lg transition transform active:scale-95 text-sm tracking-wider">
+                サウンドエンジンを起動
+            </button>
+        </div>
+
+        <!-- Dynamic Drum Stage Container -->
+        <div id="stageContainer" class="w-full bg-slate-900/50 border border-slate-800/80 rounded-3xl p-4 sm:p-8 shadow-2xl relative min-h-[460px] sm:min-h-[520px] flex flex-col justify-between overflow-hidden">
+            <!-- Stage background visual glow -->
+            <div id="stageGlow" class="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-orange-500/5 pointer-events-none"></div>
+
+            <!-- Dynamic Instrument Pad Canvas -->
+            <div id="drumKitStage" class="relative w-full h-full flex flex-col justify-between gap-4 z-10">
+                <!-- Instrument Pads generated dynamically by JavaScript based on active Kit -->
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 py-3 px-4 bg-slate-900/80 backdrop-blur-lg rounded-2xl border border-slate-800 gap-2">
+        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5" id="footerKeyBadges">
+            <!-- Dynamically populated key badges -->
+        </div>
+        <div class="text-slate-500 font-mono text-[11px] whitespace-nowrap">
+            Web Audio Synthesizer Engine
+        </div>
+    </footer>
+
+    <!-- SETTINGS MODAL -->
+    <div id="modalSettings" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-keyboard text-amber-400 text-lg"></i>
+                    <h3 class="font-bold text-lg text-white">キーボード割当の設定</h3>
+                </div>
+                <button id="btnCloseSettings" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 my-3">
+                各楽器をクリックし、割り当てたいキーボードのキーを押してください。（数字、アルファベット、スペースなど利用可能）
+            </p>
+
+            <div id="settingsKeyList" class="flex-1 overflow-y-auto space-y-2 pr-1 my-2">
+                <!-- Dynamically generated list of pads and key inputs -->
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-slate-800 gap-3">
+                <button id="btnResetKeys" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
+                    初期設定に戻す
+                </button>
+                <button id="btnSaveKeys" class="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 text-xs font-black rounded-xl shadow-md transition transform active:scale-95">
+                    保存して閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="modalHelp" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                    <i class="fa-solid fa-circle-info text-amber-400 text-lg"></i>
+                    <h3 class="font-bold text-lg text-white">操作方法 &amp; 使い方ヘルプ</h3>
+                </div>
+                <button id="btnCloseHelp" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-4 my-4 pr-1 text-xs text-slate-300 leading-relaxed">
+                <section class="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/60">
+                    <h4 class="font-bold text-amber-300 mb-1 flex items-center space-x-2 text-sm">
+                        <i class="fa-solid fa-laptop"></i>
+                        <span>PC・パソコンでの演奏</span>
+                    </h4>
+                    <p>キーボードの各キー（デフォルトは数字の `1`〜`8` や `Space` 等）を押すと、即座に音が鳴ります。設定画面（⚙️）から使いやすいキー配置に変更可能です。</p>
+                </section>
+
+                <section class="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/60">
+                    <h4 class="font-bold text-amber-300 mb-1 flex items-center space-x-2 text-sm">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                        <span>スマホ・タブレットでの演奏</span>
+                    </h4>
+                    <p>画面上のドラムや太鼓を直接指でタップして演奏できます。マルチタッチに対応しているため、両手の指で同時に叩いて打面を連続ヒットできます。</p>
+                </section>
+
+                <section class="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/60">
+                    <h4 class="font-bold text-amber-300 mb-1 flex items-center space-x-2 text-sm">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>多彩なドラムセット</span>
+                    </h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-300">
+                        "><strong class="text-white">リアル・アコースティックドラム:</strong> 深みのあるバスドラムとリアルな金属響のシンバル</li>
+                        "><strong class="text-white">伝統和太鼓セット:</strong> 大太鼓、長胴太鼓、締め太鼓、縁打ち、鉦、拍子木</li>
+                        "><strong class="text-white">多国籍パーカッション:</strong> ジャンベ、コンガ、ボンゴ、タブラ、ダルブッカ、タンバリン</li>
+                        "><strong class="text-white">エレクトロニック 808/909:</strong> パンチの効いた有名ドラムマシン音源</li>
+                    </ul>
+                </section>
+
+                <section class="bg-amber-500/10 p-3.5 rounded-2xl border border-amber-500/30 text-amber-200">
+                    <h4 class="font-bold mb-1 flex items-center space-x-2 text-sm">
+                        <i class="fa-solid fa-volume-xmark"></i>
+                        <span>音が鳴らない場合</span>
+                    </h4>
+                    <p>画面上の「サウンドエンジンを起動」ボタンを押すか、マナーモード（消音モード）が解除されているかご確認ください。</p>
+                </section>
+            </div>
+
+            <button id="btnGotItHelp" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition text-xs">
+                理解しました
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Context and Master Gain Initialization
+        let audioCtx = null;
+        let masterGain = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+                masterGain = audioCtx.createGain();
+                masterGain.connect(audioCtx.destination);
+                updateVolume();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function updateVolume() {
+            if (masterGain && audioCtx) {
+                const sliderVal = parseFloat(document.getElementById('volumeSlider').value);
+                masterGain.gain.setValueAtTime(sliderVal, audioCtx.currentTime);
+            }
+        }
+
+        document.getElementById('volumeSlider').addEventListener('input', updateVolume);
+
+        /* =========================================================================
+           ADVANCED AUDIO SYNTHESIZERS (Physical / Modal / Additive Models)
+           ========================================================================= */
+
+        // Helper: Create Noise Buffer
+        function createNoiseBuffer(duration) {
+            const ctx = getAudioContext();
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            return buffer;
+        }
+
+        // 1. Acoustic Drum Kit Synthesizers
+        function synthKick() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.exponentialRampToValueAtTime(35, now + 0.12);
+
+            gain.gain.setValueAtTime(1.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.35);
+        }
+
+        function synthSnare() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Tone Body
+            const osc = ctx.createOscillator();
+            const oscGain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(190, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+            oscGain.gain.setValueAtTime(0.7, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 0.1);
+
+            // Snare Wire Noise
+            const noise = ctx.createBufferSource();
+            noise.buffer = createNoiseBuffer(0.2);
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 1200;
+
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.8, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+            noise.start(now);
+        }
+
+        function synthTom(pitch) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(pitch * 0.45, now + 0.22);
+
+            gain.gain.setValueAtTime(0.9, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.28);
+        }
+
+        function synthHiHat(isOpen) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+            const duration = isOpen ? 0.4 : 0.06;
+
+            // Metal Inharmonic Frequencies (FM / Additive Synthesis Simulation)
+            const freqs = [320, 510, 780, 1150, 2400, 5800];
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.6, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            freqs.forEach(f => {
+                const osc = ctx.createOscillator();
+                osc.type = 'square';
+                osc.frequency.value = f;
+                
+                const bandpass = ctx.createBiquadFilter();
+                bandpass.type = 'bandpass';
+                bandpass.frequency.value = 8000;
+
+                osc.connect(bandpass);
+                bandpass.connect(gain);
+                osc.start(now);
+                osc.stop(now + duration);
+            });
+
+            gain.connect(masterGain);
+        }
+
+        function synthCymbal(isRide) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+            const duration = isRide ? 1.0 : 1.8;
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = createNoiseBuffer(duration);
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = isRide ? 4500 : 3000;
+
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(isRide ? 0.5 : 0.75, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            noise.start(now);
+        }
+
+        // 2. Wadaiko (Japanese Drums 和太鼓) Synthesizers
+        function synthODaiko() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Heavy Deep Boom Sub-Oscillator
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(85, now);
+            osc.frequency.exponentialRampToValueAtTime(28, now + 0.4);
+
+            gain.gain.setValueAtTime(1.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+            // Wood Shell Resonance Ring
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(110, now);
+            osc2.frequency.exponentialRampToValueAtTime(45, now + 0.3);
+            gain2.gain.setValueAtTime(0.6, now);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(gain);
+            osc2.connect(gain2);
+            gain.connect(masterGain);
+            gain2.connect(masterGain);
+
+            osc.start(now);
+            osc2.start(now);
+            osc.stop(now + 0.85);
+            osc2.stop(now + 0.5);
+        }
+
+        function synthNagadoDaiko() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(125, now);
+            osc.frequency.exponentialRampToValueAtTime(48, now + 0.25);
+
+            gain.gain.setValueAtTime(1.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.45);
+        }
+
+        function synthShimeDaiko() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Tight high pitch skin hit
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+
+            gain.gain.setValueAtTime(1.0, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.18);
+        }
+
+        function synthFuchi() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Sharp Wooden Rim Strike
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(1200, now);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.03);
+
+            gain.gain.setValueAtTime(0.9, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+
+        function synthChanchiki() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Atarigane Metallic Gong Ring
+            const freqs = [840, 1380, 2250, 3400];
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+            freqs.forEach(f => {
+                const osc = ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.value = f;
+                osc.connect(gain);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            });
+
+            gain.connect(masterGain);
+        }
+
+        function synthHyoshigi() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            // Clapper Wooden Hit
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1800, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+
+            gain.gain.setValueAtTime(1.0, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.06);
+        }
+
+        // 3. World & Ethnic Percussion Synthesizers
+        function synthDjembe(isBass) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            if (isBass) {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                gain.gain.setValueAtTime(1.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            } else {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(380, now);
+                osc.frequency.exponentialRampToValueAtTime(180, now + 0.08);
+                gain.gain.setValueAtTime(1.0, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            }
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + (isBass ? 0.45 : 0.15));
+        }
+
+        function synthConga(type) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            let baseFreq = type === 'low' ? 140 : type === 'high' ? 240 : 420;
+            let duration = type === 'slap' ? 0.08 : 0.22;
+
+            osc.type = type === 'slap' ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + duration);
+
+            gain.gain.setValueAtTime(1.0, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + duration);
+        }
+
+        function synthTabla(isPitchSlide) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            if (isPitchSlide) {
+                // Ghe - Sliding pitch bend bass
+                osc.frequency.setValueAtTime(70, now);
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.15);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.35);
+                gain.gain.setValueAtTime(1.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            } else {
+                // Na/Tin - Metallic ring
+                osc.frequency.setValueAtTime(310, now);
+                gain.gain.setValueAtTime(0.9, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            }
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + (isPitchSlide ? 0.4 : 0.25));
+        }
+
+        function synthDarbuka(isDoom) {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = isDoom ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(isDoom ? 130 : 480, now);
+            osc.frequency.exponentialRampToValueAtTime(isDoom ? 45 : 220, now + (isDoom ? 0.2 : 0.06));
+
+            gain.gain.setValueAtTime(1.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + (isDoom ? 0.3 : 0.1));
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + (isDoom ? 0.3 : 0.1));
+        }
+
+        function synthTambourine() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = createNoiseBuffer(0.12);
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 6500;
+
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+
+            noise.start(now);
+        }
+
+        // 4. Electronic 808/909 Synthesizers
+        function synth808Kick() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+
+            gain.gain.setValueAtTime(1.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+
+        /* =========================================================================
+           KIT CONFIGURATIONS & PAD DEFINITIONS
+           ========================================================================= */
+
+        const KITS = {
+            acoustic: {
+                name: "リアル・アコースティックドラム",
+                pads: [
+                    { id: 'crash', name: 'クラッシュ', style: 'style-cymbal', isCymbal: true, fn: () => synthCymbal(false), defaultKey: '7' },
+                    { id: 'tom1', name: 'ハイタム', style: 'style-drum-head', fn: () => synthTom(180), defaultKey: '4' },
+                    { id: 'ride', name: 'ライド', style: 'style-cymbal', isCymbal: true, fn: () => synthCymbal(true), defaultKey: '8' },
+                    { id: 'hihat_close', name: 'ハイハット (閉)', style: 'style-cymbal-hihat', isCymbal: true, fn: () => synthHiHat(false), defaultKey: '1' },
+                    { id: 'snare', name: 'スネア', style: 'style-drum-head', fn: synthSnare, defaultKey: '2' },
+                    { id: 'tom2', name: 'ロータム', style: 'style-drum-head', fn: () => synthTom(130), defaultKey: '5' },
+                    { id: 'floortom', name: 'フロアタム', style: 'style-drum-head', fn: () => synthTom(90), defaultKey: '6' },
+                    { id: 'hihat_open', name: 'ハイハット (開)', style: 'style-cymbal-hihat', isCymbal: true, fn: () => synthHiHat(true), defaultKey: '3' },
+                    { id: 'kick', name: 'バスドラム', style: 'style-drum-head', fn: synthKick, defaultKey: ' ' }
+                ]
+            },
+            wadaiko: {
+                name: "伝統和太鼓セット (Wadaiko)",
+                pads: [
+                    { id: 'chanchiki', name: 'チャンチキ (鉦)', style: 'style-brass', fn: synthChanchiki, defaultKey: '7' },
+                    { id: 'shime', name: '締め太鼓', style: 'style-wadaiko-head', fn: synthShimeDaiko, defaultKey: '4' },
+                    { id: 'hyoshigi', name: '拍子木', style: 'style-wood', fn: synthHyoshigi, defaultKey: '8' },
+                    { id: 'nagado', name: '長胴太鼓', style: 'style-wadaiko-head', fn: synthNagadoDaiko, defaultKey: '1' },
+                    { id: 'fuchi', name: '縁打ち (フチ)', style: 'style-wood', fn: synthFuchi, defaultKey: '2' },
+                    { id: 'nagado2', name: '長胴太鼓 (高)', style: 'style-wadaiko-head', fn: synthNagadoDaiko, defaultKey: '5' },
+                    { id: 'odaiko', name: '大太鼓 (O-Daiko)', style: 'style-wadaiko-head', fn: synthODaiko, defaultKey: ' ' }
+                ]
+            },
+            world: {
+                name: "多国籍パーカッション (World)",
+                pads: [
+                    { id: 'tambourine', name: 'タンバリン', style: 'style-brass', fn: synthTambourine, defaultKey: '7' },
+                    { id: 'djembe_slap', name: 'ジャンベ (Slap)', style: 'style-wadaiko-head', fn: () => synthDjembe(false), defaultKey: '4' },
+                    { id: 'bongo', name: 'ボンゴ (High)', style: 'style-drum-head', fn: () => synthConga('high'), defaultKey: '8' },
+                    { id: 'conga_slap', name: 'コンガ (Slap)', style: 'style-drum-head', fn: () => synthConga('slap'), defaultKey: '1' },
+                    { id: 'djembe_bass', name: 'ジャンベ (Bass)', style: 'style-wadaiko-head', fn: () => synthDjembe(true), defaultKey: '2' },
+                    { id: 'tabla_na', name: 'タブラ (Na)', style: 'style-drum-head', fn: () => synthTabla(false), defaultKey: '5' },
+                    { id: 'tabla_ghe', name: 'タブラ (Ghe Slide)', style: 'style-drum-head', fn: () => synthTabla(true), defaultKey: '6' },
+                    { id: 'darbuka_doum', name: 'ダルブッカ (Doom)', style: 'style-wadaiko-head', fn: () => synthDarbuka(true), defaultKey: '3' },
+                    { id: 'conga_low', name: 'コンガ (Low Bass)', style: 'style-drum-head', fn: () => synthConga('low'), defaultKey: ' ' }
+                ]
+            },
+            cyber: {
+                name: "エレクトロニック 808/909",
+                pads: [
+                    { id: 'c_crash', name: 'CYBER CRASH', style: 'style-cymbal', isCymbal: true, fn: () => synthCymbal(false), defaultKey: '7' },
+                    { id: 'c_tom1', name: 'SYNTH TOM HI', style: 'style-drum-shell', fn: () => synthTom(220), defaultKey: '4' },
+                    { id: 'c_ride', name: 'CYBER RIDE', style: 'style-cymbal', isCymbal: true, fn: () => synthCymbal(true), defaultKey: '8' },
+                    { id: 'c_hihat', name: '808 HIHAT', style: 'style-cymbal-hihat', isCymbal: true, fn: () => synthHiHat(false), defaultKey: '1' },
+                    { id: 'c_snare', name: '808 SNARE', style: 'style-drum-shell', fn: synthSnare, defaultKey: '2' },
+                    { id: 'c_tom2', name: 'SYNTH TOM LOW', style: 'style-drum-shell', fn: () => synthTom(110), defaultKey: '5' },
+                    { id: 'c_kick', name: '808 DEEP KICK', style: 'style-drum-shell', fn: synth808Kick, defaultKey: ' ' }
+                ]
+            }
+        };
+
+        // Key Binding Storage Controller
+        let currentKeyMap = {};
+
+        function loadKeyBindings() {
+            const saved = localStorage.getItem('virtual_drum_keymap_v2');
+            if (saved) {
+                try {
+                    currentKeyMap = JSON.parse(saved);
+                } catch(e) {
+                    currentKeyMap = {};
+                }
+            }
+        }
+
+        function saveKeyBindings() {
+            localStorage.setItem('virtual_drum_keymap_v2', JSON.stringify(currentKeyMap));
+        }
+
+        function getKeyForPad(padId, defaultKey) {
+            return currentKeyMap[padId] || defaultKey;
+        }
+
+        /* =========================================================================
+           DYNAMIC UI RENDERING & STAGING
+           ========================================================================= */
+
+        const stage = document.getElementById('drumKitStage');
+        const kitSelect = document.getElementById('kitSelect');
+        const footerKeyBadges = document.getElementById('footerKeyBadges');
+
+        let activeKitKey = 'acoustic';
+
+        function renderStage() {
+            const kit = KITS[activeKitKey];
+            stage.innerHTML = '';
+            footerKeyBadges.innerHTML = '<span class="font-semibold text-slate-300 mr-1">キー配置:</span>';
+
+            // Layout split into rows for realistic drum placement
+            const topRow = document.createElement('div');
+            topRow.className = "flex justify-center items-center flex-wrap gap-3 sm:gap-6 w-full";
+
+            const midRow = document.createElement('div');
+            midRow.className = "flex justify-center items-center flex-wrap gap-3 sm:gap-6 w-full my-2";
+
+            const bottomRow = document.createElement('div');
+            bottomRow.className = "flex justify-center items-center w-full mt-2";
+
+            kit.pads.forEach((pad, index) => {
+                const assignedKey = getKeyForPad(pad.id, pad.defaultKey);
+                const displayKey = assignedKey === ' ' ? 'SPACE' : assignedKey.toUpperCase();
+
+                // Create Pad Element
+                const padEl = document.createElement('div');
+                
+                // Determine size based on instrument type
+                let sizeClasses = "w-24 h-24 sm:w-32 sm:h-32";
+                if (pad.id.includes('kick') || pad.id === 'odaiko') {
+                    sizeClasses = "w-32 h-32 sm:w-44 sm:h-44";
+                } else if (pad.id.includes('snare') || pad.id.includes('nagado') || pad.id.includes('djembe')) {
+                    sizeClasses = "w-28 h-28 sm:w-36 sm:h-36";
+                }
+
+                padEl.className = `drum-pad ${pad.style} ${sizeClasses} rounded-full flex flex-col items-center justify-center shadow-2xl relative select-none cursor-pointer group`;
+                padEl.dataset.padId = pad.id;
+                padEl.dataset.key = assignedKey.toLowerCase();
+
+                padEl.innerHTML = `
+                    <span class="z-10 font-black text-slate-900 text-xs sm:text-sm drop-shadow-sm text-center px-1">${pad.name}</span>
+                    <span class="z-10 bg-slate-950/80 text-amber-400 font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded-full mt-1 border border-amber-500/40 shadow">
+                        ${displayKey}
+                    </span>
+                `;
+
+                // Pointer Interaction
+                padEl.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    triggerPad(pad, padEl);
+                });
+
+                // Distribute across rows
+                if (index < 3) {
+                    topRow.appendChild(padEl);
+                } else if (index < kit.pads.length - (kit.pads.some(p => p.id.includes('kick') || p.id === 'odaiko') ? 1 : 0)) {
+                    midRow.appendChild(padEl);
+                } else {
+                    bottomRow.appendChild(padEl);
+                }
+
+                // Add Badge to footer
+                const badge = document.createElement('span');
+                badge.className = "bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300";
+                badge.innerHTML = `<span class="text-amber-400 font-bold">${displayKey}</span>:${pad.name}`;
+                footerKeyBadges.appendChild(badge);
+            });
+
+            stage.appendChild(topRow);
+            if (midRow.children.length > 0) stage.appendChild(midRow);
+            if (bottomRow.children.length > 0) stage.appendChild(bottomRow);
+        }
+
+        // Trigger Drum Pad Play & Visual Ripple
+        function triggerPad(pad, element) {
+            getAudioContext();
+
+            // Execute Audio Synth
+            try {
+                pad.fn();
+            } catch(e) {
+                console.error("Audio synth error:", e);
+            }
+
+            // Visual Animations
+            if (element) {
+                element.classList.add('active');
+                if (pad.isCymbal) {
+                    element.classList.add('cymbal-hit');
+                    setTimeout(() => element.classList.remove('cymbal-hit'), 600);
+                }
+
+                // Ripple Particle
+                const ripple = document.createElement('div');
+                ripple.className = 'hit-ripple';
+                ripple.style.left = '50%';
+                ripple.style.top = '50%';
+                element.appendChild(ripple);
+
+                setTimeout(() => {
+                    element.classList.remove('active');
+                    ripple.remove();
+                }, 180);
+            }
+        }
+
+        /* =========================================================================
+           KEYBOARD & EVENT LISTENERS
+           ========================================================================= */
+
+        window.addEventListener('keydown', (e) => {
+            // Ignore if typing in an input modal
+            if (document.activeElement.tagName === 'INPUT') return;
+            if (e.repeat) return;
+
+            const pressedKey = e.key.toLowerCase();
+            const kit = KITS[activeKitKey];
+
+            kit.pads.forEach(pad => {
+                const assignedKey = getKeyForPad(pad.id, pad.defaultKey).toLowerCase();
+                if (pressedKey === assignedKey) {
+                    const padEl = document.querySelector(`[data-pad-id="${pad.id}"]`);
+                    triggerPad(pad, padEl);
+                }
+            });
+        });
+
+        // Kit Selector Event
+        kitSelect.addEventListener('change', (e) => {
+            activeKitKey = e.target.value;
+            renderStage();
+        });
+
+        /* =========================================================================
+           SETTINGS & HELP MODALS
+           ========================================================================= */
+
+        const unlockOverlay = document.getElementById('unlockOverlay');
+        const unlockBtn = document.getElementById('unlockBtn');
+
+        function unlockAudio() {
+            getAudioContext();
+            unlockOverlay.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => unlockOverlay.remove(), 300);
+        }
+
+        unlockBtn.addEventListener('click', unlockAudio);
+        unlockOverlay.addEventListener('click', unlockAudio);
+
+        // Modals Logic
+        const modalSettings = document.getElementById('modalSettings');
+        const btnSettings = document.getElementById('btnSettings');
+        const btnCloseSettings = document.getElementById('btnCloseSettings');
+        const btnSaveKeys = document.getElementById('btnSaveKeys');
+        const btnResetKeys = document.getElementById('btnResetKeys');
+        const settingsKeyList = document.getElementById('settingsKeyList');
+
+        const modalHelp = document.getElementById('modalHelp');
+        const btnHelp = document.getElementById('btnHelp');
+        const btnCloseHelp = document.getElementById('btnCloseHelp');
+        const btnGotItHelp = document.getElementById('btnGotItHelp');
+
+        btnSettings.addEventListener('click', () => {
+            renderSettingsList();
+            modalSettings.classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        btnCloseSettings.addEventListener('click', () => {
+            modalSettings.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        btnHelp.addEventListener('click', () => {
+            modalHelp.classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        btnCloseHelp.addEventListener('click', () => {
+            modalHelp.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        btnGotItHelp.addEventListener('click', () => {
+            modalHelp.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        function renderSettingsList() {
+            settingsKeyList.innerHTML = '';
+            const kit = KITS[activeKitKey];
+
+            kit.pads.forEach(pad => {
+                const currentKey = getKeyForPad(pad.id, pad.defaultKey);
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-2.5 bg-slate-800/80 rounded-xl border border-slate-700/80';
+                
+                row.innerHTML = `
+                    <span class="text-xs font-bold text-slate-200">${pad.name}</span>
+                    <input type="text" data-pad-id="${pad.id}" value="${currentKey === ' ' ? 'SPACE' : currentKey.toUpperCase()}" 
+                           class="key-input w-24 bg-slate-950 border border-amber-500/50 text-amber-300 font-mono text-center text-xs font-bold py-1 px-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer" readonly />
+                `;
+
+                const input = row.querySelector('.key-input');
+                input.addEventListener('keydown', (e) => {
+                    e.preventDefault();
+                    let key = e.key;
+                    if (key === ' ') key = ' ';
+                    input.value = key === ' ' ? 'SPACE' : key.toUpperCase();
+                    input.dataset.newKey = key;
+                });
+
+                settingsKeyList.appendChild(row);
+            });
+        }
+
+        btnSaveKeys.addEventListener('click', () => {
+            const inputs = settingsKeyList.querySelectorAll('.key-input');
+            inputs.forEach(input => {
+                const padId = input.dataset.padId;
+                const newKey = input.dataset.newKey !== undefined ? input.dataset.newKey : (input.value === 'SPACE' ? ' ' : input.value.toLowerCase());
+                currentKeyMap[padId] = newKey;
+            });
+            saveKeyBindings();
+            renderStage();
+            modalSettings.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        btnResetKeys.addEventListener('click', () => {
+            currentKeyMap = {};
+            saveKeyBindings();
+            renderSettingsList();
+            renderStage();
+        });
+
+        // APP INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            loadKeyBindings();
+            renderStage();
+        });
+    </script>
+</body>
+</html>
