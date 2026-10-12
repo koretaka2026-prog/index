@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- iOS Safariでホーム画面追加時にアドレスバー・戻るボタン等のUIを非表示にする設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ギター演奏">
+    <meta name="mobile-web-app-capable" content="yes">
+
     <title>スマホギター演奏アプリ</title>
     <style>
         :root {
@@ -28,13 +35,14 @@
             user-select: none;
         }
 
-        body {
+        html, body {
             background-color: var(--bg-color);
             color: var(--text-color);
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100%;
             height: 100%;
+            height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -50,19 +58,23 @@
             overflow: hidden;
         }
 
-        /* メインプレイエリア（縦・横向き両対応） */
+        /* メインプレイエリア（縦・横共通で常に左側にボタン、右側に弦を配置） */
         .play-main {
             display: flex;
+            flex-direction: row;
             flex: 1;
             overflow: hidden;
             gap: 0.4rem;
             padding: 0.4rem;
+            /* iPhoneの横向き時、カメラやノッチと重ならないよう左側にセーフエリア余白を確保 */
+            padding-left: max(0.4rem, env(safe-area-inset-left));
+            padding-right: max(0.4rem, env(safe-area-inset-right));
             height: 100%;
         }
 
-        /* 左側（横向き時は左カラム、縦向き時は上部またはコンパクトに） */
+        /* 左側（常に左側に配置：設定ボタン＋コードボタン） */
         .left-sidebar {
-            width: 180px;
+            width: 170px;
             display: flex;
             flex-direction: column;
             gap: 0.3rem;
@@ -301,35 +313,13 @@
         }
         .chord-config-slot label { font-size: 0.65rem; margin-bottom: 0.15rem; display: block; }
         .chord-config-slot select { padding: 0.2rem; font-size: 0.75rem; }
-
-        /* 縦向き時のレイアウト調整 */
-        @media screen and (orientation: portrait) {
-            .play-main {
-                flex-direction: column;
-            }
-            .left-sidebar {
-                width: 100%;
-                height: 160px;
-                flex-direction: row;
-                gap: 0.4rem;
-            }
-            .btn-group {
-                flex-direction: column;
-                width: 110px;
-            }
-            .chord-sidebar {
-                flex: 1;
-                grid-template-columns: repeat(6, 1fr);
-                grid-template-rows: repeat(2, 1fr);
-            }
-        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="play-main">
-        <!-- 左側（横向き時は左カラム、縦向き時は上部） -->
+        <!-- 左側（縦・横どちらでも常に画面左側に配置） -->
         <div class="left-sidebar">
             <div class="btn-group">
                 <button id="open-settings" class="btn btn-secondary">⚙️ 設定</button>
@@ -428,22 +418,18 @@
 <div id="help-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>❓ 使い方・ヘルプ</h3>
+            <h3>❓ 使い方・全画面化の方法</h3>
             <button class="modal-close-btn" data-modal="help-modal">&times;</button>
         </div>
         <div class="modal-body" style="line-height: 1.6; font-size: 0.85rem;">
-            <p><strong>🎸 演奏方法:</strong></p>
-            <p>・左側のコードボタンをタップして鳴らしたいコード（和音）を選択します。</p>
-            <p>・右側の弦を指でタップすると、その弦の音が鳴ります。</p>
-            <p>・右側の弦の上を指でスワイプすると、本物のギターのようにストローク演奏（じゃら〜ん）ができます。</p>
+            <p><strong>📲 iPhone Safariで全画面表示にする方法:</strong></p>
+            <p>1. Safariの画面下部にある共有ボタン（<strong>□に↑</strong>）をタップします。</p>
+            <p>2. メニューから「<strong>ホーム画面に追加</strong>」を選択します。</p>
+            <p>3. ホーム画面に作成されたアイコンから起動すると、アドレスバーや戻るボタンが消え、アプリ感覚でフルスクリーン演奏できます。</p>
 
-            <p style="margin-top: 0.5rem;"><strong>⚙️ 設定・カスタマイズ:</strong></p>
-            <p>・「⚙️ 設定」ボタンから、ギターの音色（フォーク、クラシック、エレキ等）を変更できます。</p>
-            <p>・お好みのコード（シャープ「#」やマイナー、7th、sus4、add9等）を12個のボタンに自由に割り当て可能です。</p>
-
-            <p style="margin-top: 0.5rem;"><strong>💡 使用上の注意点:</strong></p>
-            <p>・初回タップ時にスマートフォンの音声システムが有効になります。音が出ない場合は画面を何度かタップしてください。</p>
-            <p>・縦向き・横向きのどちらでも快適に演奏できます。</p>
+            <p style="margin-top: 0.6rem;"><strong>🎸 演奏方法:</strong></p>
+            <p>・コードボタンをタップしてコードを選択し、右側の弦をタップ・スワイプしてストローク演奏します。</p>
+            <p>・縦向き・横向きのどちらでも、左側にコードボタン・右側に弦が配置されます（横向き時はカメラ部分への重なりを避ける安全余白付き）。</p>
         </div>
     </div>
 </div>
@@ -456,7 +442,6 @@
         "C5": 523.25, "C#5": 554.37, "D5": 587.33, "D#5": 622.25, "E5": 659.25, "F5": 698.46, "F#5": 739.98, "G5": 783.99
     };
 
-    // 豊富なコード定義（シャープ、フラット、sus4、add9、maj7等）
     const CHORD_VOICINGS = {
         "C":    ["MUTE", "C3", "E3", "G3", "C4", "E4"],
         "C#":   ["MUTE", "C#3", "F3", "G#3", "C#4", "F4"],
@@ -529,7 +514,6 @@
         initChordConfigGrid();
         updateStringLabels();
 
-        // モーダル制御
         const setupModal = (btnId, modalId) => {
             const modal = document.getElementById(modalId);
             document.getElementById(btnId).addEventListener("click", () => modal.classList.add("active"));
