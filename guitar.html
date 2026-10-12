@@ -24,6 +24,7 @@
             --success: #22c55e;
             --border-color: #334155;
             --radius: 12px;
+            --string-height: 90px; /* 初期値の弦の高さを最大に設定 */
         }
 
         * {
@@ -159,7 +160,7 @@
             transform: scale(0.96);
         }
 
-        /* 右側：ギターの弦エリア */
+        /* 右側：ギターの弦エリア（幅が狭い場合は縦方向の中央に配置） */
         .strings-container {
             flex: 1;
             background: #090d16;
@@ -167,21 +168,23 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
+            justify-content: center; /* 縦方向の中央に配置 */
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             touch-action: none;
             height: 100%;
             min-width: 0;
         }
 
         .string-row {
-            flex: 1;
+            height: var(--string-height);
+            min-height: var(--string-height);
             display: flex;
             align-items: center;
             position: relative;
             cursor: pointer;
             border-bottom: 1px dashed rgba(51, 65, 85, 0.25);
-            min-height: 0;
         }
 
         .string-row:last-child {
@@ -428,7 +431,7 @@
 <div id="settings-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>⚙️ 楽器・エフェクター・リズム設定</h3>
+            <h3>⚙️ 楽器・エフェクター・レイアウト設定</h3>
             <button class="modal-close-btn" data-modal="settings-modal">&times;</button>
         </div>
         <div class="modal-body">
@@ -479,6 +482,11 @@
             </div>
 
             <div class="form-group">
+                <label>弦の幅 (間隔): <span id="string-spacing-val">90</span>px</label>
+                <input type="range" id="string-spacing-input" min="40" max="90" value="90">
+            </div>
+
+            <div class="form-group">
                 <label>コードボタンの割り当て変更</label>
                 <div class="chord-config-grid" id="chord-config-grid">
                     <!-- 動的生成 -->
@@ -507,9 +515,9 @@
                     <li><strong>コード選択:</strong> 左側のコードボタン（12個）をタップして弾きたいコードを選択します。</li>
                     <li><strong>ストローク演奏:</strong> 右側の1弦〜6弦を上下にスワイプ（撫でる）または直接タップすることで音を鳴らせます。</li>
                     <li><strong>ミュート弦（×印）:</strong> コード音に含まれない弦（ミュート表示）を弾くと、ミュート打鍵音が鳴ります。</li>
+                    <li><strong>弦の幅調整:</strong> 設定画面の「弦の幅」スライダーを使うことで、指の太さや端末サイズに合わせて弦の間隔を変更できます（狭くすると上下に余白ができ、中央に配置されます）。</li>
                     <li><strong>音色・エフェクト設定:</strong> 設定画面よりギターの音色やエフェクトを自由に切り替えられます。</li>
-                    <li><strong>リズム伴奏:</strong> ドラムの自動伴奏（8ビート、16ビート、ボサノバ等）やBPM（テンポ）調整が可能です。</li>
-                    <li><strong>コード割り当て変更:</strong> よく使うコードを設定画面の「コードボタンの割り当て変更」から自由にカスタマイズできます。</li>
+                    <li><strong>リズム伴奏:</strong> ドラムの自動伴奏やBPM（テンポ）調整が可能です。</li>
                 </ul>
             </div>
 
@@ -518,7 +526,7 @@
                 <ul>
                     <li><strong class="warning-text">音量についての注意:</strong> 演奏時に予期せぬ大きな音が鳴ることがあります。端末の音量を適切に調整し、イヤホン等を使用する際は音量に十分ご注意ください。</li>
                     <li><strong>音が出ない場合:</strong> ブラウザの安全制限により、最初の画面タップ（操作）が行われるまで音が再生されない仕様になっています。画面をタップしても音が出ない場合は、端末のマナーモード・サイレントモードが解除されているかご確認ください。</li>
-                    <li><strong>設定の保存:</strong> 設定画面の「💾 設定を保存」ボタンを押すことで、音色、エフェクト、リズム、テンポ、コードの割り当てがブラウザに保存されます（各種変更時にも自動保存されます）。</li>
+                    <li><strong>設定の保存:</strong> 設定画面の「💾 設定を保存」ボタンを押すことで、音色、エフェクト、リズム、テンポ、弦の幅、コードの割り当てがブラウザに保存されます。</li>
                 </ul>
             </div>
 
@@ -595,27 +603,18 @@
         "Gadd9": ["G2", "B2", "D3", "G3", "B3", "A4"]
     };
 
-    // リズムパターン定義 (各配列は1小節を8ステップまたは16ステップ等で分割した演奏イベント)
-    // 0:何もしない, K:バスドラム, S:スネア, H:ハイハット, O:オープンハイハット
     const RHYTHM_PATTERNS = {
         "rock-8beat": {
             steps: 8,
-            // 8分音符ベース (計8ステップ)
-            // Kick: 0, 4 / Snare: 2, 6 / HiHat: 0,1,2,3,4,5,6,7
             pattern: [
-                { k: true, h: true },
-                { h: true },
-                { s: true, h: true },
-                { h: true },
-                { k: true, h: true },
-                { h: true },
-                { s: true, h: true },
-                { h: true }
+                { k: true, h: true }, { h: true },
+                { s: true, h: true }, { h: true },
+                { k: true, h: true }, { h: true },
+                { s: true, h: true }, { h: true }
             ]
         },
         "pop-16beat": {
             steps: 16,
-            // 16分音符ベース (計16ステップ)
             pattern: [
                 { k: true, h: true }, { h: true }, { k: true, h: true }, { h: true },
                 { s: true, h: true }, { h: true }, { h: true, o: true }, { h: true },
@@ -625,7 +624,6 @@
         },
         "jazz-4beat": {
             steps: 8,
-            // ジャズ風スウィング (8分音符を跳ねる)
             pattern: [
                 { k: true, h: true }, { o: true },
                 { s: true, h: true }, { o: true },
@@ -635,7 +633,6 @@
         },
         "bossanova": {
             steps: 16,
-            // ボサノバ風のリズム
             pattern: [
                 { k: true, h: true }, { h: true }, { h: true }, { k: true, h: true },
                 { s: true, h: true }, { h: true }, { h: true }, { k: true, h: true },
@@ -645,7 +642,6 @@
         },
         "disco": {
             steps: 8,
-            // 4つ打ちディスコ
             pattern: [
                 { k: true, h: true }, { o: true },
                 { k: true, s: true, h: true }, { o: true },
@@ -666,6 +662,7 @@
     let selectedEffect = localStorage.getItem("guitar_effect") || "none";
     let selectedRhythm = localStorage.getItem("guitar_rhythm") || "rock-8beat";
     let currentBpm = parseInt(localStorage.getItem("guitar_bpm")) || 120;
+    let stringSpacing = parseInt(localStorage.getItem("guitar_string_spacing")) || 90; // 初期値最大(90)
 
     let audioCtx = null;
     let masterCompressor = null;
@@ -684,6 +681,10 @@
         document.getElementById("rhythm-pattern-select").value = selectedRhythm;
         document.getElementById("tempo-input").value = currentBpm;
         document.getElementById("bpm-val").textContent = currentBpm;
+        document.getElementById("string-spacing-input").value = stringSpacing;
+        document.getElementById("string-spacing-val").textContent = stringSpacing;
+        
+        applyStringSpacing(stringSpacing);
 
         initChordSidebar();
         initChordConfigGrid();
@@ -701,7 +702,6 @@
             document.getElementById("help-modal").classList.add("active");
         });
 
-        // 設定保存ボタンの処理
         document.getElementById("save-settings-btn").addEventListener("click", () => {
             saveAllSettings();
             showToast("⚙️ 設定を保存しました！");
@@ -746,6 +746,15 @@
             if (isRhythmPlaying) restartRhythm();
         });
 
+        const spacingInput = document.getElementById("string-spacing-input");
+        const spacingVal = document.getElementById("string-spacing-val");
+        spacingInput.addEventListener("input", (e) => {
+            stringSpacing = parseInt(e.target.value);
+            spacingVal.textContent = stringSpacing;
+            applyStringSpacing(stringSpacing);
+            localStorage.setItem("guitar_string_spacing", stringSpacing);
+        });
+
         document.getElementById("rhythm-toggle-btn").addEventListener("click", toggleRhythm);
 
         initStringInteractions();
@@ -759,11 +768,16 @@
         window.addEventListener("mousedown", unlockAudio, { once: true });
     });
 
+    function applyStringSpacing(spacing) {
+        document.documentElement.style.setProperty('--string-height', `${spacing}px`);
+    }
+
     function saveAllSettings() {
         localStorage.setItem("guitar_instrument", selectedInstrument);
         localStorage.setItem("guitar_effect", selectedEffect);
         localStorage.setItem("guitar_rhythm", selectedRhythm);
         localStorage.setItem("guitar_bpm", currentBpm);
+        localStorage.setItem("guitar_string_spacing", stringSpacing);
         localStorage.setItem("guitar_chord_list", JSON.stringify(currentChordList));
     }
 
@@ -1069,7 +1083,6 @@
 
     function startRhythmInterval() {
         const currentData = RHYTHM_PATTERNS[selectedRhythm] || RHYTHM_PATTERNS["rock-8beat"];
-        // 16分音符ベースの場合は間隔を半分にする
         const divisor = currentData.steps === 16 ? 8 : 4;
         const interval = (60 / currentBpm / divisor) * 1000;
 
