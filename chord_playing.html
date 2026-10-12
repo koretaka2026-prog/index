@@ -141,7 +141,6 @@
             flex-shrink: 0;
         }
 
-        /* 4列3行グリッド */
         .grid-4x3 {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -208,7 +207,6 @@
             margin-top: 1px;
         }
 
-        /* 演奏画面のコントロール1行バー */
         .play-top-bar {
             display: flex;
             align-items: center;
@@ -234,7 +232,6 @@
             width: 75px;
         }
 
-        /* リズム設定画面 */
         .rhythm-section {
             background: var(--bg-color);
             padding: 1rem;
@@ -356,27 +353,22 @@
 
     <!-- 画面3: 演奏画面 -->
     <div id="play-screen" class="screen">
-        <!-- 1行にまとめたコントロールバー -->
         <div class="play-top-bar">
-            <!-- 設定に戻る -->
             <button id="back-to-setup" class="btn btn-secondary" title="設定に戻る">
                 <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 <span>設定</span>
             </button>
 
-            <!-- リズム再生/停止 -->
             <button id="rhythm-toggle" class="btn btn-secondary" title="リズム再生">
                 <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 <span>リズム再生</span>
             </button>
 
-            <!-- リズム設定 -->
             <button id="to-rhythm-setup-play" class="btn btn-secondary" title="リズム設定">
                 <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 <span>リズム設定</span>
             </button>
 
-            <!-- BPMバー -->
             <div class="bpm-control-inline">
                 <span>BPM:</span>
                 <input type="range" id="play-tempo-input" min="60" max="180" value="120">
@@ -384,13 +376,12 @@
             </div>
         </div>
 
-        <!-- 4列3行のパッド -->
         <div id="play-grid" class="grid-4x3">
             <!-- JavaScriptで動的生成 -->
         </div>
 
         <div class="info-text">
-            💻 <b>PC操作:</b> パッドクリック または キーボード [1]〜[0], [Q], [W] / スペースでリズムON・OFF
+            📱 <b>スマホ操作:</b> パッドをタッチして演奏（離すと音が止まります）<br>マナーモードがONのときは音が鳴らないことがあります。
         </div>
     </div>
 </div>
@@ -538,9 +529,11 @@
         });
     });
 
+    // モバイル端末対応の堅牢なオーディオコンテキスト初期化
     function initAudio() {
         if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContextClass();
         }
         if (audioCtx.state === "suspended") {
             audioCtx.resume();
@@ -599,6 +592,7 @@
     }
 
     function showRhythmSetup() {
+        initAudio();
         document.getElementById("setup-screen").classList.remove("active");
         document.getElementById("play-screen").classList.remove("active");
         document.getElementById("rhythm-setup-screen").classList.add("active");
@@ -648,6 +642,7 @@
 
                 const startHandler = (e) => {
                     e.preventDefault();
+                    initAudio(); // タッチ時に確実に有効化
                     if (activeVoices.has(pad)) return;
                     pad.classList.add("pressed");
                     startChordNote(chord, selectedInstrument, pad);
@@ -661,13 +656,13 @@
                     }
                 };
 
-                pad.addEventListener("mousedown", startHandler);
-                pad.addEventListener("mouseup", endHandler);
-                pad.addEventListener("mouseleave", endHandler);
-
                 pad.addEventListener("touchstart", startHandler, { passive: false });
                 pad.addEventListener("touchend", endHandler, { passive: false });
                 pad.addEventListener("touchcancel", endHandler, { passive: false });
+
+                pad.addEventListener("mousedown", startHandler);
+                pad.addEventListener("mouseup", endHandler);
+                pad.addEventListener("mouseleave", endHandler);
             } else {
                 pad.className = "chord-pad empty";
                 pad.innerHTML = `<div class="pad-hint">空白</div>`;
@@ -686,7 +681,6 @@
         const oscillators = [];
         const gainNodes = [];
 
-        // 楽器ごとの発音特性・ストラム（分散和音）ディレイ
         freqs.forEach((freq, idx) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -697,19 +691,16 @@
                 gain.gain.setValueAtTime(0.0, now);
                 gain.gain.linearRampToValueAtTime(0.25, now + 0.03);
             } else if (instrument === "acoustic-guitar") {
-                // アコギ：わずかに弦を弾くような分散タイミング（ストラム）と減衰
                 delayOffset = idx * 0.025;
                 osc.type = "triangle";
                 gain.gain.setValueAtTime(0.0, now + delayOffset);
                 gain.gain.linearRampToValueAtTime(0.22, now + delayOffset + 0.02);
             } else if (instrument === "electric-guitar") {
-                // エレキギター：倍音豊かなのこぎり波
                 delayOffset = idx * 0.02;
                 osc.type = "sawtooth";
                 gain.gain.setValueAtTime(0.0, now + delayOffset);
                 gain.gain.linearRampToValueAtTime(0.18, now + delayOffset + 0.02);
             } else if (instrument === "ukulele") {
-                // ウクレレ：明るく短めの余韻
                 delayOffset = idx * 0.015;
                 osc.type = "triangle";
                 gain.gain.setValueAtTime(0.0, now + delayOffset);
@@ -723,7 +714,6 @@
                 gain.gain.setValueAtTime(0.0, now);
                 gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
             } else if (instrument === "pipe-organ") {
-                // パイプオルガン：重厚で豊かな倍音
                 osc.type = "square";
                 gain.gain.setValueAtTime(0.0, now);
                 gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
@@ -791,6 +781,7 @@
     }
 
     function startRhythm() {
+        initAudio();
         isRhythmPlaying = true;
         
         const toggleBtn1 = document.getElementById("rhythm-toggle");
