@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>スマホギター演奏アプリ</title>
     <style>
         :root {
@@ -31,107 +31,48 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            width: 100vw;
-            height: 100vh;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
             touch-action: none;
         }
 
-        /* 縦向き時の警告（横向き推奨オーバーレイ） */
-        #orientation-warning {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.95);
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-            color: #f8fafc;
-        }
-
-        #orientation-warning svg {
-            width: 64px;
-            height: 64px;
-            fill: #818cf8;
-            margin-bottom: 1rem;
-            animation: rotatePhone 2s infinite ease-in-out;
-        }
-
-        @keyframes rotatePhone {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-        }
-
-        @media screen and (orientation: portrait) {
-            #orientation-warning {
-                display: flex;
-            }
-        }
-
         .app-container {
-            width: 100vw;
-            height: 100vh;
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             background: var(--card-bg);
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* ヘルパーバー（上部：現在のコード表示のみ） */
-        .top-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.4rem 1rem;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--border-color);
-            height: 45px;
-            flex-shrink: 0;
-        }
-
-        .app-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .current-chord-display {
-            background: var(--accent-primary);
-            color: white;
-            padding: 0.1rem 0.75rem;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1rem;
-            letter-spacing: 0.5px;
-        }
-
-        /* メインプレイエリア（左右分割） */
+        /* メインプレイエリア（縦・横向き両対応） */
         .play-main {
             display: flex;
             flex: 1;
             overflow: hidden;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            height: calc(100vh - 45px);
+            gap: 0.4rem;
+            padding: 0.4rem;
+            height: 100%;
         }
 
-        /* 左側：設定ボタン＋4×3コードボタン */
+        /* 左側（横向き時は左カラム、縦向き時は上部またはコンパクトに） */
         .left-sidebar {
-            width: 200px;
+            width: 180px;
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            gap: 0.3rem;
+            flex-shrink: 0;
+            height: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.3rem;
             flex-shrink: 0;
         }
 
@@ -139,8 +80,8 @@
             background: var(--accent-primary);
             color: white;
             border: none;
-            padding: 0.4rem;
-            font-size: 0.8rem;
+            padding: 0.35rem;
+            font-size: 0.75rem;
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -150,6 +91,7 @@
             justify-content: center;
             gap: 0.3rem;
             width: 100%;
+            flex-shrink: 0;
         }
 
         .btn:hover { background: var(--accent-hover); }
@@ -165,7 +107,8 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(6, 1fr);
-            gap: 0.3rem;
+            gap: 0.25rem;
+            min-height: 0;
         }
 
         .chord-btn {
@@ -173,7 +116,7 @@
             border: 2px solid var(--border-color);
             border-radius: 6px;
             color: var(--text-color);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: bold;
             display: flex;
             flex-direction: column;
@@ -191,21 +134,11 @@
         .chord-btn.active {
             background: var(--accent-primary);
             border-color: #818cf8;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
             transform: scale(0.96);
         }
 
-        .chord-btn .chord-sub {
-            font-size: 0.55rem;
-            color: var(--text-muted);
-            margin-top: 1px;
-        }
-
-        .chord-btn.active .chord-sub {
-            color: #e0e7ff;
-        }
-
-        /* 右側：ギターの弦エリア（1弦が上、6弦が下。弦のみ表示） */
+        /* 右側：ギターの弦エリア（1弦が上、6弦が下） */
         .strings-container {
             flex: 1;
             background: #090d16;
@@ -217,6 +150,7 @@
             overflow: hidden;
             touch-action: none;
             height: 100%;
+            min-width: 0;
         }
 
         .string-row {
@@ -225,7 +159,8 @@
             align-items: center;
             position: relative;
             cursor: pointer;
-            border-bottom: 1px dashed rgba(51, 65, 85, 0.3);
+            border-bottom: 1px dashed rgba(51, 65, 85, 0.25);
+            min-height: 0;
         }
 
         .string-row:last-child {
@@ -244,7 +179,7 @@
             top: 50%;
             transform: translateY(-50%);
             background: linear-gradient(90deg, #cbd5e1, #94a3b8, #e2e8f0);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
             pointer-events: none;
         }
 
@@ -263,18 +198,18 @@
 
         .string-badge {
             position: absolute;
-            left: 6px;
+            left: 5px;
             z-index: 2;
             background: rgba(15, 23, 42, 0.85);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 1px 5px;
+            padding: 1px 4px;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: bold;
             pointer-events: none;
             display: flex;
-            gap: 3px;
+            gap: 2px;
             align-items: center;
         }
 
@@ -289,9 +224,9 @@
 
         @keyframes pluckVibrate {
             0% { transform: translateY(-50%) scaleY(1); }
-            20% { transform: translateY(-50%) scaleY(4.5) skewX(2deg); }
+            20% { transform: translateY(-50%) scaleY(4) skewX(2deg); }
             40% { transform: translateY(-50%) scaleY(0.3) skewX(-2deg); }
-            60% { transform: translateY(-50%) scaleY(2.5); }
+            60% { transform: translateY(-50%) scaleY(2.2); }
             80% { transform: translateY(-50%) scaleY(0.8); }
             100% { transform: translateY(-50%) scaleY(1); }
         }
@@ -299,7 +234,7 @@
         .string-row.plucked .string-line {
             animation: pluckVibrate 0.25s ease-out;
             background: #818cf8 !important;
-            box-shadow: 0 0 10px #6366f1;
+            box-shadow: 0 0 8px #6366f1;
         }
 
         /* モーダル共通 */
@@ -312,7 +247,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 1rem;
+            padding: 0.5rem;
         }
         .modal-overlay.active { display: flex; }
         .modal-content {
@@ -320,8 +255,8 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
             width: 100%;
-            max-width: 520px;
-            max-height: 85vh;
+            max-width: 480px;
+            max-height: 90vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
@@ -330,74 +265,82 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.8rem 1rem;
+            padding: 0.6rem 0.9rem;
             border-bottom: 1px solid var(--border-color);
         }
-        .modal-header h3 { font-size: 1rem; color: var(--text-color); }
+        .modal-header h3 { font-size: 0.95rem; color: var(--text-color); }
         .modal-close-btn {
             background: transparent; border: none; color: var(--text-muted);
-            font-size: 1.2rem; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px;
+            font-size: 1.1rem; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px;
         }
         .modal-close-btn:hover { color: var(--text-color); background: var(--border-color); }
         .modal-body {
-            padding: 1rem; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.8rem;
+            padding: 0.9rem; overflow-y: auto; font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.7rem;
         }
-        .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
-        label { font-weight: 600; color: var(--text-muted); font-size: 0.8rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.25rem; }
+        label { font-weight: 600; color: var(--text-muted); font-size: 0.75rem; }
         select, input[type="range"] {
-            width: 100%; padding: 0.5rem; background: var(--bg-color);
+            width: 100%; padding: 0.4rem; background: var(--bg-color);
             border: 1px solid var(--border-color); color: var(--text-color);
-            border-radius: 6px; font-size: 0.85rem;
+            border-radius: 6px; font-size: 0.8rem;
         }
         select:focus { outline: none; border-color: var(--accent-primary); }
 
-        /* 設定画面内のコードスロット編集グリッド */
         .chord-config-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.4rem;
-            margin-top: 0.3rem;
+            gap: 0.3rem;
+            margin-top: 0.2rem;
         }
         .chord-config-slot {
             background: var(--bg-color);
             border: 1px solid var(--border-color);
-            padding: 0.3rem;
+            padding: 0.25rem;
             border-radius: 6px;
             text-align: center;
         }
-        .chord-config-slot label { font-size: 0.7rem; margin-bottom: 0.2rem; display: block; }
-        .chord-config-slot select { padding: 0.3rem; font-size: 0.8rem; }
+        .chord-config-slot label { font-size: 0.65rem; margin-bottom: 0.15rem; display: block; }
+        .chord-config-slot select { padding: 0.2rem; font-size: 0.75rem; }
+
+        /* 縦向き時のレイアウト調整 */
+        @media screen and (orientation: portrait) {
+            .play-main {
+                flex-direction: column;
+            }
+            .left-sidebar {
+                width: 100%;
+                height: 160px;
+                flex-direction: row;
+                gap: 0.4rem;
+            }
+            .btn-group {
+                flex-direction: column;
+                width: 110px;
+            }
+            .chord-sidebar {
+                flex: 1;
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
 
-<!-- 縦向き時の警告画面 -->
-<div id="orientation-warning">
-    <svg viewBox="0 0 24 24"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h2C24 4.71 18.29 0 11.25 0c-.98 0-1.93.11-2.84.31l1.78 1.78c.35-.04.7-.09 1.06-.09 4.29 0 7.9 2.76 9.23 6.6h-3.95l2.12 2.12 2.12-2.12h-3.32c-.44-2.22-2.18-3.97-4.4-4.41v3.95l-2.12-2.12 2.12-2.12V2.52zM7.52 21.48C4.25 19.93 1.91 16.76 1.55 13H-.5C-.01 19.29 5.71 24 12.75 24c.98 0 1.93-.11 2.84-.31l-1.78-1.78c-.35.04-.7.09-1.06.09-4.29 0-7.9-2.76-9.23-6.6h3.95L5.37 13.06 3.25 15.18h3.32c.44 2.22 2.18 3.97 4.4 4.41v-3.95l2.12 2.12-2.12 2.12v3.32z"/></svg>
-    <h2>横向きでお使いください</h2>
-    <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">このアプリはスマートフォン専用の横向き（ランドスケープ）モードで最適に動作します。端末を横に向けてください。</p>
-</div>
-
 <div class="app-container">
-    <!-- 上部バー：現在のコード表示 -->
-    <div class="top-bar">
-        <div class="app-title">🎸 スマホギター演奏</div>
-        <div class="current-chord-display" id="current-chord-label">C</div>
-    </div>
-
-    <!-- メイン演奏画面 -->
     <div class="play-main">
-        <!-- 左側：設定ボタン ＋ 4×3コードボタン -->
+        <!-- 左側（横向き時は左カラム、縦向き時は上部） -->
         <div class="left-sidebar">
-            <button id="open-settings" class="btn btn-secondary">
-                ⚙️ 設定・エフェクター
-            </button>
+            <div class="btn-group">
+                <button id="open-settings" class="btn btn-secondary">⚙️ 設定</button>
+                <button id="open-help" class="btn btn-secondary">❓ ヘルプ</button>
+            </div>
             <div class="chord-sidebar" id="chord-sidebar">
-                <!-- JavaScriptで動적生成 -->
+                <!-- 動的生成 -->
             </div>
         </div>
 
-        <!-- 右側：1弦〜6弦エリア（弦のみ表示、1弦が上、6弦が下） -->
+        <!-- 右側：1弦〜6弦エリア -->
         <div class="strings-container" id="strings-container">
             <!-- 1弦 (High E) -->
             <div class="string-row" data-string="1">
@@ -438,7 +381,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>⚙️ 楽器・エフェクター・コード設定</h3>
-            <button id="close-settings" class="modal-close-btn">&times;</button>
+            <button class="modal-close-btn" data-modal="settings-modal">&times;</button>
         </div>
         <div class="modal-body">
             <div class="form-group">
@@ -472,11 +415,35 @@
             </div>
 
             <div class="form-group">
-                <label>コードボタンの割り当て変更 (4行×3列)</label>
+                <label>コードボタンの割り当て変更</label>
                 <div class="chord-config-grid" id="chord-config-grid">
                     <!-- 動的生成 -->
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ヘルプモーダル -->
+<div id="help-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>❓ 使い方・ヘルプ</h3>
+            <button class="modal-close-btn" data-modal="help-modal">&times;</button>
+        </div>
+        <div class="modal-body" style="line-height: 1.6; font-size: 0.85rem;">
+            <p><strong>🎸 演奏方法:</strong></p>
+            <p>・左側のコードボタンをタップして鳴らしたいコード（和音）を選択します。</p>
+            <p>・右側の弦を指でタップすると、その弦の音が鳴ります。</p>
+            <p>・右側の弦の上を指でスワイプすると、本物のギターのようにストローク演奏（じゃら〜ん）ができます。</p>
+
+            <p style="margin-top: 0.5rem;"><strong>⚙️ 設定・カスタマイズ:</strong></p>
+            <p>・「⚙️ 設定」ボタンから、ギターの音色（フォーク、クラシック、エレキ等）を変更できます。</p>
+            <p>・お好みのコード（シャープ「#」やマイナー、7th、sus4、add9等）を12個のボタンに自由に割り当て可能です。</p>
+
+            <p style="margin-top: 0.5rem;"><strong>💡 使用上の注意点:</strong></p>
+            <p>・初回タップ時にスマートフォンの音声システムが有効になります。音が出ない場合は画面を何度かタップしてください。</p>
+            <p>・縦向き・横向きのどちらでも快適に演奏できます。</p>
         </div>
     </div>
 </div>
@@ -489,25 +456,58 @@
         "C5": 523.25, "C#5": 554.37, "D5": 587.33, "D#5": 622.25, "E5": 659.25, "F5": 698.46, "F#5": 739.98, "G5": 783.99
     };
 
+    // 豊富なコード定義（シャープ、フラット、sus4、add9、maj7等）
     const CHORD_VOICINGS = {
-        "C":  ["MUTE", "C3", "E3", "G3", "C4", "E4"],
-        "G":  ["G2", "B2", "D3", "G3", "B3", "G4"],
-        "D":  ["MUTE", "MUTE", "D3", "A3", "D4", "F#4"],
-        "A":  ["MUTE", "A2", "E3", "A3", "C#4", "E4"],
-        "E":  ["E2", "B2", "E3", "G#3", "B3", "E4"],
-        "F":  ["F2", "C3", "F3", "A3", "C4", "F4"],
-        "Am": ["MUTE", "A2", "E3", "A3", "C4", "E4"],
-        "Em": ["E2", "B2", "E3", "G3", "B3", "E4"],
-        "Dm": ["MUTE", "MUTE", "D3", "A3", "D4", "F4"],
-        "Bm": ["MUTE", "B2", "F#3", "B3", "D4", "F#4"],
-        "C7": ["MUTE", "C3", "E3", "A#3", "C4", "E4"],
-        "G7": ["G2", "B2", "D3", "F3", "B3", "G4"],
-        "D7": ["MUTE", "MUTE", "D3", "C4", "A4", "D5"],
-        "A7": ["MUTE", "A2", "G3", "A3", "C#4", "E4"],
-        "E7": ["E2", "G#2", "B2", "D3", "B3", "E4"]
+        "C":    ["MUTE", "C3", "E3", "G3", "C4", "E4"],
+        "C#":   ["MUTE", "C#3", "F3", "G#3", "C#4", "F4"],
+        "D":    ["MUTE", "MUTE", "D3", "A3", "D4", "F#4"],
+        "D#":   ["MUTE", "MUTE", "D#3", "A#3", "D#4", "G4"],
+        "E":    ["E2", "B2", "E3", "G#3", "B3", "E4"],
+        "F":    ["F2", "C3", "F3", "A3", "C4", "F4"],
+        "F#":   ["F#2", "C#3", "F#3", "A#3", "C#4", "F#4"],
+        "G":    ["G2", "B2", "D3", "G3", "B3", "G4"],
+        "G#":   ["G#2", "C3", "D#3", "G#3", "C4", "G#4"],
+        "A":    ["MUTE", "A2", "E3", "A3", "C#4", "E4"],
+        "A#":   ["MUTE", "A#2", "F3", "A#3", "D4", "A#4"],
+        "B":    ["MUTE", "B2", "F#3", "B3", "D#4", "F#4"],
+        
+        "Cm":   ["MUTE", "C3", "G3", "D#4", "G4", "C5"],
+        "C#m":  ["MUTE", "C#3", "G#3", "E4", "G#4", "C#5"],
+        "Dm":   ["MUTE", "MUTE", "D3", "A3", "D4", "F4"],
+        "D#m":  ["MUTE", "MUTE", "D#3", "A#3", "D#4", "F#4"],
+        "Em":   ["E2", "B2", "E3", "G3", "B3", "E4"],
+        "Fm":   ["F2", "C3", "G#3", "C4", "F4", "F5"],
+        "F#m":  ["F#2", "C#3", "F#3", "A3", "C#4", "F#4"],
+        "Gm":   ["G2", "D3", "A#3", "D4", "G4", "G5"],
+        "G#m":  ["G#2", "D#3", "B3", "D#4", "G#4", "G#5"],
+        "Am":   ["MUTE", "A2", "E3", "A3", "C4", "E4"],
+        "A#m":  ["MUTE", "A#2", "F3", "A#3", "C#4", "A#4"],
+        "Bm":   ["MUTE", "B2", "F#3", "B3", "D4", "F#4"],
+
+        "C7":   ["MUTE", "C3", "E3", "A#3", "C4", "E4"],
+        "C#7":  ["MUTE", "C#3", "F3", "B3", "C#4", "F4"],
+        "D7":   ["MUTE", "MUTE", "D3", "C4", "A4", "D5"],
+        "D#7":  ["MUTE", "MUTE", "D#3", "C#4", "A#4", "D#5"],
+        "E7":   ["E2", "G#2", "B2", "D3", "B3", "E4"],
+        "F7":   ["F2", "C3", "D#3", "A3", "C4", "F4"],
+        "F#7":  ["F#2", "C#3", "E3", "A#3", "C#4", "F#4"],
+        "G7":   ["G2", "B2", "D3", "F3", "B3", "G4"],
+        "G#7":  ["G#2", "C3", "D#3", "F#3", "C4", "G#4"],
+        "A7":   ["MUTE", "A2", "G3", "A3", "C#4", "E4"],
+        "A#7":  ["MUTE", "A#2", "G#3", "A#3", "D4", "A#4"],
+        "B7":   ["MUTE", "B2", "D#3", "A3", "B3", "F#4"],
+
+        "Csus4": ["MUTE", "C3", "F3", "G3", "C4", "F4"],
+        "Dsus4": ["MUTE", "MUTE", "D3", "G3", "A4", "D5"],
+        "Esus4": ["E2", "B2", "E3", "A3", "B3", "E4"],
+        "Gsus4": ["G2", "C3", "D3", "G3", "C4", "G4"],
+        "Asus4": ["MUTE", "A2", "D3", "G3", "C#4", "E4"],
+        
+        "Cadd9": ["MUTE", "C3", "G3", "D4", "E4", "G4"],
+        "Dadd9": ["MUTE", "MUTE", "D3", "F#3", "A3", "E5"],
+        "Gadd9": ["G2", "B2", "D3", "G3", "B3", "A4"]
     };
 
-    // 初期配置の12個のコード
     let currentChordList = ["C", "G", "D", "A", "E", "F", "Am", "Em", "Dm", "Bm", "C7", "G7"];
 
     let audioCtx = null;
@@ -529,10 +529,26 @@
         initChordConfigGrid();
         updateStringLabels();
 
-        const modal = document.getElementById("settings-modal");
-        document.getElementById("open-settings").addEventListener("click", () => modal.classList.add("active"));
-        document.getElementById("close-settings").addEventListener("click", () => modal.classList.remove("active"));
-        modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("active"); });
+        // モーダル制御
+        const setupModal = (btnId, modalId) => {
+            const modal = document.getElementById(modalId);
+            document.getElementById(btnId).addEventListener("click", () => modal.classList.add("active"));
+        };
+        setupModal("open-settings", "settings-modal");
+        setupModal("open-help", "help-modal");
+
+        document.querySelectorAll(".modal-close-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const modalId = e.target.getAttribute("data-modal");
+                document.getElementById(modalId).classList.remove("active");
+            });
+        });
+
+        document.querySelectorAll(".modal-overlay").forEach(modal => {
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) modal.classList.remove("active");
+            });
+        });
 
         document.getElementById("instrument-select").addEventListener("change", (e) => {
             selectedInstrument = e.target.value;
@@ -641,7 +657,6 @@
 
     function selectChord(chordName) {
         selectedChord = chordName;
-        document.getElementById("current-chord-label").textContent = chordName;
 
         const buttons = document.querySelectorAll(".chord-btn");
         currentChordList.forEach((c, i) => {
@@ -688,7 +703,7 @@
 
             rows.forEach((row) => {
                 const rect = row.getBoundingClientRect();
-                if (clientY >= rect.top - 10 && clientY <= rect.bottom + 10) {
+                if (clientY >= rect.top - 5 && clientY <= rect.bottom + 5) {
                     const stringNum = parseInt(row.getAttribute("data-string"));
                     pluckString(stringNum, row);
                 }
@@ -899,6 +914,7 @@
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(masterCompressor);
+
         noise.start(time);
         noise.stop(time + 0.08);
     }
@@ -919,6 +935,7 @@
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(masterCompressor);
+
         noise.start(time);
         noise.stop(time + 0.04);
     }
