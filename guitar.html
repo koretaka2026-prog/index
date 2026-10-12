@@ -58,34 +58,34 @@
             overflow: hidden;
         }
 
-        /* メインプレイエリア（縦・横共通で常に左側にボタン、右側に弦を配置） */
+        /* メインプレイエリア：画面左側に少し余白を持たせるようにパディングを調整 */
         .play-main {
             display: flex;
             flex-direction: row;
             flex: 1;
             overflow: hidden;
-            gap: 0.4rem;
+            gap: 0.6rem;
             padding: 0.4rem;
-            /* iPhoneの横向き時、カメラやノッチと重ならないよう左側にセーフエリア余白を確保 */
-            padding-left: max(0.4rem, env(safe-area-inset-left));
+            padding-left: max(0.8rem, env(safe-area-inset-left));
             padding-right: max(0.4rem, env(safe-area-inset-right));
             height: 100%;
         }
 
-        /* 左側（常に左側に配置：設定ボタン＋コードボタン） */
+        /* 左側サイドバー（設定・ヘルプボタン＋コードボタン） */
         .left-sidebar {
-            width: 170px;
+            width: 180px;
             display: flex;
             flex-direction: column;
             gap: 0.3rem;
             flex-shrink: 0;
             height: 100%;
+            overflow: hidden;
         }
 
         .btn-group {
             display: flex;
             gap: 0.3rem;
-            flex-shrink: 0;
+            flex-shrink: 0; /* パソコン等でもボタンが縮んで消えないように固定 */
         }
 
         .btn {
@@ -114,6 +114,7 @@
         }
         .btn-secondary:hover { background: #475569; }
 
+        /* コードボタンエリア（高さに余裕がない場合はスクロール可能に） */
         .chord-sidebar {
             flex: 1;
             display: grid;
@@ -121,6 +122,7 @@
             grid-template-rows: repeat(6, 1fr);
             gap: 0.25rem;
             min-height: 0;
+            overflow-y: auto;
         }
 
         .chord-btn {
@@ -137,6 +139,7 @@
             cursor: pointer;
             transition: all 0.1s ease;
             user-select: none;
+            min-height: 35px;
         }
 
         .chord-btn:hover {
@@ -313,13 +316,42 @@
         }
         .chord-config-slot label { font-size: 0.65rem; margin-bottom: 0.15rem; display: block; }
         .chord-config-slot select { padding: 0.2rem; font-size: 0.75rem; }
+
+        /* ヘルプモーダル用スタイル */
+        .help-section {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem;
+            margin-bottom: 0.4rem;
+        }
+        .help-section h4 {
+            color: #818cf8;
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .help-section ul {
+            padding-left: 1.2rem;
+            margin-top: 0.3rem;
+        }
+        .help-section li {
+            margin-bottom: 0.25rem;
+            color: var(--text-color);
+        }
+        .warning-text {
+            color: #f87171;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="play-main">
-        <!-- 左側（縦・横どちらでも常に画面左側に配置） -->
+        <!-- 左側：設定・ヘルプボタン ＋ コードボタン（常に左側に配置） -->
         <div class="left-sidebar">
             <div class="btn-group">
                 <button id="open-settings" class="btn btn-secondary">⚙️ 設定</button>
@@ -375,6 +407,10 @@
         </div>
         <div class="modal-body">
             <div class="form-group">
+                <button id="settings-help-btn" class="btn btn-secondary">❓ アプリの使い方・注意点</button>
+            </div>
+
+            <div class="form-group">
                 <label for="instrument-select">音色の種類</label>
                 <select id="instrument-select">
                     <option value="acoustic-guitar">フォークギター (Acoustic Guitar)</option>
@@ -418,18 +454,39 @@
 <div id="help-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>❓ 使い方・全画面化の方法</h3>
+            <h3>❓ アプリの使い方・使用上の注意点</h3>
             <button class="modal-close-btn" data-modal="help-modal">&times;</button>
         </div>
         <div class="modal-body" style="line-height: 1.6; font-size: 0.85rem;">
-            <p><strong>📲 iPhone Safariで全画面表示にする方法:</strong></p>
-            <p>1. Safariの画面下部にある共有ボタン（<strong>□に↑</strong>）をタップします。</p>
-            <p>2. メニューから「<strong>ホーム画面に追加</strong>」を選択します。</p>
-            <p>3. ホーム画面に作成されたアイコンから起動すると、アドレスバーや戻るボタンが消え、アプリ感覚でフルスクリーン演奏できます。</p>
+            
+            <div class="help-section">
+                <h4>🎸 演奏方法・使い方</h4>
+                <ul>
+                    <li><strong>コード選択:</strong> 左側のコードボタン（12個）をタップして弾きたいコードを選択します。</li>
+                    <li><strong>ストローク演奏:</strong> 右側の1弦〜6弦を上下にスワイプ（撫でる）または直接タップすることで音を鳴らせます。</li>
+                    <li><strong>ミュート弦（×印）:</strong> コード音に含まれない弦（ミュート表示）を弾くと、ミュート打鍵音が鳴ります。</li>
+                    <li><strong>音色・エフェクト設定:</strong> 設定画面よりギターの音色（フォーク/クラシック/エレキ等）やエフェクト（コーラス/ディレイ/リバーブ）を自由に切り替えられます。</li>
+                    <li><strong>リズム伴奏:</strong> ドラムの自動伴奏再生機能やBPM（テンポ）調整が可能です。</li>
+                    <li><strong>コード割り当て変更:</strong> よく使うコードを設定画面の「コードボタンの割り当て変更」から自由にカスタマイズできます。</li>
+                </ul>
+            </div>
 
-            <p style="margin-top: 0.6rem;"><strong>🎸 演奏方法:</strong></p>
-            <p>・コードボタンをタップしてコードを選択し、右側の弦をタップ・スワイプしてストローク演奏します。</p>
-            <p>・縦向き・横向きのどちらでも、左側にコードボタン・右側に弦が配置されます（横向き時はカメラ部分への重なりを避ける安全余白付き）。</p>
+            <div class="help-section">
+                <h4>⚠️ 使用上の注意点</h4>
+                <ul>
+                    <li><strong class="warning-text">音量についての注意:</strong> 演奏時に予期せぬ大きな音が鳴ることがあります。端末の音量を適切に調整し、イヤホン等を使用する際は音量に十分ご注意ください。</li>
+                    <li><strong>音が出ない場合:</strong> ブラウザの安全制限により、最初の画面タップ（操作）が行われるまで音が再生されない仕様になっています。画面をタップしても音が出ない場合は、端末のマナーモード・サイレントモードが解除されているかご確認ください。</li>
+                    <li><strong>設定の保存:</strong> 選択した音色、エフェクト、テンポ、コードの割り当てはブラウザ内（ローカルストレージ）に自動保存されます。</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h4>📲 iPhone (Safari) で全画面表示にする方法</h4>
+                <p>1. Safariの画面下部にある共有ボタン（<strong>□に↑</strong>）をタップします。</p>
+                <p>2. メニューから「<strong>ホーム画面に追加</strong>」を選択します。</p>
+                <p>3. ホーム画面に追加されたアイコンから起動すると、アドレスバー等が消え全画面で演奏可能です。</p>
+            </div>
+
         </div>
     </div>
 </div>
@@ -493,16 +550,16 @@
         "Gadd9": ["G2", "B2", "D3", "G3", "B3", "A4"]
     };
 
-    let currentChordList = ["C", "G", "D", "A", "E", "F", "Am", "Em", "Dm", "Bm", "C7", "G7"];
+    let currentChordList = JSON.parse(localStorage.getItem("guitar_chord_list")) || ["C", "G", "D", "A", "E", "F", "Am", "Em", "Dm", "Bm", "C7", "G7"];
+    let selectedInstrument = localStorage.getItem("guitar_instrument") || "acoustic-guitar";
+    let selectedEffect = localStorage.getItem("guitar_effect") || "none";
+    let currentBpm = parseInt(localStorage.getItem("guitar_bpm")) || 120;
 
     let audioCtx = null;
     let masterCompressor = null;
     let masterLimiter = null;
 
-    let selectedChord = "C";
-    let selectedInstrument = "acoustic-guitar";
-    let selectedEffect = "none";
-    let currentBpm = 120;
+    let selectedChord = currentChordList[0] || "C";
     let isRhythmPlaying = false;
     let rhythmTimer = null;
     let rhythmStep = 0;
@@ -510,6 +567,11 @@
     const STRING_VOLUMES = [0.4, 0.55, 0.7, 0.9, 1.2, 1.6];
 
     window.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("instrument-select").value = selectedInstrument;
+        document.getElementById("effect-select").value = selectedEffect;
+        document.getElementById("tempo-input").value = currentBpm;
+        document.getElementById("bpm-val").textContent = currentBpm;
+
         initChordSidebar();
         initChordConfigGrid();
         updateStringLabels();
@@ -520,6 +582,11 @@
         };
         setupModal("open-settings", "settings-modal");
         setupModal("open-help", "help-modal");
+
+        document.getElementById("settings-help-btn").addEventListener("click", () => {
+            document.getElementById("settings-modal").classList.remove("active");
+            document.getElementById("help-modal").classList.add("active");
+        });
 
         document.querySelectorAll(".modal-close-btn").forEach(btn => {
             btn.addEventListener("click", (e) => {
@@ -536,10 +603,12 @@
 
         document.getElementById("instrument-select").addEventListener("change", (e) => {
             selectedInstrument = e.target.value;
+            localStorage.setItem("guitar_instrument", selectedInstrument);
         });
 
         document.getElementById("effect-select").addEventListener("change", (e) => {
             selectedEffect = e.target.value;
+            localStorage.setItem("guitar_effect", selectedEffect);
         });
 
         const tempoInput = document.getElementById("tempo-input");
@@ -547,6 +616,7 @@
         tempoInput.addEventListener("input", (e) => {
             currentBpm = parseInt(e.target.value);
             bpmVal.textContent = currentBpm;
+            localStorage.setItem("guitar_bpm", currentBpm);
             if (isRhythmPlaying) restartRhythm();
         });
 
@@ -627,6 +697,7 @@
 
             select.addEventListener("change", (e) => {
                 currentChordList[idx] = e.target.value;
+                localStorage.setItem("guitar_chord_list", JSON.stringify(currentChordList));
                 initChordSidebar();
                 if (!currentChordList.includes(selectedChord)) {
                     selectChord(currentChordList[0]);
