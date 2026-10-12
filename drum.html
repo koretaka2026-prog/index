@@ -357,14 +357,12 @@
             const ctx = getAudioContext();
             const now = ctx.currentTime;
 
-            // サブベース（重低音・胴鳴りピッチ降下）
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(160, now);
             osc.frequency.exponentialRampToValueAtTime(30, now + 0.18);
 
-            // バスドラムの音量をさらに大きく強調（3.2）
             gain.gain.setValueAtTime(3.2, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
             osc.connect(gain);
@@ -372,7 +370,6 @@
             osc.start(now);
             osc.stop(now + 0.65);
 
-            // アタック音（ビーターが皮を打つ硬質な音）
             const clickNoise = ctx.createBufferSource();
             clickNoise.buffer = createNoiseBuffer(0.03);
             const clickFilter = ctx.createBiquadFilter();
@@ -430,7 +427,6 @@
             osc.frequency.setValueAtTime(pitch, now);
             osc.frequency.exponentialRampToValueAtTime(pitch * 0.42, now + 0.25);
 
-            // タム類のボリュームも大きめに調整（2.0）
             gain.gain.setValueAtTime(2.0, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
@@ -494,7 +490,6 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(70, now);
             osc.frequency.exponentialRampToValueAtTime(22, now + 0.5);
-            // 大太鼓の腹に響く重低音ボリュームを最大級にアップ（3.5）
             gain.gain.setValueAtTime(3.5, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
 
@@ -524,7 +519,6 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(110, now);
             osc.frequency.exponentialRampToValueAtTime(40, now + 0.32);
-            // 長胴太鼓の音量をアップ（2.8）
             gain.gain.setValueAtTime(2.8, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
             osc.connect(gain);
@@ -599,7 +593,7 @@
             osc.stop(now + 0.08);
         }
 
-        // 3. World & Ethnic Percussion (ジャンベ・コンガ等の低音を大きく)
+        // 3. World & Ethnic Percussion
         function synthDjembe(isBass) {
             const ctx = getAudioContext();
             const now = ctx.currentTime;
@@ -609,7 +603,6 @@
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(95, now);
                 osc.frequency.exponentialRampToValueAtTime(32, now + 0.32);
-                // ジャンベのバス音を強力に（2.9）
                 gain.gain.setValueAtTime(2.9, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
             } else {
@@ -708,7 +701,6 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(180, now);
             osc.frequency.exponentialRampToValueAtTime(32, now + 0.12);
-            // 808キックの音量をさらに圧倒的な迫力に（3.6）
             gain.gain.setValueAtTime(3.6, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
             osc.connect(gain);
@@ -943,11 +935,11 @@
                     </span>
                 `;
 
-                // Pointer and touch events explicitly prevented for iOS zoom
+                // タップ時のダブルタップズームおよびデフォルト挙動を完全にキャンセル
                 padEl.addEventListener('pointerdown', (e) => {
                     e.preventDefault();
                     triggerPad(pad, padEl, true);
-                });
+                }, { passive: false });
 
                 if (index < 3) {
                     topRow.appendChild(padEl);
