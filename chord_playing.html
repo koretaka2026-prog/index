@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Web Code & Rhythm Player</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-active: #4338ca;
+            --danger: #ef4444;
+            --border-color: #334155;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        h1, h2 {
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.7rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        /* 4列3行グリッド */
+        .grid-4x3 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slot-select {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            padding: 0.4rem;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+            height: 55px;
+        }
+
+        .chord-pad {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            height: 75px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .chord-pad.filled {
+            background: linear-gradient(135deg, var(--bg-color), #26334d);
+            border-color: #475569;
+        }
+
+        .chord-pad.filled:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .chord-pad.pressed {
+            background: var(--accent-active) !important;
+            border-color: var(--accent-primary) !important;
+            transform: scale(0.95);
+        }
+
+        .chord-pad.empty {
+            opacity: 0.3;
+            cursor: default;
+            border-style: dashed;
+        }
+
+        .chord-pad .chord-name {
+            font-size: 1.15rem;
+            font-weight: bold;
+        }
+
+        .chord-pad .pad-hint {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        /* 演奏画面のコントロール1行バー */
+        .play-top-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .bpm-control-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .bpm-control-inline input[type="range"] {
+            width: 75px;
+        }
+
+        /* リズム設定画面 */
+        .rhythm-section {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            flex: 1;
+            margin-left: 0.5rem;
+        }
+
+        .step-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            aspect-ratio: 1.2;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .step-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .step-btn.current {
+            box-shadow: 0 0 0 2px #facc15;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .info-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.4;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 画面1: 初期設定画面 -->
+    <div id="setup-screen" class="screen active">
+        <h1>コード演奏ツール設定</h1>
+        
+        <div class="form-group">
+            <label for="instrument-select">楽器の種類</label>
+            <select id="instrument-select">
+                <option value="piano">ピアノ (Piano)</option>
+                <option value="acoustic-guitar">フォークギター (Acoustic Guitar)</option>
+                <option value="electric-guitar">エレキギター (Electric Guitar)</option>
+                <option value="ukulele">ウクレレ (Ukulele)</option>
+                <option value="synth">シンセサイザー (Lead Synth)</option>
+                <option value="organ">オルガン (Organ)</option>
+                <option value="pipe-organ">パイプオルガン (Pipe Organ)</option>
+                <option value="strings">ストリングス (Warm Strings)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>4列×3行（全12スロット）のコード配置設定</label>
+            <div id="setup-grid" class="grid-4x3">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button id="to-rhythm-setup" class="btn btn-secondary" style="width: 50%;">
+                <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                リズム設定へ
+            </button>
+            <button id="start-btn" class="btn" style="width: 50%;">演奏画面へ</button>
+        </div>
+    </div>
+
+    <!-- 画面2: リズム設定画面 -->
+    <div id="rhythm-setup-screen" class="screen">
+        <h2>リズムパターン設定</h2>
+
+        <div class="rhythm-section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <label style="margin:0;">テンポ (BPM): <span id="rhythm-bpm-val" style="color:var(--text-color); font-size:1rem;">120</span></label>
+                <input type="range" id="rhythm-tempo-input" min="60" max="180" value="120" style="width: 140px;">
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size:0.85rem; font-weight:600;">プレビュー試聴</span>
+                <button id="preview-rhythm-toggle" class="btn btn-secondary" style="padding: 0.3rem 1rem; font-size: 0.85rem; width: auto;">試聴再生</button>
+            </div>
+
+            <div style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                <span style="width: 55px;">Kick</span>
+                <div id="setup-kick-steps" class="step-grid"></div>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+                <span style="width: 55px;">Snare</span>
+                <div id="setup-snare-steps" class="step-grid"></div>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+                <span style="width: 55px;">Hi-Hat</span>
+                <div id="setup-hihat-steps" class="step-grid"></div>
+            </div>
+        </div>
+
+        <button id="back-to-setup-from-rhythm" class="btn">設定に戻る</button>
+    </div>
+
+    <!-- 画面3: 演奏画面 -->
+    <div id="play-screen" class="screen">
+        <!-- 1行にまとめたコントロールバー -->
+        <div class="play-top-bar">
+            <!-- 設定に戻る -->
+            <button id="back-to-setup" class="btn btn-secondary" title="設定に戻る">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                <span>設定</span>
+            </button>
+
+            <!-- リズム再生/停止 -->
+            <button id="rhythm-toggle" class="btn btn-secondary" title="リズム再生">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <span>リズム再生</span>
+            </button>
+
+            <!-- リズム設定 -->
+            <button id="to-rhythm-setup-play" class="btn btn-secondary" title="リズム設定">
+                <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <span>リズム設定</span>
+            </button>
+
+            <!-- BPMバー -->
+            <div class="bpm-control-inline">
+                <span>BPM:</span>
+                <input type="range" id="play-tempo-input" min="60" max="180" value="120">
+                <span id="play-tempo-val" style="width: 24px; text-align: right;">120</span>
+            </div>
+        </div>
+
+        <!-- 4列3行のパッド -->
+        <div id="play-grid" class="grid-4x3">
+            <!-- JavaScriptで動的生成 -->
+        </div>
+
+        <div class="info-text">
+            💻 <b>PC操作:</b> パッドクリック または キーボード [1]〜[0], [Q], [W] / スペースでリズムON・OFF
+        </div>
+    </div>
+</div>
+
+<script>
+    const CHORD_DEFINITIONS = {
+        "C": [261.63, 329.63, 392.00],
+        "Cm": [261.63, 311.13, 392.00],
+        "C7": [261.63, 329.63, 392.00, 466.16],
+        "Cmaj7": [261.63, 329.63, 392.00, 493.88],
+        
+        "D": [293.66, 369.99, 440.00],
+        "Dm": [293.66, 349.23, 440.00],
+        "D7": [293.66, 369.99, 440.00, 523.25],
+        "Dmaj7": [293.66, 369.99, 440.00, 554.37],
+
+        "E": [329.63, 415.30, 493.88],
+        "Em": [329.63, 392.00, 493.88],
+        "E7": [329.63, 415.30, 493.88, 587.33],
+        "Emaj7": [329.63, 415.30, 493.88, 622.25],
+
+        "F": [349.23, 440.00, 523.25],
+        "Fm": [349.23, 415.30, 523.25],
+        "F7": [349.23, 440.00, 523.25, 622.25],
+        "Fmaj7": [349.23, 440.00, 523.25, 659.25],
+
+        "G": [392.00, 493.88, 587.33],
+        "Gm": [392.00, 466.16, 587.33],
+        "G7": [392.00, 493.88, 587.33, 698.46],
+        "Gmaj7": [392.00, 493.88, 587.33, 739.99],
+
+        "A": [440.00, 554.37, 659.25],
+        "Am": [440.00, 523.25, 659.25],
+        "A7": [440.00, 554.37, 659.25, 783.99],
+        "Amaj7": [440.00, 554.37, 659.25, 830.61],
+
+        "B": [493.88, 622.25, 739.99],
+        "Bm": [493.88, 587.33, 739.99],
+        "B7": [493.88, 622.25, 739.99, 880.00],
+        "Bmaj7": [493.88, 622.25, 739.99, 932.33]
+    };
+
+    const INSTRUMENT_NAMES = {
+        "piano": "ピアノ (Piano)",
+        "acoustic-guitar": "フォークギター (Acoustic Guitar)",
+        "electric-guitar": "エレキギター (Electric Guitar)",
+        "ukulele": "ウクレレ (Ukulele)",
+        "synth": "シンセサイザー (Lead Synth)",
+        "organ": "オルガン (Organ)",
+        "pipe-organ": "パイプオルガン (Pipe Organ)",
+        "strings": "ストリングス (Warm Strings)"
+    };
+
+    const KEY_MAPPINGS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'q', 'w'];
+
+    let audioCtx = null;
+    let selectedInstrument = "piano";
+    
+    let slotChords = [
+        "C", "Am", "F", "G",
+        "Dm", "Em", "C7", "G7",
+        "", "", "", ""
+    ];
+
+    let activeVoices = new Map();
+    let pressedKeys = new Set();
+
+    let isRhythmPlaying = false;
+    let currentBpm = 120;
+    let rhythmTimer = null;
+    let currentStep = 0;
+    let kickPattern = [1, 0, 0, 0, 1, 0, 0, 0];
+    let snarePattern = [0, 0, 1, 0, 0, 0, 1, 0];
+    let hihatPattern = [1, 1, 1, 1, 1, 1, 1, 1];
+
+    let playPadElementsMap = new Map();
+
+    window.addEventListener("DOMContentLoaded", () => {
+        initSetupGrid();
+        initRhythmSetupUI();
+
+        document.getElementById("start-btn").addEventListener("click", startPlayScreen);
+        document.getElementById("back-to-setup").addEventListener("click", returnToSetup);
+        document.getElementById("back-to-setup-from-rhythm").addEventListener("click", returnToSetupFromRhythm);
+        
+        document.getElementById("to-rhythm-setup").addEventListener("click", showRhythmSetup);
+        document.getElementById("to-rhythm-setup-play").addEventListener("click", showRhythmSetup);
+
+        document.getElementById("rhythm-toggle").addEventListener("click", toggleRhythm);
+        document.getElementById("preview-rhythm-toggle").addEventListener("click", toggleRhythm);
+
+        const rhythmTempoInput = document.getElementById("rhythm-tempo-input");
+        const playTempoInput = document.getElementById("play-tempo-input");
+
+        rhythmTempoInput.addEventListener("input", (e) => {
+            currentBpm = parseInt(e.target.value);
+            document.getElementById("rhythm-bpm-val").textContent = currentBpm;
+            playTempoInput.value = currentBpm;
+            document.getElementById("play-tempo-val").textContent = currentBpm;
+            if (isRhythmPlaying) restartRhythmInterval();
+        });
+
+        playTempoInput.addEventListener("input", (e) => {
+            currentBpm = parseInt(e.target.value);
+            document.getElementById("play-tempo-val").textContent = currentBpm;
+            rhythmTempoInput.value = currentBpm;
+            document.getElementById("rhythm-bpm-val").textContent = currentBpm;
+            if (isRhythmPlaying) restartRhythmInterval();
+        });
+
+        window.addEventListener("keydown", (e) => {
+            if (document.getElementById("play-screen").classList.contains("active")) {
+                if (e.code === "Space") {
+                    e.preventDefault();
+                    toggleRhythm();
+                    return;
+                }
+                const key = e.key.toLowerCase();
+                if (KEY_MAPPINGS.includes(key) && !pressedKeys.has(key)) {
+                    const index = KEY_MAPPINGS.indexOf(key);
+                    const chord = slotChords[index];
+                    if (chord && chord !== "") {
+                        pressedKeys.add(key);
+                        const padEl = playPadElementsMap.get(index);
+                        if (padEl && !activeVoices.has(padEl)) {
+                            padEl.classList.add("pressed");
+                            startChordNote(chord, selectedInstrument, padEl);
+                        }
+                    }
+                }
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            const key = e.key.toLowerCase();
+            if (pressedKeys.has(key)) {
+                pressedKeys.delete(key);
+                const index = KEY_MAPPINGS.indexOf(key);
+                const padEl = playPadElementsMap.get(index);
+                if (padEl && activeVoices.has(padEl)) {
+                    padEl.classList.remove("pressed");
+                    stopChordNote(padEl);
+                }
+            }
+        });
+    });
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+    }
+
+    function initSetupGrid() {
+        const grid = document.getElementById("setup-grid");
+        grid.innerHTML = "";
+
+        for (let i = 0; i < 12; i++) {
+            const select = document.createElement("select");
+            select.className = "slot-select";
+            
+            const emptyOpt = document.createElement("option");
+            emptyOpt.value = "";
+            emptyOpt.textContent = `(スロット ${i + 1}: 空白)`;
+            select.appendChild(emptyOpt);
+
+            Object.keys(CHORD_DEFINITIONS).forEach(chord => {
+                const opt = document.createElement("option");
+                opt.value = chord;
+                opt.textContent = chord;
+                if (slotChords[i] === chord) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+
+            select.addEventListener("change", (e) => {
+                slotChords[i] = e.target.value;
+            });
+
+            grid.appendChild(select);
+        }
+    }
+
+    function initRhythmSetupUI() {
+        createStepButtons("setup-kick-steps", kickPattern);
+        createStepButtons("setup-snare-steps", snarePattern);
+        createStepButtons("setup-hihat-steps", hihatPattern);
+    }
+
+    function createStepButtons(containerId, pattern) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        pattern.forEach((val, i) => {
+            const btn = document.createElement("button");
+            btn.className = `step-btn ${val === 1 ? "active" : ""}`;
+            btn.addEventListener("click", () => {
+                pattern[i] = pattern[i] === 1 ? 0 : 1;
+                btn.classList.toggle("active");
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    function showRhythmSetup() {
+        document.getElementById("setup-screen").classList.remove("active");
+        document.getElementById("play-screen").classList.remove("active");
+        document.getElementById("rhythm-setup-screen").classList.add("active");
+    }
+
+    function returnToSetupFromRhythm() {
+        if (isRhythmPlaying) stopRhythm();
+        document.getElementById("rhythm-setup-screen").classList.remove("active");
+        document.getElementById("setup-screen").classList.add("active");
+    }
+
+    function startPlayScreen() {
+        initAudio();
+        selectedInstrument = document.getElementById("instrument-select").value;
+
+        document.getElementById("setup-screen").classList.remove("active");
+        document.getElementById("play-screen").classList.add("active");
+
+        renderPlayGrid();
+    }
+
+    function returnToSetup() {
+        stopRhythm();
+        stopAllVoicesInstant();
+        document.getElementById("play-screen").classList.remove("active");
+        document.getElementById("setup-screen").classList.add("active");
+        initSetupGrid();
+    }
+
+    function renderPlayGrid() {
+        const grid = document.getElementById("play-grid");
+        grid.innerHTML = "";
+        playPadElementsMap.clear();
+
+        slotChords.forEach((chord, index) => {
+            const pad = document.createElement("div");
+            const shortcutKey = KEY_MAPPINGS[index] ? ` [${KEY_MAPPINGS[index].toUpperCase()}]` : '';
+
+            if (chord && chord !== "") {
+                pad.className = "chord-pad filled";
+                pad.innerHTML = `
+                    <div class="chord-name">${chord}</div>
+                    <div class="pad-hint">${shortcutKey}</div>
+                `;
+
+                playPadElementsMap.set(index, pad);
+
+                const startHandler = (e) => {
+                    e.preventDefault();
+                    if (activeVoices.has(pad)) return;
+                    pad.classList.add("pressed");
+                    startChordNote(chord, selectedInstrument, pad);
+                };
+
+                const endHandler = (e) => {
+                    e.preventDefault();
+                    if (activeVoices.has(pad)) {
+                        pad.classList.remove("pressed");
+                        stopChordNote(pad);
+                    }
+                };
+
+                pad.addEventListener("mousedown", startHandler);
+                pad.addEventListener("mouseup", endHandler);
+                pad.addEventListener("mouseleave", endHandler);
+
+                pad.addEventListener("touchstart", startHandler, { passive: false });
+                pad.addEventListener("touchend", endHandler, { passive: false });
+                pad.addEventListener("touchcancel", endHandler, { passive: false });
+            } else {
+                pad.className = "chord-pad empty";
+                pad.innerHTML = `<div class="pad-hint">空白</div>`;
+            }
+
+            grid.appendChild(pad);
+        });
+    }
+
+    function startChordNote(chordName, instrument, padElement) {
+        initAudio();
+        const freqs = CHORD_DEFINITIONS[chordName];
+        if (!freqs) return;
+
+        const now = audioCtx.currentTime;
+        const oscillators = [];
+        const gainNodes = [];
+
+        // 楽器ごとの発音特性・ストラム（分散和音）ディレイ
+        freqs.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            let delayOffset = 0;
+
+            if (instrument === "piano") {
+                osc.type = "sine";
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.25, now + 0.03);
+            } else if (instrument === "acoustic-guitar") {
+                // アコギ：わずかに弦を弾くような分散タイミング（ストラム）と減衰
+                delayOffset = idx * 0.025;
+                osc.type = "triangle";
+                gain.gain.setValueAtTime(0.0, now + delayOffset);
+                gain.gain.linearRampToValueAtTime(0.22, now + delayOffset + 0.02);
+            } else if (instrument === "electric-guitar") {
+                // エレキギター：倍音豊かなのこぎり波
+                delayOffset = idx * 0.02;
+                osc.type = "sawtooth";
+                gain.gain.setValueAtTime(0.0, now + delayOffset);
+                gain.gain.linearRampToValueAtTime(0.18, now + delayOffset + 0.02);
+            } else if (instrument === "ukulele") {
+                // ウクレレ：明るく短めの余韻
+                delayOffset = idx * 0.015;
+                osc.type = "triangle";
+                gain.gain.setValueAtTime(0.0, now + delayOffset);
+                gain.gain.linearRampToValueAtTime(0.25, now + delayOffset + 0.01);
+            } else if (instrument === "synth") {
+                osc.type = "sawtooth";
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+            } else if (instrument === "organ") {
+                osc.type = "triangle";
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            } else if (instrument === "pipe-organ") {
+                // パイプオルガン：重厚で豊かな倍音
+                osc.type = "square";
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+            } else if (instrument === "strings") {
+                osc.type = "sawtooth";
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.3);
+            }
+
+            const startTime = now + delayOffset;
+            osc.frequency.setValueAtTime(freq * (instrument === "ukulele" ? 2 : 1), startTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(startTime);
+
+            oscillators.push(osc);
+            gainNodes.push(gain);
+        });
+
+        activeVoices.set(padElement, { oscillators, gainNodes });
+    }
+
+    function stopChordNote(padElement) {
+        const voice = activeVoices.get(padElement);
+        if (!voice) return;
+
+        const now = audioCtx.currentTime;
+        const releaseTime = 0.25;
+
+        voice.gainNodes.forEach(gain => {
+            try {
+                gain.gain.cancelScheduledValues(now);
+                gain.gain.setValueAtTime(gain.gain.value, now);
+                gain.gain.linearRampToValueAtTime(0.0001, now + releaseTime);
+            } catch (e) {}
+        });
+
+        voice.oscillators.forEach(osc => {
+            try {
+                osc.stop(now + releaseTime + 0.05);
+            } catch (e) {}
+        });
+
+        activeVoices.delete(padElement);
+    }
+
+    function stopAllVoicesInstant() {
+        activeVoices.forEach((voice, padElement) => {
+            voice.oscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            padElement.classList.remove("pressed");
+        });
+        activeVoices.clear();
+        pressedKeys.clear();
+    }
+
+    function toggleRhythm() {
+        initAudio();
+        if (isRhythmPlaying) {
+            stopRhythm();
+        } else {
+            startRhythm();
+        }
+    }
+
+    function startRhythm() {
+        isRhythmPlaying = true;
+        
+        const toggleBtn1 = document.getElementById("rhythm-toggle");
+        const toggleBtn2 = document.getElementById("preview-rhythm-toggle");
+        
+        toggleBtn1.className = "btn btn-danger";
+        toggleBtn1.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg><span>リズム停止</span>`;
+        
+        toggleBtn2.textContent = "試聴停止";
+        toggleBtn2.style.background = "var(--danger)";
+
+        currentStep = 0;
+        startRhythmInterval();
+    }
+
+    function stopRhythm() {
+        isRhythmPlaying = false;
+        
+        const toggleBtn1 = document.getElementById("rhythm-toggle");
+        const toggleBtn2 = document.getElementById("preview-rhythm-toggle");
+
+        toggleBtn1.className = "btn btn-secondary";
+        toggleBtn1.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>リズム再生</span>`;
+
+        toggleBtn2.textContent = "試聴再生";
+        toggleBtn2.style.background = "";
+
+        if (rhythmTimer) clearInterval(rhythmTimer);
+        clearStepHighlights();
+        currentStep = 0;
+    }
+
+    function restartRhythmInterval() {
+        if (rhythmTimer) clearInterval(rhythmTimer);
+        startRhythmInterval();
+    }
+
+    function startRhythmInterval() {
+        const interval = (60 / currentBpm / 4) * 1000;
+        rhythmTimer = setInterval(() => {
+            playCurrentStep();
+            updateStepVisuals();
+            currentStep = (currentStep + 1) % 8;
+        }, interval);
+    }
+
+    function playCurrentStep() {
+        const now = audioCtx.currentTime;
+        if (kickPattern[currentStep] === 1) playKick(now);
+        if (snarePattern[currentStep] === 1) playSnare(now);
+        if (hihatPattern[currentStep] === 1) playHiHat(now);
+    }
+
+    function updateStepVisuals() {
+        const updateRow = (containerId, stepIndex) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const buttons = container.children;
+            for (let i = 0; i < buttons.length; i++) {
+                if (i === stepIndex) {
+                    buttons[i].classList.add("current");
+                } else {
+                    buttons[i].classList.remove("current");
+                }
+            }
+        };
+
+        updateRow("setup-kick-steps", currentStep);
+        updateRow("setup-snare-steps", currentStep);
+        updateRow("setup-hihat-steps", currentStep);
+    }
+
+    function clearStepHighlights() {
+        ["setup-kick-steps", "setup-snare-steps", "setup-hihat-steps"].forEach(id => {
+            const container = document.getElementById(id);
+            if (!container) return;
+            for (let i = 0; i < container.children.length; i++) {
+                container.children[i].classList.remove("current");
+            }
+        });
+    }
+
+    function playKick(time) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.15);
+        
+        gain.gain.setValueAtTime(0.5, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.15);
+    }
+
+    function playSnare(time) {
+        const bufferSize = audioCtx.sampleRate * 0.1;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 800;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.1);
+    }
+
+    function playHiHat(time) {
+        const bufferSize = audioCtx.sampleRate * 0.05;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 5000;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.15, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        noise.start(time);
+        noise.stop(time + 0.05);
+    }
+</script>
+
+</body>
+</html>
