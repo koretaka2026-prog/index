@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <!-- スマホで画面が縮小されず、綺麗にフィットするための設定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>絶対音感トレーニング - 単音 & 和音ゲーム</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        h1 { 
+            font-size: 20px; 
+            color: #2c3e50; 
+            margin-top: 0;
+            margin-bottom: 15px; 
+        }
+        
+        .mode-select-box {
+            margin: 12px 0;
+            text-align: left;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .mode-select-box p {
+            margin: 0 0 8px 0;
+            font-weight: bold;
+            color: #34495e;
+            font-size: 14px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 4px;
+        }
+        .mode-select-box label {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 14px;
+            cursor: pointer;
+            gap: 8px;
+        }
+        .mode-select-box input[type="radio"] {
+            transform: scale(1.1);
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        
+        /* 視覚的エフェクト（波形ビジュアライザー） */
+        .visualizer-box {
+            height: 60px;
+            background: #1a252f;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bar {
+            width: 6px;
+            height: 8px;
+            background: #3498db;
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+        .visualizer-text {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        .main-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 8px 0;
+            box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
+        }
+        .main-btn:hover { background-color: #2980b9; transform: translateY(-1px); }
+        .play-sound-btn { background-color: #e67e22; box-shadow: 0 4px 6px rgba(230, 126, 34, 0.2); }
+        .play-sound-btn:hover { background-color: #d35400; }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .action-buttons .main-btn {
+            margin: 4px 0 10px 0;
+        }
+
+        .status-msg { 
+            font-size: 16px; 
+            font-weight: bold; 
+            margin: 10px 0; 
+            min-height: 26px; 
+        }
+        
+        /* 単音ボタン配置 */
+        .keyboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        /* 和音ボタン配置（スマホでも押しやすいコンパクトなサイズ感） */
+        .chord-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+        .note-btn {
+            background-color: #ffffff;
+            border: 2px solid #34495e;
+            color: #34495e;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .note-btn:hover, .note-btn:active { background-color: #34495e; color: white; }
+        
+        .chord-btn {
+            background-color: #ebf5fb;
+            border: 1.5px solid #2980b9;
+            color: #2980b9;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 10px 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .chord-btn:hover, .chord-btn:active { background-color: #2980b9; color: white; }
+        
+        .back-btn {
+            background-color: #95a5a6;
+            margin-top: 12px;
+            font-size: 14px;
+            padding: 10px;
+            box-shadow: none;
+        }
+        .back-btn:hover { background-color: #7f8c8d; }
+
+        /* PCなど大きめの画面向けの微調整 */
+        @media (min-width: 600px) {
+            .container {
+                padding: 30px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎼 絶対音感・音当てゲーム</h1>
+
+    <!-- スタート画面 -->
+    <div id="start-screen">
+        <div class="mode-select-box">
+            <p>① ゲームモードを選択：</p>
+            <label><input type="radio" name="game-mode" value="single" checked> 🎵 単音モード（1つの音）</label>
+            <label><input type="radio" name="game-mode" value="chord"> 🎹 和音モード（コードネーム）</label>
+        </div>
+
+        <div class="mode-select-box">
+            <p>② 音色を選択：</p>
+            <label><input type="radio" name="synth-type" value="sine" checked> サイン波（やわらかい電子音）</label>
+            <label><input type="radio" name="synth-type" value="triangle"> 三角波（オルガン・木琴風）</label>
+            <label><input type="radio" name="synth-type" value="sawtooth"> ノコギリ波（明るくリッチ）</label>
+            <label><input type="radio" name="synth-type" value="square"> 矩形波（ファミコン風）</label>
+            <label><input type="radio" name="synth-type" value="random"> 🎲 ランダム（毎回変わる）</label>
+        </div>
+
+        <button id="start-btn" class="main-btn">ゲームスタート</button>
+    </div>
+    
+    <!-- ゲームプレイ画面 -->
+    <div id="game-controls" style="display: none;">
+        <div class="score-board">
+            <span>スコア: <span id="score">0</span></span>
+            <span>正解率: <span id="accuracy">0%</span></span>
+        </div>
+
+        <!-- 視覚的エフェクト（波形ビジュアライザー） -->
+        <div class="visualizer-box" id="visualizer">
+            <div class="visualizer-text" id="viz-text">🎵 演奏中...</div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="play-btn" class="main-btn play-sound-btn">🔊 もう一度聞く</button>
+            <button id="next-btn" class="main-btn" style="background-color: #2ecc71;">次の問題 ➔</button>
+        </div>
+        
+        <div class="status-msg" id="status-msg">音を聞いて答えてね！</div>
+
+        <div id="answer-instruction" style="font-size: 12px; color: #e67e22; margin-bottom: 4px; font-weight: bold;"></div>
+
+        <!-- 回答用のボタン配置エリア -->
+        <div id="keyboard-grid"></div>
+
+        <button class="main-btn back-btn" onclick="returnToStart()">設定画面に戻る</button>
+    </div>
+</div>
+
+<script>
+    const noteFrequencies = {
+        "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13,
+        "E": 329.63, "F": 349.23, "F#": 369.99, "G": 392.00,
+        "G#": 415.30, "A": 440.00, "A#": 466.16, "B": 493.88
+    };
+
+    const noteNamesJp = { 
+        "C": "ド", "C#": "ド#", "D": "レ", "D#": "レ#", 
+        "E": "ミ", "F": "ファ", "F#": "ファ#", "G": "ソ", 
+        "G#": "ソ#", "A": "ラ", "A#": "ラ#", "B": "シ" 
+    };
+
+    const singleNotesList = ["C", "D", "E", "F", "G", "A", "B"];
+    const waveTypesList = ["sine", "triangle", "sawtooth", "square"];
+
+    const chordDefinitions = [
+        { name: "C", label: "C (ド・ミ・ソ)", notes: ["C", "E", "G"] },
+        { name: "Cm", label: "Cm (ド・レ#・ソ)", notes: ["C", "D#", "G"] },
+        { name: "D", label: "D (レ・ファ#・ラ)", notes: ["D", "F#", "A"] },
+        { name: "Dm", label: "Dm (レ・ファ・ラ)", notes: ["D", "F", "A"] },
+        { name: "E", label: "E (ミ・ソ#・シ)", notes: ["E", "G#", "B"] },
+        { name: "Em", label: "Em (ミ・ソ・シ)", notes: ["E", "G", "B"] },
+        { name: "F", label: "F (ファ・ラ・ド)", notes: ["F", "A", "C"] },
+        { name: "Fm", label: "Fm (ファ・ソ#・ド)", notes: ["F", "G#", "C"] },
+        { name: "G", label: "G (ソ・シ・レ)", notes: ["G", "B", "D"] },
+        { name: "Gm", label: "Gm (ソ・A#・レ)", notes: ["G", "A#", "D"] },
+        { name: "A", label: "A (ラ・ド#・ミ)", notes: ["A", "C#", "E"] },
+        { name: "Am", label: "Am (ラ・ド・ミ)", notes: ["A", "C", "E"] },
+        { name: "C7", label: "C7 (ド・ミ・ソ・A#)", notes: ["C", "E", "G", "A#"] },
+        { name: "CM7", label: "CM7 (ド・ミ・ソ・シ)", notes: ["C", "E", "G", "B"] },
+        { name: "D7", label: "D7 (レ・ファ#・ラ・ド)", notes: ["D", "F#", "A", "C"] },
+        { name: "Dm7", label: "Dm7 (レ・ファ・ラ・ド)", notes: ["D", "F", "A", "C"] },
+        { name: "E7", label: "E7 (ミ・ソ#・シ・レ)", notes: ["E", "G#", "B", "D"] },
+        { name: "F7", label: "F7 (ファ・ラ・ド・D#)", notes: ["F", "A", "C", "D#"] },
+        { name: "FM7", label: "FM7 (ファ・ラ・ド・ミ)", notes: ["F", "A", "C", "E"] },
+        { name: "G7", label: "G7 (ソ・シ・レ・ファ)", notes: ["G", "B", "D", "F"] },
+        { name: "A7", label: "A7 (ラ・ド#・ミ・ソ)", notes: ["A", "C#", "E", "G"] },
+        { name: "Am7", label: "Am7 (ラ・ド・ミ・ソ)", notes: ["A", "C", "E", "G"] }
+    ];
+
+    let audioCtx = null;
+    let currentMode = "single";
+    let selectedWaveSetting = "sine";
+    let currentWaveType = "sine";
+    
+    let targetSingleNote = "";
+    let targetChord = null;
+    
+    let isAnswered = false;
+    let score = 0;
+    let totalQuestions = 0;
+    let animationTimer = null;
+
+    document.getElementById("start-btn").addEventListener("click", async () => {
+        const modeRadios = document.getElementsByName("game-mode");
+        for (const radio of modeRadios) {
+            if (radio.checked) currentMode = radio.value;
+        }
+
+        const waveRadios = document.getElementsByName("synth-type");
+        for (const radio of waveRadios) {
+            if (radio.checked) selectedWaveSetting = radio.value;
+        }
+
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+        } catch (e) {
+            console.error("AudioContextの生成に失敗しました", e);
+        }
+
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("game-controls").style.display = "block";
+        
+        setupKeyboard();
+        nextQuestion();
+    });
+
+    function setupKeyboard() {
+        const grid = document.getElementById("keyboard-grid");
+        grid.innerHTML = "";
+
+        if (currentMode === "single") {
+            grid.className = "keyboard-grid";
+            singleNotesList.forEach(note => {
+                const btn = document.createElement("button");
+                btn.className = "note-btn";
+                btn.innerText = `${noteNamesJp[note]} (${note})`;
+                btn.onclick = () => submitSingleAnswer(note);
+                grid.appendChild(btn);
+            });
+            document.getElementById("answer-instruction").innerText = "";
+        } else {
+            grid.className = "chord-grid";
+            chordDefinitions.forEach(chord => {
+                const btn = document.createElement("button");
+                btn.className = "chord-btn";
+                btn.innerText = chord.name;
+                btn.title = chord.label; 
+                btn.onclick = () => submitChordAnswer(chord);
+                grid.appendChild(btn);
+            });
+            document.getElementById("answer-instruction").innerText = "💡 鳴ったコードボタンを押してね（タップ長押しで構成音確認）";
+        }
+    }
+
+    document.getElementById("play-btn").addEventListener("click", () => {
+        if (currentMode === "single") {
+            playTones([targetSingleNote], currentWaveType);
+        } else if (targetChord) {
+            playTones(targetChord.notes, currentWaveType);
+        }
+    });
+
+    document.getElementById("next-btn").addEventListener("click", nextQuestion);
+
+    function startVisualizer() {
+        const vizText = document.getElementById("viz-text");
+        vizText.innerText = "🎵 演奏中...";
+        const bars = document.querySelectorAll(".bar");
+        
+        if (animationTimer) clearInterval(animationTimer);
+        
+        animationTimer = setInterval(() => {
+            bars.forEach(bar => {
+                const randomHeight = Math.floor(Math.random() * 45) + 8;
+                bar.style.height = `${randomHeight}px`;
+                bar.style.backgroundColor = getComputedBarColor(currentWaveType);
+            });
+        }, 100);
+
+        setTimeout(() => {
+            stopVisualizer();
+        }, 1500);
+    }
+
+    function stopVisualizer() {
+        if (animationTimer) clearInterval(animationTimer);
+        const bars = document.querySelectorAll(".bar");
+        bars.forEach(bar => {
+            bar.style.height = "6px";
+            bar.style.backgroundColor = "#7f8c8d";
+        });
+        document.getElementById("viz-text").innerText = "🔊 待機中";
+    }
+
+    function getComputedBarColor(waveType) {
+        switch(waveType) {
+            case 'sine': return '#3498db';
+            case 'triangle': return '#2ecc71';
+            case 'sawtooth': return '#e67e22';
+            case 'square': return '#e74c3c';
+            default: return '#9b59b6';
+        }
+    }
+
+    function playTones(notes, waveType) {
+        if (!audioCtx) return;
+        startVisualizer();
+
+        notes.forEach(note => {
+            const freq = noteFrequencies[note];
+            if (!freq) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = waveType;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            const volume = (waveType === 'sine') ? 0.3 : 0.1;
+
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.5);
+        });
+    }
+
+    function nextQuestion() {
+        isAnswered = false;
+
+        if (selectedWaveSetting === "random") {
+            const randomIdx = Math.floor(Math.random() * waveTypesList.length);
+            currentWaveType = waveTypesList[randomIdx];
+        } else {
+            currentWaveType = selectedWaveSetting;
+        }
+
+        const statusEl = document.getElementById("status-msg");
+
+        if (currentMode === "single") {
+            const randomIndex = Math.floor(Math.random() * singleNotesList.length);
+            targetSingleNote = singleNotesList[randomIndex];
+            statusEl.innerText = "どんな音が聞こえたかな？";
+            playTones([targetSingleNote], currentWaveType);
+        } else {
+            const randomIndex = Math.floor(Math.random() * chordDefinitions.length);
+            targetChord = chordDefinitions[randomIndex];
+            statusEl.innerText = "何のコード（和音）が聞こえたかな？";
+            playTones(targetChord.notes, currentWaveType);
+        }
+        statusEl.style.color = "#333";
+    }
+
+    function submitSingleAnswer(selectedNote) {
+        if (isAnswered) return;
+        isAnswered = true;
+        totalQuestions++;
+        const statusEl = document.getElementById("status-msg");
+
+        if (selectedNote === targetSingleNote) {
+            score++;
+            statusEl.innerText = `⭕ 正解！ 「${noteNamesJp[targetSingleNote]}」でした！`;
+            statusEl.style.color = "#27ae60";
+        } else {
+            statusEl.innerText = `❌ 残念！ 正解は「${noteNamesJp[targetSingleNote]}」でした。`;
+            statusEl.style.color = "#e74c3c";
+        }
+        updateScore();
+    }
+
+    function submitChordAnswer(selectedChord) {
+        if (isAnswered) return;
+        isAnswered = true;
+        totalQuestions++;
+        const statusEl = document.getElementById("status-msg");
+
+        if (selectedChord.name === targetChord.name) {
+            score++;
+            statusEl.innerText = `⭕ 正解！ 「${targetChord.name}」(${targetChord.label})でした！`;
+            statusEl.style.color = "#27ae60";
+        } else {
+            statusEl.innerText = `❌ 残念！ 正解は「${targetChord.name}」(${targetChord.label})でした。`;
+            statusEl.style.color = "#e74c3c";
+        }
+        updateScore();
+    }
+
+    function updateScore() {
+        document.getElementById("score").innerText = score;
+        const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+        document.getElementById("accuracy").innerText = `${accuracy}%`;
+    }
+
+    function returnToStart() {
+        document.getElementById("game-controls").style.display = "none";
+        document.getElementById("start-screen").style.display = "block";
+        score = 0;
+        totalQuestions = 0;
+        updateScore();
+    }
+</script>
+
+</body>
+</html>
