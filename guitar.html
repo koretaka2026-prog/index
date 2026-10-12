@@ -21,6 +21,7 @@
             --accent-hover: #4f46e5;
             --accent-active: #4338ca;
             --danger: #ef4444;
+            --success: #22c55e;
             --border-color: #334155;
             --radius: 12px;
         }
@@ -85,7 +86,7 @@
         .btn-group {
             display: flex;
             gap: 0.3rem;
-            flex-shrink: 0; /* パソコン等でもボタンが縮んで消えないように固定 */
+            flex-shrink: 0;
         }
 
         .btn {
@@ -114,7 +115,12 @@
         }
         .btn-secondary:hover { background: #475569; }
 
-        /* コードボタンエリア（高さに余裕がない場合はスクロール可能に） */
+        .btn-success {
+            background: var(--success);
+        }
+        .btn-success:hover { background: #16a34a; }
+
+        /* コードボタンエリア */
         .chord-sidebar {
             flex: 1;
             display: grid;
@@ -153,7 +159,7 @@
             transform: scale(0.96);
         }
 
-        /* 右側：ギターの弦エリア（1弦が上、6弦が下） */
+        /* 右側：ギターの弦エリア */
         .strings-container {
             flex: 1;
             background: #090d16;
@@ -186,7 +192,6 @@
             background: rgba(99, 102, 241, 0.04);
         }
 
-        /* 弦本体 */
         .string-line {
             position: absolute;
             left: 0;
@@ -345,13 +350,34 @@
             color: #f87171;
             font-size: 0.75rem;
         }
+
+        /* 保存完了トースト通知 */
+        #toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #22c55e;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-in-out;
+            z-index: 2000;
+            pointer-events: none;
+        }
+        #toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="play-main">
-        <!-- 左側：設定・ヘルプボタン ＋ コードボタン（常に左側に配置） -->
+        <!-- 左側：設定・ヘルプボタン ＋ コードボタン -->
         <div class="left-sidebar">
             <div class="btn-group">
                 <button id="open-settings" class="btn btn-secondary">⚙️ 設定</button>
@@ -402,7 +428,7 @@
 <div id="settings-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>⚙️ 楽器・エフェクター・コード設定</h3>
+            <h3>⚙️ 楽器・エフェクター・リズム設定</h3>
             <button class="modal-close-btn" data-modal="settings-modal">&times;</button>
         </div>
         <div class="modal-body">
@@ -431,6 +457,18 @@
             </div>
 
             <div class="form-group">
+                <label for="rhythm-pattern-select">リズムの種類</label>
+                <select id="rhythm-pattern-select">
+                    <option value="rock-8beat">8ビートロック (8-Beat Rock)</option>
+                    <option value="pop-16beat">16ビートポップス (16-Beat Pop)</option>
+                    <option value="jazz-4beat">4ビートジャズ (4-Beat Jazz)</option>
+                    <option value="bossanova">ボサノバ (Bossa Nova)</option>
+                    <option value="disco">ディスコ (Disco / 4-on-the-floor)</option>
+                    <option value="standard">基本ロック (Standard)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label>ドラム自動リズム伴奏</label>
                 <button id="rhythm-toggle-btn" class="btn">リズム再生 (START)</button>
             </div>
@@ -445,6 +483,10 @@
                 <div class="chord-config-grid" id="chord-config-grid">
                     <!-- 動的生成 -->
                 </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.5rem;">
+                <button id="save-settings-btn" class="btn btn-success">💾 設定を保存</button>
             </div>
         </div>
     </div>
@@ -465,8 +507,8 @@
                     <li><strong>コード選択:</strong> 左側のコードボタン（12個）をタップして弾きたいコードを選択します。</li>
                     <li><strong>ストローク演奏:</strong> 右側の1弦〜6弦を上下にスワイプ（撫でる）または直接タップすることで音を鳴らせます。</li>
                     <li><strong>ミュート弦（×印）:</strong> コード音に含まれない弦（ミュート表示）を弾くと、ミュート打鍵音が鳴ります。</li>
-                    <li><strong>音色・エフェクト設定:</strong> 設定画面よりギターの音色（フォーク/クラシック/エレキ等）やエフェクト（コーラス/ディレイ/リバーブ）を自由に切り替えられます。</li>
-                    <li><strong>リズム伴奏:</strong> ドラムの自動伴奏再生機能やBPM（テンポ）調整が可能です。</li>
+                    <li><strong>音色・エフェクト設定:</strong> 設定画面よりギターの音色やエフェクトを自由に切り替えられます。</li>
+                    <li><strong>リズム伴奏:</strong> ドラムの自動伴奏（8ビート、16ビート、ボサノバ等）やBPM（テンポ）調整が可能です。</li>
                     <li><strong>コード割り当て変更:</strong> よく使うコードを設定画面の「コードボタンの割り当て変更」から自由にカスタマイズできます。</li>
                 </ul>
             </div>
@@ -476,7 +518,7 @@
                 <ul>
                     <li><strong class="warning-text">音量についての注意:</strong> 演奏時に予期せぬ大きな音が鳴ることがあります。端末の音量を適切に調整し、イヤホン等を使用する際は音量に十分ご注意ください。</li>
                     <li><strong>音が出ない場合:</strong> ブラウザの安全制限により、最初の画面タップ（操作）が行われるまで音が再生されない仕様になっています。画面をタップしても音が出ない場合は、端末のマナーモード・サイレントモードが解除されているかご確認ください。</li>
-                    <li><strong>設定の保存:</strong> 選択した音色、エフェクト、テンポ、コードの割り当てはブラウザ内（ローカルストレージ）に自動保存されます。</li>
+                    <li><strong>設定の保存:</strong> 設定画面の「💾 設定を保存」ボタンを押すことで、音色、エフェクト、リズム、テンポ、コードの割り当てがブラウザに保存されます（各種変更時にも自動保存されます）。</li>
                 </ul>
             </div>
 
@@ -490,6 +532,9 @@
         </div>
     </div>
 </div>
+
+<!-- 保存完了トースト通知 -->
+<div id="toast-notification">⚙️ 設定を保存しました</div>
 
 <script>
     const NOTE_FREQS = {
@@ -550,9 +595,76 @@
         "Gadd9": ["G2", "B2", "D3", "G3", "B3", "A4"]
     };
 
+    // リズムパターン定義 (各配列は1小節を8ステップまたは16ステップ等で分割した演奏イベント)
+    // 0:何もしない, K:バスドラム, S:スネア, H:ハイハット, O:オープンハイハット
+    const RHYTHM_PATTERNS = {
+        "rock-8beat": {
+            steps: 8,
+            // 8分音符ベース (計8ステップ)
+            // Kick: 0, 4 / Snare: 2, 6 / HiHat: 0,1,2,3,4,5,6,7
+            pattern: [
+                { k: true, h: true },
+                { h: true },
+                { s: true, h: true },
+                { h: true },
+                { k: true, h: true },
+                { h: true },
+                { s: true, h: true },
+                { h: true }
+            ]
+        },
+        "pop-16beat": {
+            steps: 16,
+            // 16分音符ベース (計16ステップ)
+            pattern: [
+                { k: true, h: true }, { h: true }, { k: true, h: true }, { h: true },
+                { s: true, h: true }, { h: true }, { h: true, o: true }, { h: true },
+                { k: true, h: true }, { h: true }, { k: true, h: true }, { h: true },
+                { s: true, h: true }, { h: true }, { h: true }, { h: true }
+            ]
+        },
+        "jazz-4beat": {
+            steps: 8,
+            // ジャズ風スウィング (8分音符を跳ねる)
+            pattern: [
+                { k: true, h: true }, { o: true },
+                { s: true, h: true }, { o: true },
+                { k: true, h: true }, { o: true },
+                { s: true, h: true }, { o: true }
+            ]
+        },
+        "bossanova": {
+            steps: 16,
+            // ボサノバ風のリズム
+            pattern: [
+                { k: true, h: true }, { h: true }, { h: true }, { k: true, h: true },
+                { s: true, h: true }, { h: true }, { h: true }, { k: true, h: true },
+                { k: true, h: true }, { h: true }, { h: true }, { k: true, h: true },
+                { s: true, h: true }, { h: true }, { h: true }, { h: true }
+            ]
+        },
+        "disco": {
+            steps: 8,
+            // 4つ打ちディスコ
+            pattern: [
+                { k: true, h: true }, { o: true },
+                { k: true, s: true, h: true }, { o: true },
+                { k: true, h: true }, { o: true },
+                { k: true, s: true, h: true }, { o: true }
+            ]
+        },
+        "standard": {
+            steps: 8,
+            pattern: [
+                { k: true }, {}, { s: true }, {}, { k: true }, {}, { s: true }, {}
+            ]
+        }
+    };
+
     let currentChordList = JSON.parse(localStorage.getItem("guitar_chord_list")) || ["C", "G", "D", "A", "E", "F", "Am", "Em", "Dm", "Bm", "C7", "G7"];
     let selectedInstrument = localStorage.getItem("guitar_instrument") || "acoustic-guitar";
     let selectedEffect = localStorage.getItem("guitar_effect") || "none";
+    let selectedRhythm = localStorage.getItem("guitar_rhythm") || "rock-8beat";
     let currentBpm = parseInt(localStorage.getItem("guitar_bpm")) || 120;
 
     let audioCtx = null;
@@ -569,6 +681,7 @@
     window.addEventListener("DOMContentLoaded", () => {
         document.getElementById("instrument-select").value = selectedInstrument;
         document.getElementById("effect-select").value = selectedEffect;
+        document.getElementById("rhythm-pattern-select").value = selectedRhythm;
         document.getElementById("tempo-input").value = currentBpm;
         document.getElementById("bpm-val").textContent = currentBpm;
 
@@ -586,6 +699,13 @@
         document.getElementById("settings-help-btn").addEventListener("click", () => {
             document.getElementById("settings-modal").classList.remove("active");
             document.getElementById("help-modal").classList.add("active");
+        });
+
+        // 設定保存ボタンの処理
+        document.getElementById("save-settings-btn").addEventListener("click", () => {
+            saveAllSettings();
+            showToast("⚙️ 設定を保存しました！");
+            document.getElementById("settings-modal").classList.remove("active");
         });
 
         document.querySelectorAll(".modal-close-btn").forEach(btn => {
@@ -611,6 +731,12 @@
             localStorage.setItem("guitar_effect", selectedEffect);
         });
 
+        document.getElementById("rhythm-pattern-select").addEventListener("change", (e) => {
+            selectedRhythm = e.target.value;
+            localStorage.setItem("guitar_rhythm", selectedRhythm);
+            if (isRhythmPlaying) restartRhythm();
+        });
+
         const tempoInput = document.getElementById("tempo-input");
         const bpmVal = document.getElementById("bpm-val");
         tempoInput.addEventListener("input", (e) => {
@@ -632,6 +758,23 @@
         window.addEventListener("touchstart", unlockAudio, { once: true });
         window.addEventListener("mousedown", unlockAudio, { once: true });
     });
+
+    function saveAllSettings() {
+        localStorage.setItem("guitar_instrument", selectedInstrument);
+        localStorage.setItem("guitar_effect", selectedEffect);
+        localStorage.setItem("guitar_rhythm", selectedRhythm);
+        localStorage.setItem("guitar_bpm", currentBpm);
+        localStorage.setItem("guitar_chord_list", JSON.stringify(currentChordList));
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById("toast-notification");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2000);
+    }
 
     function initAudio() {
         if (!audioCtx) {
@@ -925,19 +1068,27 @@
     }
 
     function startRhythmInterval() {
-        const interval = (60 / currentBpm / 4) * 1000;
+        const currentData = RHYTHM_PATTERNS[selectedRhythm] || RHYTHM_PATTERNS["rock-8beat"];
+        // 16分音符ベースの場合は間隔を半分にする
+        const divisor = currentData.steps === 16 ? 8 : 4;
+        const interval = (60 / currentBpm / divisor) * 1000;
+
         rhythmTimer = setInterval(() => {
-            playDrumStep(rhythmStep);
-            rhythmStep = (rhythmStep + 1) % 8;
+            playDrumStep(rhythmStep, currentData);
+            rhythmStep = (rhythmStep + 1) % currentData.steps;
         }, interval);
     }
 
-    function playDrumStep(step) {
+    function playDrumStep(step, rhythmData) {
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
-        if (step === 0 || step === 4) playKick(now);
-        if (step === 2 || step === 6) playSnare(now);
-        playHiHat(now);
+        const event = rhythmData.pattern[step];
+        if (!event) return;
+
+        if (event.k) playKick(now);
+        if (event.s) playSnare(now);
+        if (event.h) playHiHat(now, false);
+        if (event.o) playHiHat(now, true);
     }
 
     function playKick(time) {
@@ -974,8 +1125,9 @@
         noise.stop(time + 0.08);
     }
 
-    function playHiHat(time) {
-        const bufferSize = audioCtx.sampleRate * 0.04;
+    function playHiHat(time, isOpen) {
+        const duration = isOpen ? 0.08 : 0.04;
+        const bufferSize = audioCtx.sampleRate * duration;
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -985,14 +1137,14 @@
         filter.type = "highpass";
         filter.frequency.value = 6000;
         const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0.12, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+        gain.gain.setValueAtTime(isOpen ? 0.18 : 0.12, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(masterCompressor);
 
         noise.start(time);
-        noise.stop(time + 0.04);
+        noise.stop(time + duration);
     }
 </script>
 
