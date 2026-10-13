@@ -161,7 +161,7 @@
       </div>
       <div class="flex items-center gap-1">
         <span class="text-pink-400 font-bold"><i class="fa-solid fa-hand-pointer mr-1"></i>スマホ:</span>
-        <span>どこでもタップで回転 / フリックで移動・落下</span>
+        <span>どこでもタップで回転 / フリックで移動・加速</span>
       </div>
     </div>
   </footer>
@@ -200,7 +200,7 @@
             <li><b class="text-white">画面のどこをタップしても:</b> ブロックが1回(90度)回転</li>
             <li><b class="text-white">左にフリック:</b> 左へ移動</li>
             <li><b class="text-white">右にフリック:</b> 右へ移動</li>
-            <li><b class="text-white">下にフリック:</b> 素早く一気に落下（ハードドロップ）</li>
+            <li><b class="text-white">下にフリック:</b> 落下速度をアップ</li>
           </ul>
         </div>
 
@@ -353,18 +353,6 @@
         merge(grid, player);
         checkAndClearLines();
       }
-      dropCounter = 0;
-    }
-
-    // ハードドロップ（一番下まで一気に落下させる関数）
-    function playerHardDrop() {
-      if (!isRunning || isPaused || isGameOver || isClearingLines) return;
-      while (!collide(grid, player)) {
-        player.pos.y++;
-      }
-      player.pos.y--;
-      merge(grid, player);
-      checkAndClearLines();
       dropCounter = 0;
     }
 
@@ -658,7 +646,7 @@
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      // 左右フリックと同様に、一定以上スワイプしたら即座に処理を行う
+      // Trigger movement if dragged beyond threshold
       if (absX > 20 && absX > absY) {
         if (diffX > 0) {
           playerMove(1);
@@ -669,13 +657,8 @@
         touchStartY = touch.clientY;
         hasMoved = true;
       } 
-      else if (absY > 20 && absY > absX) {
-        if (diffY > 0) {
-          // 下方向へのフリック：素早く一気に落下（ハードドロップ）
-          playerHardDrop();
-        }
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
+      else if (diffY > 20 && absY > absX) {
+        isSoftDropping = true;
         hasMoved = true;
       }
     }, { passive: true });
@@ -694,6 +677,7 @@
 
     // Prevent any duplicate mouse/click listeners on canvas to avoid double rotation
     canvas.addEventListener('click', (e) => {
+      // Handled purely by touch events on mobile; desktop click is optional or disabled to prevent double trigger
       e.preventDefault();
     });
 
