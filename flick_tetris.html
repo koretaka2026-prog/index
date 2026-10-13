@@ -73,11 +73,11 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <button id="btn-pause" class="px-3 py-1.5 rounded-lg glass-panel hover:bg-white/10 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center gap-1">
+      <button id="btn-pause" class="px-3 py-1.5 rounded-lg glass-panel hover:bg-white/15 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center gap-1 cursor-pointer">
         <i class="fa-solid fa-pause text-cyan-400"></i>
         <span>一時停止</span>
       </button>
-      <button id="btn-help" class="px-3 py-1.5 rounded-lg glass-panel hover:bg-white/10 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center gap-1">
+      <button id="btn-help" class="px-3 py-1.5 rounded-lg glass-panel hover:bg-white/15 active:scale-95 transition text-xs sm:text-sm font-semibold flex items-center gap-1 cursor-pointer">
         <i class="fa-solid fa-circle-question text-pink-400"></i>
         <span>ヘルプ</span>
       </button>
@@ -88,15 +88,15 @@
   <main id="game-touch-area" class="flex-1 w-full max-w-lg flex flex-col items-center justify-center relative my-1">
     <div class="flex gap-4 items-center justify-center w-full">
       
-      <!-- Tetris Board Canvas Area (Larger visual size) -->
+      <!-- Tetris Board Canvas Area (Larger visual size for mobile) -->
       <div class="relative touch-none flex flex-col items-center">
-        <canvas id="tetris" width="240" height="480" class="w-[240px] h-[480px] sm:w-[270px] sm:h-[540px]"></canvas>
+        <canvas id="tetris" width="240" height="480" class="w-[260px] h-[520px] sm:w-[280px] sm:h-[560px]"></canvas>
 
         <!-- Start Overlay -->
         <div id="overlay-start" class="absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center gap-4 p-4 text-center z-20">
           <div class="text-3xl font-black font-orbitron text-cyan-400 text-glow">READY?</div>
           <p class="text-xs text-gray-300">タップまたは[START]で開始</p>
-          <button id="btn-start" class="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-bold text-white shadow-lg shadow-cyan-500/30 hover:brightness-110 active:scale-95 transition">
+          <button id="btn-start" class="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-bold text-white shadow-lg shadow-cyan-500/30 hover:brightness-110 active:scale-95 transition cursor-pointer">
             <i class="fa-solid fa-play mr-2"></i>ゲームスタート
           </button>
         </div>
@@ -104,7 +104,7 @@
         <!-- Pause Overlay -->
         <div id="overlay-pause" class="hidden absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center gap-4 p-4 text-center z-20">
           <div class="text-2xl font-black font-orbitron text-yellow-400 text-glow">PAUSED</div>
-          <button id="btn-resume" class="px-6 py-2 bg-yellow-500 rounded-full font-bold text-slate-900 shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition">
+          <button id="btn-resume" class="px-6 py-2 bg-yellow-500 rounded-full font-bold text-slate-900 shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition cursor-pointer">
             <i class="fa-solid fa-play mr-1.5"></i>再開
           </button>
         </div>
@@ -114,7 +114,7 @@
           <div class="text-2xl font-black font-orbitron text-rose-500 text-glow">GAME OVER</div>
           <div class="text-xs text-gray-400">SCORE</div>
           <div id="final-score" class="text-2xl font-black font-orbitron text-white">0</div>
-          <button id="btn-restart" class="mt-2 px-6 py-2 bg-gradient-to-r from-rose-500 to-purple-600 rounded-full font-bold text-white shadow-lg shadow-rose-500/30 hover:brightness-110 active:scale-95 transition">
+          <button id="btn-restart" class="mt-2 px-6 py-2 bg-gradient-to-r from-rose-500 to-purple-600 rounded-full font-bold text-white shadow-lg shadow-rose-500/30 hover:brightness-110 active:scale-95 transition cursor-pointer">
             <i class="fa-solid fa-rotate-right mr-1.5"></i>もう一度遊ぶ
           </button>
         </div>
@@ -161,7 +161,7 @@
       </div>
       <div class="flex items-center gap-1">
         <span class="text-pink-400 font-bold"><i class="fa-solid fa-hand-pointer mr-1"></i>スマホ:</span>
-        <span>画面どこでもタップで回転 / フリックで移動・加速</span>
+        <span>どこでもタップで回転 / フリックで移動・加速</span>
       </div>
     </div>
   </footer>
@@ -169,7 +169,7 @@
   <!-- Help / Instructions Modal -->
   <div id="modal-help" class="hidden fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="glass-panel w-full max-w-sm rounded-2xl p-5 border border-white/20 modal-enter relative shadow-2xl">
-      <button id="btn-close-help" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1">
+      <button id="btn-close-help" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1 cursor-pointer">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
@@ -197,7 +197,7 @@
             <i class="fa-solid fa-mobile-screen"></i> スマホの操作 (ジェスチャー)
           </div>
           <ul class="space-y-1 text-gray-300 text-xs">
-            <li><b class="text-white">ゲーム画面のどこでもタップ:</b> ブロック回転 (1回)</li>
+            <li><b class="text-white">画面のどこをタップしても:</b> ブロックが1回(90度)回転</li>
             <li><b class="text-white">左にフリック:</b> 左へ移動</li>
             <li><b class="text-white">右にフリック:</b> 右へ移動</li>
             <li><b class="text-white">下にフリック:</b> 落下速度をアップ</li>
@@ -218,7 +218,7 @@
         </div>
       </div>
 
-      <button id="btn-modal-ok" class="mt-4 w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition text-sm">
+      <button id="btn-modal-ok" class="mt-4 w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition text-sm cursor-pointer">
         閉じる
       </button>
     </div>
@@ -622,20 +622,20 @@
       }
     });
 
-    // --- CONTROLS: TOUCH, SWIPE & CLICK (Mobile & PC) ---
+    // --- CONTROLS: UNIFIED TOUCH, SWIPE & CLICK HANDLING ---
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
-    let isSwiping = false;
+    let hasMoved = false;
 
-    // We bind touch listeners to the expanded #game-touch-area wrapper container
+    // Unified touch start across the entire main game wrapper
     gameTouchArea.addEventListener('touchstart', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
       const touch = e.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
       touchStartTime = Date.now();
-      isSwiping = false;
+      hasMoved = false;
     }, { passive: true });
 
     gameTouchArea.addEventListener('touchmove', (e) => {
@@ -646,7 +646,8 @@
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      if (absX > 25 && absX > absY) {
+      // Trigger movement if dragged beyond threshold
+      if (absX > 20 && absX > absY) {
         if (diffX > 0) {
           playerMove(1);
         } else {
@@ -654,11 +655,11 @@
         }
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
-        isSwiping = true;
+        hasMoved = true;
       } 
-      else if (diffY > 25 && absY > absX) {
+      else if (diffY > 20 && absY > absX) {
         isSoftDropping = true;
-        isSwiping = true;
+        hasMoved = true;
       }
     }, { passive: true });
 
@@ -668,20 +669,16 @@
 
       const touchDuration = Date.now() - touchStartTime;
       
-      // Single tap recognition without double-triggering
-      if (!isSwiping && touchDuration < 300) {
+      // If it was a quick tap without significant movement, trigger rotation strictly once
+      if (!hasMoved && touchDuration < 350) {
         playerRotate();
       }
     });
 
-    // Handle desktop mouse click on canvas for rotation
+    // Prevent any duplicate mouse/click listeners on canvas to avoid double rotation
     canvas.addEventListener('click', (e) => {
-      if (!isRunning || isPaused || isGameOver || isClearingLines) return;
-      // Trigger rotation only if it's a genuine mouse pointer event to avoid double tap firing on mobile
-      if (e.pointerType === 'mouse' || e.detail > 0) {
-        // Prevent double trigger if touch event already handled it
-        playerRotate();
-      }
+      // Handled purely by touch events on mobile; desktop click is optional or disabled to prevent double trigger
+      e.preventDefault();
     });
 
     // --- BUTTON EVENT LISTENERS ---
