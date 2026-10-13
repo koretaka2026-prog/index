@@ -200,7 +200,7 @@
             <li><b class="text-white">画面のどこをタップしても:</b> ブロックが1回(90度)回転</li>
             <li><b class="text-white">左にフリック:</b> 左へ移動</li>
             <li><b class="text-white">右にフリック:</b> 右へ移動</li>
-            <li><b class="text-white">下にフリック:</b> 落下速度をアップ</li>
+            <li><b class="text-white">下にフリック:</b> 一気に最下層へ落下（ハードドロップ）</li>
           </ul>
         </div>
 
@@ -210,8 +210,8 @@
             <i class="fa-solid fa-lightbulb"></i> ルール＆注意点
           </div>
           <ul class="list-disc list-inside space-y-1 text-gray-300 text-xs">
+            <li>ブロックが着地した瞬間、一瞬白くフラッシュします。</li>
             <li>横一列を揃えると消去されスコア獲得！</li>
-            <li>消去時は行が点滅して演出されます。</li>
             <li>レベルが上がるとブロックの落下速度が速くなります。</li>
             <li>一番上まで積み上がるとゲームオーバーです。</li>
           </ul>
@@ -350,10 +350,54 @@
       player.pos.y++;
       if (collide(grid, player)) {
         player.pos.y--;
-        merge(grid, player);
-        checkAndClearLines();
+        lockPiece();
       }
       dropCounter = 0;
+    }
+
+    function playerHardDrop() {
+      if (!isRunning || isPaused || isGameOver || isClearingLines) return;
+      while (!collide(grid, player)) {
+        player.pos.y++;
+      }
+      player.pos.y--;
+      lockPiece();
+      dropCounter = 0;
+    }
+
+    // ブロック着地時の固定化と、一瞬白く光るフラッシュ演出
+    function lockPiece() {
+      // 1. 一時的にグリッドに配置する座標を記録
+      const landedCoords = [];
+      player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value !== 0) {
+            const gy = y + player.pos.y;
+            const gx = x + player.pos.x;
+            if (gy >= 0 && gy < ROWS && gx >= 0 && gx < COLS) {
+              grid[gy][gx] = value;
+              landedCoords.push({ x: gx, y: gy });
+            }
+          }
+        });
+      });
+
+      isClearingLines = true; // 操作や通常落下を一時ロック
+
+      // 2. 着地した瞬間、該当ブロックをマイナス値（白く光る特殊フラグ）にして描画
+      landedCoords.forEach(c => {
+        grid[c.y][c.x] = -Math.abs(grid[c.y][c.x]);
+      });
+      draw();
+
+      // 3. 短い時間（100ms）後に通常の色に戻し、ライン消去判定へ進む
+      setTimeout(() => {
+        landedCoords.forEach(c => {
+          grid[c.y][c.x] = Math.abs(grid[c.y][c.x]);
+        });
+        isClearingLines = false;
+        checkAndClearLines();
+      }, 100);
     }
 
     function collide(grid, player) {
@@ -370,16 +414,6 @@
         }
       }
       return false;
-    }
-
-    function merge(grid, player) {
-      player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-          if (value !== 0) {
-            grid[y + player.pos.y][x + player.pos.x] = value;
-          }
-        });
-      });
     }
 
     function checkAndClearLines() {
@@ -400,7 +434,7 @@
       if (linesToClear.length > 0) {
         isClearingLines = true;
         let flashCount = 0;
-        const maxFlashes = 4; // Flashes before removal
+        const maxFlashes = 4; // 消去時の点滅回数
 
         if (clearingLinesAnimTimer) clearInterval(clearingLinesAnimTimer);
 
@@ -454,7 +488,7 @@
       if (isFlashing) {
         ctx.fillStyle = '#ffffff';
         ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20;
       } else {
         ctx.fillStyle = color;
         ctx.shadowColor = color;
@@ -628,7 +662,6 @@
     let touchStartTime = 0;
     let hasMoved = false;
 
-    // Unified touch start across the entire main game wrapper
     gameTouchArea.addEventListener('touchstart', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
       const touch = e.touches[0];
@@ -646,7 +679,6 @@
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      // Trigger movement if dragged beyond threshold
       if (absX > 20 && absX > absY) {
         if (diffX > 0) {
           playerMove(1);
@@ -657,8 +689,8 @@
         touchStartY = touch.clientY;
         hasMoved = true;
       } 
-      else if (diffY > 20 && absY > absX) {
-        isSoftDropping = true;
+      else if (absY > 30 && diffY > 0 && absY > absX) {
+        playerHardDrop();
         hasMoved = true;
       }
     }, { passive: true });
@@ -669,15 +701,12 @@
 
       const touchDuration = Date.now() - touchStartTime;
       
-      // If it was a quick tap without significant movement, trigger rotation strictly once
       if (!hasMoved && touchDuration < 350) {
         playerRotate();
       }
     });
 
-    // Prevent any duplicate mouse/click listeners on canvas to avoid double rotation
     canvas.addEventListener('click', (e) => {
-      // Handled purely by touch events on mobile; desktop click is optional or disabled to prevent double trigger
       e.preventDefault();
     });
 
