@@ -36,7 +36,7 @@
       user-select: none;
     }
 
-    /* Custom Canvas Style */
+    /* Custom Canvas Style - Larger display */
     canvas {
       border-radius: 8px;
       box-shadow: 0 0 20px rgba(0, 240, 255, 0.25), inset 0 0 15px rgba(0, 0, 0, 0.8);
@@ -65,7 +65,7 @@
 <body class="h-screen w-screen flex flex-col justify-between items-center p-2 sm:p-4 overflow-hidden no-select">
 
   <!-- Header Section -->
-  <header class="w-full max-w-md flex justify-between items-center z-10 py-1">
+  <header class="w-full max-w-lg flex justify-between items-center z-10 py-1">
     <div class="flex items-center">
       <h1 class="text-xl sm:text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-400">
         フリックテトリス
@@ -84,13 +84,13 @@
     </div>
   </header>
 
-  <!-- Main Game Layout -->
-  <main class="flex-1 w-full max-w-md flex flex-col items-center justify-center relative my-1">
-    <div class="flex gap-3 sm:gap-4 items-start justify-center w-full">
+  <!-- Main Game Layout - Expanded Touch Area covering screen wrapper -->
+  <main id="game-touch-area" class="flex-1 w-full max-w-lg flex flex-col items-center justify-center relative my-1">
+    <div class="flex gap-4 items-center justify-center w-full">
       
-      <!-- Tetris Board Canvas Area -->
+      <!-- Tetris Board Canvas Area (Larger visual size) -->
       <div class="relative touch-none flex flex-col items-center">
-        <canvas id="tetris" width="240" height="480" class="w-[200px] h-[400px] sm:w-[240px] sm:h-[480px]"></canvas>
+        <canvas id="tetris" width="240" height="480" class="w-[240px] h-[480px] sm:w-[270px] sm:h-[540px]"></canvas>
 
         <!-- Start Overlay -->
         <div id="overlay-start" class="absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center gap-4 p-4 text-center z-20">
@@ -121,28 +121,28 @@
       </div>
 
       <!-- Right Side Info Panel -->
-      <div class="flex flex-col gap-3 w-24 sm:w-28">
+      <div class="flex flex-col gap-3 w-28 sm:w-32">
         
         <!-- Next Block Preview -->
-        <div class="glass-panel p-2 sm:p-3 rounded-xl flex flex-col items-center">
+        <div class="glass-panel p-2.5 sm:p-3 rounded-xl flex flex-col items-center">
           <div class="text-[10px] sm:text-xs text-cyan-300 font-bold tracking-wider mb-1">NEXT</div>
           <canvas id="next" width="80" height="80" class="w-16 h-16 sm:w-20 sm:h-20 bg-transparent border-0 shadow-none"></canvas>
         </div>
 
         <!-- Score -->
-        <div class="glass-panel p-2 sm:p-3 rounded-xl flex flex-col items-center">
+        <div class="glass-panel p-2.5 sm:p-3 rounded-xl flex flex-col items-center">
           <div class="text-[10px] sm:text-xs text-gray-400 font-bold tracking-wider">SCORE</div>
           <div id="score" class="text-base sm:text-lg font-black font-orbitron text-yellow-400 text-glow">0</div>
         </div>
 
         <!-- Lines -->
-        <div class="glass-panel p-2 sm:p-3 rounded-xl flex flex-col items-center">
+        <div class="glass-panel p-2.5 sm:p-3 rounded-xl flex flex-col items-center">
           <div class="text-[10px] sm:text-xs text-gray-400 font-bold tracking-wider">LINES</div>
           <div id="lines" class="text-base sm:text-lg font-black font-orbitron text-cyan-400">0</div>
         </div>
 
         <!-- Level -->
-        <div class="glass-panel p-2 sm:p-3 rounded-xl flex flex-col items-center">
+        <div class="glass-panel p-2.5 sm:p-3 rounded-xl flex flex-col items-center">
           <div class="text-[10px] sm:text-xs text-gray-400 font-bold tracking-wider">LEVEL</div>
           <div id="level" class="text-base sm:text-lg font-black font-orbitron text-pink-400">1</div>
         </div>
@@ -153,7 +153,7 @@
   </main>
 
   <!-- Compact Control Hints Section -->
-  <footer class="w-full max-w-md py-1 px-2 z-10">
+  <footer class="w-full max-w-lg py-1 px-2 z-10">
     <div class="glass-panel rounded-xl p-2 text-center text-gray-300 text-[11px] sm:text-xs flex flex-wrap justify-around items-center gap-x-3 gap-y-1">
       <div class="flex items-center gap-1">
         <span class="text-cyan-400 font-bold"><i class="fa-solid fa-keyboard mr-1"></i>PC:</span>
@@ -161,7 +161,7 @@
       </div>
       <div class="flex items-center gap-1">
         <span class="text-pink-400 font-bold"><i class="fa-solid fa-hand-pointer mr-1"></i>スマホ:</span>
-        <span>タップ:回転</span> | <span>フリック:移動/加速</span>
+        <span>画面どこでもタップで回転 / フリックで移動・加速</span>
       </div>
     </div>
   </footer>
@@ -197,10 +197,10 @@
             <i class="fa-solid fa-mobile-screen"></i> スマホの操作 (ジェスチャー)
           </div>
           <ul class="space-y-1 text-gray-300 text-xs">
-            <li><b class="text-white">画面をタップ / クリック:</b> ブロック回転</li>
+            <li><b class="text-white">ゲーム画面のどこでもタップ:</b> ブロック回転 (1回)</li>
             <li><b class="text-white">左にフリック:</b> 左へ移動</li>
             <li><b class="text-white">右にフリック:</b> 右へ移動</li>
-            <li><b class="text-white">下にフリック:</b> 落下速度をアップ（長押しで継続）</li>
+            <li><b class="text-white">下にフリック:</b> 落下速度をアップ</li>
           </ul>
         </div>
 
@@ -230,6 +230,7 @@
     const ctx = canvas.getContext('2d');
     const nextCanvas = document.getElementById('next');
     const nextCtx = nextCanvas.getContext('2d');
+    const gameTouchArea = document.getElementById('game-touch-area');
 
     const COLS = 10;
     const ROWS = 20;
@@ -405,7 +406,6 @@
 
         clearingLinesAnimTimer = setInterval(() => {
           flashCount++;
-          // Temporarily toggle row values for flashing effect
           linesToClear.forEach(y => {
             for (let x = 0; x < COLS; x++) {
               grid[y][x] = grid[y][x] > 0 ? -grid[y][x] : Math.abs(grid[y][x]);
@@ -416,7 +416,6 @@
           if (flashCount >= maxFlashes) {
             clearInterval(clearingLinesAnimTimer);
             
-            // Actually remove the lines
             linesToClear.sort((a, b) => a - b).forEach(y => {
               grid.splice(y, 1);
               grid.unshift(new Array(COLS).fill(0));
@@ -433,7 +432,7 @@
             isClearingLines = false;
             resetPlayer();
           }
-        }, 60); // 60ms per flash frame
+        }, 60);
 
       } else {
         resetPlayer();
@@ -464,18 +463,15 @@
       
       ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
 
-      // Inner highlight
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.shadowBlur = 0;
       ctx.fillRect(x * size + 2, y * size + 2, size - 4, 3);
     }
 
     function draw() {
-      // Clear board
       ctx.fillStyle = '#080814';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw grid lines
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
       ctx.lineWidth = 1;
       for (let x = 0; x <= COLS; x++) {
@@ -491,7 +487,6 @@
         ctx.stroke();
       }
 
-      // Draw settled blocks
       grid.forEach((row, y) => {
         row.forEach((value, x) => {
           if (value !== 0) {
@@ -500,7 +495,6 @@
         });
       });
 
-      // Draw current piece
       if (player.matrix && isRunning && !isClearingLines) {
         player.matrix.forEach((row, y) => {
           row.forEach((value, x) => {
@@ -596,7 +590,7 @@
     // --- CONTROLS: KEYBOARD (PC) ---
     document.addEventListener('keydown', (e) => {
       if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) {
-        e.preventDefault(); // Prevent page scrolling
+        e.preventDefault();
       }
 
       if (e.key === 'p' || e.key === 'P') {
@@ -616,7 +610,7 @@
         case 'ArrowDown':
           isSoftDropping = true;
           break;
-        case ' ': // Spacebar for rotation
+        case ' ':
           playerRotate();
           break;
       }
@@ -628,13 +622,14 @@
       }
     });
 
-    // --- CONTROLS: TOUCH & SWIPE (Mobile) & CLICK ---
+    // --- CONTROLS: TOUCH, SWIPE & CLICK (Mobile & PC) ---
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
     let isSwiping = false;
 
-    canvas.addEventListener('touchstart', (e) => {
+    // We bind touch listeners to the expanded #game-touch-area wrapper container
+    gameTouchArea.addEventListener('touchstart', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
       const touch = e.touches[0];
       touchStartX = touch.clientX;
@@ -643,7 +638,7 @@
       isSwiping = false;
     }, { passive: true });
 
-    canvas.addEventListener('touchmove', (e) => {
+    gameTouchArea.addEventListener('touchmove', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
       const touch = e.touches[0];
       const diffX = touch.clientX - touchStartX;
@@ -651,8 +646,7 @@
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      // Horizontal Swipe Threshold
-      if (absX > 30 && absX > absY) {
+      if (absX > 25 && absX > absY) {
         if (diffX > 0) {
           playerMove(1);
         } else {
@@ -662,29 +656,30 @@
         touchStartY = touch.clientY;
         isSwiping = true;
       } 
-      // Vertical Downward Swipe (Fast Drop)
-      else if (diffY > 30 && absY > absX) {
+      else if (diffY > 25 && absY > absX) {
         isSoftDropping = true;
         isSwiping = true;
       }
     }, { passive: true });
 
-    canvas.addEventListener('touchend', (e) => {
+    gameTouchArea.addEventListener('touchend', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
       isSoftDropping = false;
 
       const touchDuration = Date.now() - touchStartTime;
       
-      // Tap detection (quick touch without significant swipe)
-      if (!isSwiping && touchDuration < 250) {
+      // Single tap recognition without double-triggering
+      if (!isSwiping && touchDuration < 300) {
         playerRotate();
       }
     });
 
-    // Mouse click on canvas rotates piece (for PC click)
+    // Handle desktop mouse click on canvas for rotation
     canvas.addEventListener('click', (e) => {
       if (!isRunning || isPaused || isGameOver || isClearingLines) return;
-      if (e.pointerType === 'mouse') {
+      // Trigger rotation only if it's a genuine mouse pointer event to avoid double tap firing on mobile
+      if (e.pointerType === 'mouse' || e.detail > 0) {
+        // Prevent double trigger if touch event already handled it
         playerRotate();
       }
     });
