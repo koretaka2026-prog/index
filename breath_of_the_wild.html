@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>野生の大地 3D</title>
+<style>
+:root{--bg:#cfe3bd;--panel:rgba(250,248,236,.9);--ink:#26382a;--accent:#2f8f9d;--heart:#d8453a;--line:rgba(38,56,42,.25)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#142019;--panel:rgba(22,32,28,.9);--ink:#e6f0da;--accent:#6fd0dc;--heart:#ff6b5e;--line:rgba(230,240,218,.25)}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#142019;--panel:rgba(22,32,28,.9);--ink:#e6f0da;--accent:#6fd0dc;--heart:#ff6b5e;--line:rgba(230,240,218,.25)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;overflow:hidden;touch-action:none;user-select:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.6}
+#left{top:calc(10px + env(safe-area-inset-top,0px));left:10px}
+#hearts{font-size:22px;color:var(--heart);letter-spacing:2px;line-height:1.2}
+#right{top:calc(10px + env(safe-area-inset-top,0px));right:10px}
+#toast{top:calc(20px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);max-width:70vw;text-align:center;opacity:0;transition:opacity .4s;pointer-events:none}
+#toast.on{opacity:1}
+#ring{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));width:56px;height:56px;margin-left:-28px;border-radius:50%;opacity:0;transition:opacity .3s;pointer-events:none;-webkit-mask:radial-gradient(circle,transparent 55%,#000 57%);mask:radial-gradient(circle,transparent 55%,#000 57%)}
+#btns{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
+#btns button{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;box-sizing:border-box}
+#start div{max-width:480px;text-align:center}
+#start h1{font-size:clamp(34px,8vw,56px);margin:0 0 6px;letter-spacing:.12em}
+#start p{line-height:1.8;margin:10px 0}
+#go{margin-top:12px;font:inherit;font-size:18px;padding:12px 32px;border:2px solid var(--accent);background:transparent;color:var(--ink);border-radius:999px;cursor:pointer}
+#go:focus-visible,#btns button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud" id="left"><div id="hearts"></div><div id="stats"></div></div>
+<div class="hud" id="right"><div id="clock"></div></div>
+<div class="hud" id="toast"></div>
+<div id="ring"></div>
+<div id="btns"><button id="bRun">走る</button><button id="bAtk">攻撃</button><button id="bJump">跳ぶ</button></div>
+<div id="start"><div>
+<h1>野生の大地</h1>
+<p>朝もやの島に降り立った旅人。<br>丘を越え、湖を渡り、空へ向かって光る三本の祠の光を目指そう。</p>
+<p style="font-size:14px">移動：WASD　視点：マウスドラッグ / Q・E　走る：Shift<br>ジャンプ：Space　空中でSpaceを押し続けるとパラセールで滑空<br>攻撃：F　スマホ：左半分で移動、右半分で視点、右下のボタンで操作</p>
+<button id="go">冒険に出る</button>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const R=Math.random,PI=Math.PI;
+const hash=(x,y)=>{const h=Math.sin(x*127.1+y*311.7+9.1)*43758.5453;return h-Math.floor(h)};
+function noise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+const sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+function Ht(x,z){const d=Math.hypot(x,z);
+  const b=noise(x*.011,z*.011)*.6+noise(x*.034,z*.034)*.28+noise(x*.1,z*.1)*.12;
+  const h=(b-.42)*62-Math.max(0,d-100)*.6;return 3.5+(h-3.5)*sm(0,28,d)}
+
+const cv=document.getElementById('c');
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x8ecbf0,50,230);
+const cam=new THREE.PerspectiveCamera(60,1,.1,500);
+function resize(){ren.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+const hemi=new THREE.HemisphereLight(0xcfe8ff,0x55663a,.6);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff2d6,1);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35,near:1,far:250});scene.add(sun,sun.target);
+
+// 地形
+const g=new THREE.PlaneGeometry(300,300,150,150);g.rotateX(-PI/2);
+{const pos=g.attributes.position,col=new Float32Array(pos.count*3),c=new THREE.Color();
+for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),h=Ht(x,z);pos.setY(i,h);
+  const sl=Math.abs(Ht(x+2,z)-h)+Math.abs(Ht(x,z+2)-h);
+  if(h<.8)c.set('#e3d598');else if(sl>3.5||h>21)c.set('#8c8f94');else c.setHSL(.26+hash(x,z)*.04,.45,.4+hash(z,x)*.07+Math.min(h,15)*.004);
+  if(h>28)c.set('#eef2f5');col.set([c.r,c.g,c.b],i*3)}
+g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals()}
+const terrain=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true}));terrain.receiveShadow=true;scene.add(terrain);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(1200,1200).rotateX(-PI/2),new THREE.MeshLambertMaterial({color:0x3a8fb7,transparent:true,opacity:.78}));scene.add(water);
+
+// 木
+const trees=[];
+for(let i=0;i<1400&&trees.length<280;i++){const x=(R()-.5)*270,z=(R()-.5)*270,h=Ht(x,z);
+  if(h>1.5&&h<16&&Math.abs(Ht(x+2,z)-h)+Math.abs(Ht(x,z+2)-h)<2.5&&Math.hypot(x,z)>10)trees.push({x,z,h,s:.8+R()*.7})}
+const tr=new THREE.InstancedMesh(new THREE.CylinderGeometry(.25,.35,2.4,6).translate(0,1.2,0),new THREE.MeshLambertMaterial({color:0x6b4a2c}),trees.length);
+const cn=new THREE.InstancedMesh(new THREE.ConeGeometry(1.7,4.2,7).translate(0,4.2,0),new THREE.MeshLambertMaterial({color:0x3f7d3a}),trees.length);
+{const o=new THREE.Object3D();trees.forEach((t,i)=>{o.position.set(t.x,t.h,t.z);o.scale.setScalar(t.s);o.rotation.y=R()*6;o.updateMatrix();tr.setMatrixAt(i,o.matrix);cn.setMatrixAt(i,o.matrix)})}
+tr.castShadow=cn.castShadow=true;scene.add(tr,cn);
+
+function land(minD,lo,hi,from){for(let i=0;i<800;i++){const x=(R()-.5)*250,z=(R()-.5)*250,h=Ht(x,z);
+  if(h>lo&&h<hi&&Math.hypot(x,z)>minD&&Math.abs(Ht(x+2,z)-h)+Math.abs(Ht(x,z+2)-h)<2)return{x,z}}return{x:20,z:20}}
+
+// 祠
+const shrines=[];
+for(let i=0;i<3;i++){let p;for(let k=0;k<60;k++){p=land(55,2,13);if(shrines.every(s=>Math.hypot(s.x-p.x,s.z-p.z)>60))break}
+  const h=Ht(p.x,p.z),grp=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0xff9a2e});
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3,.8,8),new THREE.MeshLambertMaterial({color:0x8c8f96}));base.position.y=.4;
+  const pil=new THREE.Mesh(new THREE.BoxGeometry(1.6,4,1.6),new THREE.MeshLambertMaterial({color:0x3a3f4a}));pil.position.y=2.8;
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.1,.12,8,24),mat);ring.position.y=3.2;
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,90,12,1,true),new THREE.MeshBasicMaterial({color:0xff9a2e,transparent:true,opacity:.3,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));beam.position.y=45;
+  grp.add(base,pil,ring,beam);grp.position.set(p.x,h,p.z);scene.add(grp);shrines.push({x:p.x,z:p.z,mat,beam,ring,done:false})}
+
+// りんご
+const apples=[];const am=new THREE.MeshLambertMaterial({color:0xd8453a}),ag=new THREE.SphereGeometry(.3,8,6);
+function addApple(x,z){const m=new THREE.Mesh(ag,am);m.position.set(x,Ht(x,z)+.6,z);scene.add(m);apples.push(m)}
+for(let i=0;i<28;i++){const p=land(6,.8,16);addApple(p.x,p.z)}
+
+// スライム
+const enemies=[];const sg=new THREE.SphereGeometry(.8,14,10),sm2=new THREE.MeshLambertMaterial({color:0x8a6fd1}),eg=new THREE.SphereGeometry(.12,6,6),em=new THREE.MeshBasicMaterial({color:0xffffff});
+for(let i=0;i<16;i++){const p=land(30,.8,16),m=new THREE.Mesh(sg,sm2);m.castShadow=true;
+  for(const s of[-.28,.28]){const e=new THREE.Mesh(eg,em);e.position.set(s,.2,.7);m.add(e)}
+  scene.add(m);enemies.push({m,x:p.x,z:p.z,hp:2,kx:0,kz:0,t:0,dx:0,dz:0})}
+
+// プレイヤー
+const pl=new THREE.Group();
+const body=new THREE.Mesh(new THREE.CylinderGeometry(.4,.5,1.1,10),new THREE.MeshLambertMaterial({color:0x2f8f9d}));body.position.y=.75;
+const head=new THREE.Mesh(new THREE.SphereGeometry(.34,12,10),new THREE.MeshLambertMaterial({color:0xf1d3b0}));head.position.y=1.55;
+const hair=new THREE.Mesh(new THREE.SphereGeometry(.37,12,10,0,PI*2,0,PI*.55),new THREE.MeshLambertMaterial({color:0xeef1f4}));hair.position.y=1.6;hair.rotation.x=-.35;
+const pivot=new THREE.Group();pivot.position.set(.55,1,.1);
+const blade=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,1.2),new THREE.MeshLambertMaterial({color:0xd6dbe2}));blade.position.z=.7;pivot.add(blade);
+const glider=new THREE.Mesh(new THREE.BoxGeometry(3.2,.06,1.8),new THREE.MeshLambertMaterial({color:0xe8933a}));glider.position.y=2.4;glider.visible=false;
+[body,head,hair,pivot,glider].forEach(o=>{o.castShadow=true;pl.add(o)});scene.add(pl);
+
+const P={x:0,y:Ht(0,0),z:0,vy:0,face:PI,hp:6,max:6,st:100,exh:false,stDelay:0,atk:0,inv:0,shrines:0,ground:true,gl:false};
+let yaw=0,pitch=.35,clock=18,started=false,time=0,lastHp=-1;
+
+// 入力
+const keys={};let btnRun=false,btnJump=false,stick={x:0,y:0},sId=null,cId=null,sOrg,cLast,drag=false,dLast;
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){e.preventDefault();jump()}if(e.code==='KeyF')attack()});
+addEventListener('keyup',e=>keys[e.code]=false);
+function jump(){if(started&&P.ground){P.vy=8.5;P.ground=false;beep(400,.1)}}
+const hold=(id,on,off)=>{const b=document.getElementById(id);b.addEventListener('pointerdown',e=>{e.stopPropagation();on()});['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,off))};
+hold('bAtk',attack,()=>{});hold('bJump',()=>{btnJump=true;jump()},()=>btnJump=false);hold('bRun',()=>btnRun=true,()=>btnRun=false);
+cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){drag=true;dLast=[e.clientX,e.clientY]}
+  else if(e.clientX<innerWidth/2&&sId===null){sId=e.pointerId;sOrg=[e.clientX,e.clientY]}else if(cId===null){cId=e.pointerId;cLast=[e.clientX,e.clientY]}});
+cv.addEventListener('pointermove',e=>{
+  if(drag&&e.pointerType==='mouse'){yaw-=(e.clientX-dLast[0])*.005;pitch=Math.max(.05,Math.min(1.2,pitch+(e.clientY-dLast[1])*.004));dLast=[e.clientX,e.clientY]}
+  if(e.pointerId===sId){const dx=(e.clientX-sOrg[0])/45,dy=(e.clientY-sOrg[1])/45,l=Math.hypot(dx,dy);stick=l>.2?{x:dx/Math.max(l,1),y:dy/Math.max(l,1)}:{x:0,y:0}}
+  if(e.pointerId===cId){yaw-=(e.clientX-cLast[0])*.006;pitch=Math.max(.05,Math.min(1.2,pitch+(e.clientY-cLast[1])*.005));cLast=[e.clientX,e.clientY]}});
+['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,e=>{drag=false;if(e.pointerId===sId){sId=null;stick={x:0,y:0}}if(e.pointerId===cId)cId=null}));
+
+let ac;function beep(f,d,delay=0,type='sine'){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;
+  const t=ac.currentTime+delay;g.gain.setValueAtTime(.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d)}
+const toastEl=document.getElementById('toast');let toastT;
+function toast(s){toastEl.textContent=s;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),3500)}
+
+function attack(){if(!started||P.atk>0)return;P.atk=.35;beep(300,.12,0,'triangle');
+  const fx=Math.sin(P.face),fz=Math.cos(P.face);
+  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i],dx=e.x-P.x,dz=e.z-P.z,d=Math.hypot(dx,dz);
+    if(d<3.4&&(dx*fx+dz*fz)/(d||1)>.1){e.hp--;e.kx=fx*14;e.kz=fz*14;beep(180,.1,0,'square');
+      if(e.hp<=0){scene.remove(e.m);if(R()<.6)addApple(e.x,e.z);enemies.splice(i,1)}}}}
+
+function blockedAt(x,z){for(const t of trees)if((t.x-x)**2+(t.z-z)**2<1.3)return true;return false}
+
+function update(dt){
+  time+=dt;clock+=dt;if(P.atk>0)P.atk-=dt;if(P.inv>0)P.inv-=dt;
+  if(keys.KeyQ)yaw+=1.8*dt;if(keys.KeyE)yaw-=1.8*dt;
+  const ix=(keys.KeyD?1:0)-(keys.KeyA?1:0)+stick.x,iy=(keys.KeyS?1:0)-(keys.KeyW?1:0)+stick.y;
+  const l=Math.hypot(ix,iy),mv=l>.1,n=Math.min(1,l);
+  const mx=mv?(ix*Math.cos(yaw)+iy*Math.sin(yaw))/l:0,mz=mv?(-ix*Math.sin(yaw)+iy*Math.cos(yaw))/l:0;
+  const run=(keys.ShiftLeft||keys.ShiftRight||btnRun)&&mv&&!P.exh&&P.st>0&&P.ground;
+  if(run){P.st-=26*dt;P.stDelay=.7;if(P.st<=0){P.st=0;P.exh=true}}
+  else{if(P.stDelay>0)P.stDelay-=dt;else P.st=Math.min(100,P.st+30*dt);if(P.exh&&P.st>=50)P.exh=false}
+  P.gl=!P.ground&&(keys.Space||btnJump)&&P.vy<0;
+  const sp=(P.gl?10:run?9.5:P.ground?5.5:6)*n*(P.atk>0?.5:1),dist=sp*dt;
+  const tryMove=(nx,nz)=>{const hn=Ht(nx,nz);
+    if(P.ground&&(hn<-.4||hn-P.y>dist*1.5+.05))return false;if(!P.ground&&hn>P.y+.1)return false;
+    if(blockedAt(nx,nz))return false;P.x=nx;P.z=nz;return true};
+  if(mv&&!tryMove(P.x+mx*dist,P.z+mz*dist)){if(!tryMove(P.x+mx*dist,P.z))tryMove(P.x,P.z+mz*dist)}
+  if(mv){const t=Math.atan2(mx,mz);let d=((t-P.face+PI)%(2*PI)+2*PI)%(2*PI)-PI;P.face+=d*Math.min(1,12*dt)}
+  P.vy-=22*dt;if(P.gl)P.vy=Math.max(P.vy,-2.2);P.y+=P.vy*dt;
+  const gy=Ht(P.x,P.z);if(P.y<=gy){P.y=gy;P.vy=0;P.ground=true}else if(P.y>gy+.15)P.ground=false;
+  glider.visible=P.gl;
+  pivot.rotation.x=P.atk>0?-(1-P.atk/.35)*2.4+.4:.5;
+  pl.position.set(P.x,P.y,P.z);pl.rotation.y=P.face;
+  for(let i=apples.length-1;i>=0;i--){const a=apples[i];a.position.y=Ht(a.position.x,a.position.z)+.6+Math.sin(time*2+i)*.1;
+    if(Math.hypot(a.position.x-P.x,a.position.z-P.z)<1.5&&Math.abs(a.position.y-P.y)<2.5){scene.remove(a);apples.splice(i,1);P.hp=Math.min(P.max,P.hp+1);beep(660,.1)}}
+  for(const s of shrines){const d=Math.hypot(s.x-P.x,s.z-P.z);s.ring.rotation.y=time;s.ring.rotation.x=time*.6;
+    if(!s.done&&d<4){s.done=true;P.shrines++;P.max+=2;P.hp=P.max;s.mat.color.set(0x4fc3f7);s.beam.material.color.set(0x4fc3f7);
+      [523,659,784,1047].forEach((f,i)=>beep(f,.4,i*.12));toast(P.shrines===3?'三つの祠をすべて解放した。あなたは大地を巡る旅人だ。':'祠を解放した。ハートの器が増えた。')}}
+  for(const e of enemies){const dx=P.x-e.x,dz=P.z-e.z,d=Math.hypot(dx,dz);let vx=0,vz=0;
+    if(d<22){vx=dx/d*3.4;vz=dz/d*3.4}else{e.t-=dt;if(e.t<=0){e.t=1+R()*2;const a=R()*6.28,k=R()<.4?0:1;e.dx=Math.cos(a)*k;e.dz=Math.sin(a)*k}vx=e.dx*1.6;vz=e.dz*1.6}
+    vx+=e.kx;vz+=e.kz;e.kx*=.88;e.kz*=.88;
+    const nx=e.x+vx*dt,nz=e.z+vz*dt,hn=Ht(nx,nz);if(hn>-.2&&hn-Ht(e.x,e.z)<.3){e.x=nx;e.z=nz}
+    const b=Math.abs(Math.sin(time*4+e.x));e.m.position.set(e.x,Ht(e.x,e.z)+.55+b*.35,e.z);e.m.scale.set(1+(1-b)*.1,.7+b*.2,1+(1-b)*.1);e.m.rotation.y=Math.atan2(dx,dz);
+    if(d<1.5&&P.inv<=0&&Math.abs(P.y-e.m.position.y)<2){P.hp--;P.inv=1.2;beep(120,.25,0,'sawtooth');P.x-=dx/d*1.5;P.z-=dz/d*1.5;
+      if(P.hp<=0){P.hp=P.max;P.x=0;P.z=0;P.y=Ht(0,0)+1;P.inv=2;toast('力尽きた。はじまりの草原で目を覚ました。')}}}
+  water.position.y=Math.sin(time*.8)*.08;
+  // 昼夜
+  const ang=clock/150*2*PI,el=Math.sin(ang),L=Math.max(0,Math.min(1,.5+el*1.3));
+  const sky=new THREE.Color(0x0d1630).lerp(new THREE.Color(0x8ecbf0),L);
+  if(Math.abs(el)<.3)sky.lerp(new THREE.Color(0xf2a76a),.55*(1-Math.abs(el)/.3));
+  scene.background=sky;scene.fog.color.copy(sky);
+  sun.intensity=.12+.95*L;hemi.intensity=.2+.5*L;sun.color.set(Math.abs(el)<.3?0xffb070:0xfff2d6);
+  sun.position.set(P.x+Math.cos(ang)*80,P.y+Math.max(el,.12)*80,P.z+30);sun.target.position.set(P.x,P.y,P.z);
+  document.getElementById('clock').textContent=L>.8?'昼':L>.3?(Math.cos(ang)>0?'朝':'夕'):'夜';
+  // カメラ
+  const cd=8,tx=P.x,ty=P.y+1.8,tz=P.z;
+  let cx=tx+Math.sin(yaw)*Math.cos(pitch)*cd,cy=ty+Math.sin(pitch)*cd,cz=tz+Math.cos(yaw)*Math.cos(pitch)*cd;
+  cy=Math.max(cy,Ht(cx,cz)+1.2);cam.position.set(cx,cy,cz);cam.lookAt(tx,ty,tz);
+}
+
+const heartsEl=document.getElementById('hearts'),statsEl=document.getElementById('stats'),ring=document.getElementById('ring');
+function hud(){const key=P.hp+'/'+P.max;if(key!==lastHp){lastHp=key;let h='';for(let i=0;i<P.max/2;i++)h+=P.hp>=2*i+2?'♥':P.hp===2*i+1?'<span style="opacity:.55">♥</span>':'♡';heartsEl.innerHTML=h}
+  let nd=1e9;for(const s of shrines)if(!s.done)nd=Math.min(nd,Math.hypot(s.x-P.x,s.z-P.z));
+  statsEl.textContent='祠 '+P.shrines+' / 3'+(nd<1e8?'　最寄りの祠 '+Math.round(nd)+'m':'');
+  ring.style.opacity=P.st<99?1:0;ring.style.background=`conic-gradient(${P.exh?'#ff7a45':'#9be37a'} ${P.st*3.6}deg, rgba(0,0,0,.25) 0)`}
+
+let last=0;
+function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(started)update(dt);else{cam.position.set(Math.sin(t/4000)*40,Ht(0,0)+22,Math.cos(t/4000)*40);cam.lookAt(0,Ht(0,0),0);sun.position.set(40,80,30)}
+  ren.render(scene,cam);hud();requestAnimationFrame(loop)}
+document.getElementById('go').addEventListener('click',()=>{started=true;document.getElementById('start').style.display='none';
+  try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}toast('空へ伸びるオレンジ色の光が祠だ。まずは辺りを歩いてみよう。')});
+scene.background=new THREE.Color(0x8ecbf0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
